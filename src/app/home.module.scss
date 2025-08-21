@@ -1,0 +1,17 @@
+@use "../styles/variables" as *;
+
+.home {
+  padding: 2rem;
+  text-align: center;
+
+  nav {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+
+    a {
+      color: $color-primary;
+    }
+  }
+}

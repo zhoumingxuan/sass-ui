@@ -1,0 +1,44 @@
+@use '../../styles/variables' as *;
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th, td {
+    padding: 0.5rem;
+    border-bottom: 1px solid #eee;
+  }
+
+  th {
+    text-align: left;
+    background: #fafafa;
+  }
+
+  td > button:not(:last-child) {
+    margin-right: 0.5rem;
+  }
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+
+  input {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+  }
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
