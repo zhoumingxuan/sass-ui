@@ -1,0 +1,18 @@
+@use "../styles/variables" as *;
+
+body {
+  margin: 0;
+  background: $color-bg;
+  color: #333;
+  font-family: var(--font-sans, $font-family);
+}
+
+a {
+  color: $color-primary;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}

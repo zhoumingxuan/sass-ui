@@ -1,0 +1,21 @@
+@use '../styles/variables' as *;
+
+.button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 14px;
+}
+
+.primary {
+  background: $color-primary;
+}
+
+.secondary {
+  background: $color-secondary;
+}
+
+.danger {
+  background: $color-danger;
+}
