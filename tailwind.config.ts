@@ -7,8 +7,11 @@ export default {
     extend: {
       colors: {
         primary: '#1e80ff',
-        secondary: '#13c2c2',
-        danger: '#ff4d4f',
+        default: '#d1d5db',
+        warning: '#faad14',
+        success: '#52c41a',
+        error: '#ff4d4f',
+        info: '#13c2c2',
         bg: '#f7f8fa',
       },
       fontFamily: {

@@ -2,16 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Global resets without using Tailwind's @apply */
+/* Design tokens */
+:root {
+  --color-primary: theme("colors.primary");
+  --color-default: theme("colors.default");
+  --color-warning: theme("colors.warning");
+  --color-success: theme("colors.success");
+  --color-error: theme("colors.error");
+  --color-info: theme("colors.info");
+  --color-bg: theme("colors.bg");
+  --color-text: theme("colors.gray.800");
+}
+
+/* Global resets */
 body {
   margin: 0;
-  background-color: #f7f8fa;
-  color: #1f2937; /* tailwind text-gray-800 */
-  font-family: 'Noto Sans', 'Noto Sans CJK SC', sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans, 'Noto Sans', 'Noto Sans CJK SC', sans-serif);
 }
 
 a {
-  color: #1e80ff; /* tailwind primary */
+  color: var(--color-primary);
   text-decoration: none;
 }
 
