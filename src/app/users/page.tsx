@@ -29,8 +29,8 @@ export default function Users() {
             <td className="p-2 border-b">zhang@example.com</td>
             <td className="p-2 border-b">
               <div className="flex gap-2">
-                <Button variant="secondary" onClick={() => setShowEdit(true)}>修改</Button>
-                <Button variant="danger" onClick={() => setShowDelete(true)}>删除</Button>
+                <Button variant="default" onClick={() => setShowEdit(true)}>修改</Button>
+                <Button variant="error" onClick={() => setShowDelete(true)}>删除</Button>
               </div>
             </td>
           </tr>
@@ -60,7 +60,7 @@ export default function Users() {
       <Modal show={showDelete} title="删除用户" onClose={() => setShowDelete(false)}>
         <p>确定删除该用户吗？</p>
         <div className="flex justify-end">
-          <Button variant="danger" onClick={() => setShowDelete(false)}>删除</Button>
+          <Button variant="error" onClick={() => setShowDelete(false)}>删除</Button>
         </div>
       </Modal>
     </div>
