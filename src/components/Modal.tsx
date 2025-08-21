@@ -1,7 +1,6 @@
 'use client';
 
 import { ReactNode } from 'react';
-import styles from './Modal.module.scss';
 
 type Props = {
   show: boolean;
@@ -13,13 +12,18 @@ type Props = {
 export default function Modal({ show, title, children, onClose }: Props) {
   if (!show) return null;
   return (
-    <div className={styles.overlay}>
-      <div className={styles.modal}>
-        <div className={styles.header}>
-          <h3>{title}</h3>
-          <button onClick={onClose}>×</button>
+    <div className="fixed inset-0 bg-black/40 flex justify-center items-center">
+      <div className="bg-white p-4 rounded-md w-[400px]">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="m-0">{title}</h3>
+          <button
+            onClick={onClose}
+            className="bg-transparent border-0 text-xl cursor-pointer"
+          >
+            ×
+          </button>
         </div>
-        <div className={styles.content}>{children}</div>
+        <div>{children}</div>
       </div>
     </div>
   );

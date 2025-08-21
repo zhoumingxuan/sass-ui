@@ -1,5 +1,4 @@
 import { ReactNode } from 'react';
-import styles from './Card.module.scss';
 
 type Props = {
   title?: string;
@@ -8,8 +7,8 @@ type Props = {
 
 export default function Card({ title, children }: Props) {
   return (
-    <div className={styles.card}>
-      {title && <h3 className={styles.title}>{title}</h3>}
+    <div className="bg-white p-4 rounded-lg shadow mb-4">
+      {title && <h3 className="mt-0 mb-4 text-lg text-primary">{title}</h3>}
       {children}
     </div>
   );
