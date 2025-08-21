@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Noto_Sans_SC } from "next/font/google";
-import "./globals.scss";
+import "./globals.css";
 import NavBar from "@/components/NavBar";
 import Breadcrumbs from "@/components/Breadcrumbs";
 
@@ -22,7 +22,7 @@ export default function RootLayout({
     <html lang="zh">
       <body className={`${notoSans.variable} antialiased`}>
         <NavBar />
-        <div className="container">
+        <div className="mx-auto max-w-screen-xl p-4">
           <Breadcrumbs />
           <main>{children}</main>
         </div>

@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply m-0 bg-bg text-gray-800 font-sans;
+}
+
+a {
+  @apply text-primary no-underline;
+}
+
+button {
+  @apply font-inherit cursor-pointer;
+}
