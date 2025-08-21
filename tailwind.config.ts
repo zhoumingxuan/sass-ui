@@ -1,7 +1,8 @@
 import type { Config } from 'tailwindcss';
 
 export default {
-  content: ['./src/**/*.{ts,tsx}'],
+  // Include CSS files so that utilities used with `@apply` are recognized
+  content: ['./src/**/*.{ts,tsx,css}'],
   theme: {
     extend: {
       colors: {

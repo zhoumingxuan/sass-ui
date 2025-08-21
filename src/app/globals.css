@@ -2,14 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Global resets without using Tailwind's @apply */
 body {
-  @apply m-0 bg-bg text-gray-800 font-sans;
+  margin: 0;
+  background-color: #f7f8fa;
+  color: #1f2937; /* tailwind text-gray-800 */
+  font-family: 'Noto Sans', 'Noto Sans CJK SC', sans-serif;
 }
 
 a {
-  @apply text-primary no-underline;
+  color: #1e80ff; /* tailwind primary */
+  text-decoration: none;
 }
 
 button {
-  @apply font-inherit cursor-pointer;
+  font: inherit;
+  cursor: pointer;
 }
