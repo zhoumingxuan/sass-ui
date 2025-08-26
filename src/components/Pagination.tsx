@@ -15,7 +15,7 @@ export default function Pagination({
 }) {
   const totalPages = Math.ceil(total / pageSize);
   return (
-    <div className="flex justify-end items-center gap-2 p-2 text-sm bg-white rounded-lg shadow-sm">
+    <div className="flex justify-end items-center gap-2 p-2 text-sm bg-white border border-gray-200 rounded-lg shadow-sm">
       <Button
         variant="default"
         disabled={page <= 1}
