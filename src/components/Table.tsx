@@ -24,12 +24,12 @@ export default function Table<T extends Record<string, ReactNode>>({
   onPageChange: (p: number) => void;
 }) {
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden">
+    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
       <table className="w-full border-collapse">
         <thead>
           <tr>
             {columns.map((col) => (
-              <th key={String(col.key)} className="p-2 border-b bg-gray-50 text-left">
+              <th key={String(col.key)} className="border-b bg-gray-50 p-2 text-left">
                 {col.title}
               </th>
             ))}

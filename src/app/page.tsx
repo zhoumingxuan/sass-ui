@@ -14,6 +14,7 @@ import {
   DateRangeInput,
 } from '@/components/Input';
 import Table, { Column } from '@/components/Table';
+import Alert from '@/components/Alert';
 
 export default function Home() {
   const menuItems: MenuItem[] = [
@@ -78,6 +79,14 @@ export default function Home() {
           total={data.length}
           onPageChange={setPage}
         />
+      </Card>
+      <Card title="提示">
+        <div className="flex flex-col gap-2">
+          <Alert variant="success">操作成功</Alert>
+          <Alert variant="warning">警告信息</Alert>
+          <Alert variant="error">错误信息</Alert>
+          <Alert variant="info">提示信息</Alert>
+        </div>
       </Card>
     </Layout>
   );

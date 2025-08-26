@@ -4,7 +4,11 @@ import { ReactNode } from 'react';
 import Menu, { MenuItem } from './Menu';
 
 export function Header({ children }: { children: ReactNode }) {
-  return <div className="h-12 flex items-center px-4 border-b bg-white">{children}</div>;
+  return (
+    <div className="h-12 flex items-center px-4 border-b bg-white shadow-sm">
+      {children}
+    </div>
+  );
 }
 
 export function Content({ children }: { children: ReactNode }) {
