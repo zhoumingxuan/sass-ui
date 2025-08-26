@@ -47,7 +47,10 @@ export default function Home() {
   const paged = data.slice((page - 1) * pageSize, page * pageSize);
 
   return (
-    <Layout menuItems={menuItems} header={<div className="font-bold">Sass UI Demo</div>}>
+    <Layout
+      menuItems={menuItems}
+      header={<div className="text-xl font-semibold text-gray-800">Sass UI Demo</div>}
+    >
       <Card title="按钮">
         <div className="flex gap-2 flex-wrap">
           <Button variant="primary">主按钮</Button>

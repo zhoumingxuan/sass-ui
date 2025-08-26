@@ -15,7 +15,7 @@ function Item({ item, depth = 0 }: { item: MenuItem; depth?: number }) {
   return (
     <div>
       <div
-        className="p-2 rounded-lg cursor-pointer hover:bg-primary/10 transition-colors"
+        className="p-2 rounded-lg cursor-pointer hover:bg-primary/10 transition-colors text-gray-800"
         style={{ paddingLeft: depth * 16 + 8 }}
         onClick={() => (hasChildren ? setOpen(!open) : undefined)}
       >
@@ -34,7 +34,7 @@ function Item({ item, depth = 0 }: { item: MenuItem; depth?: number }) {
 
 export default function Menu({ items }: { items: MenuItem[] }) {
   return (
-    <aside className="w-48 bg-white border-r shadow-sm h-screen overflow-auto p-2 space-y-2">
+    <aside className="w-48 bg-primary/5 border-r border-gray-200 shadow-sm h-screen overflow-auto p-2 space-y-2">
       {items.map((item, idx) => (
         <Item key={idx} item={item} />
       ))}
