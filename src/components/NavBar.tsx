@@ -4,7 +4,7 @@ import { TextInput } from './Input';
 
 export default function NavBar() {
   return (
-    <header className="flex items-center justify-between bg-nav px-4 py-2 border-b border-gray-700 shadow-md">
+    <header className="flex items-center justify-between bg-gradient-to-b from-nav-deep to-nav px-4 py-2 border-b border-nav-hover shadow-md">
       <div className="flex items-center gap-2 font-bold text-white">
         <Image src="/logo.svg" alt="SassUI" width={32} height={32} />
         <span>SassUI</span>
@@ -18,7 +18,7 @@ export default function NavBar() {
       <div>
         <TextInput
           placeholder="搜索..."
-          className="h-8 w-48 bg-nav-hover text-gray-100 placeholder-gray-400 border border-nav-hover focus:border-primary focus:ring-1 focus:ring-primary"
+          className="h-8 w-48 bg-nav-sub text-indigo-50 placeholder-indigo-200 border border-nav-hover focus:border-primary focus:ring-1 focus:ring-primary"
         />
       </div>
     </header>

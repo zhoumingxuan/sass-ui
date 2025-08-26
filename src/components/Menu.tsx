@@ -24,10 +24,13 @@ function Item({
   const pathname = usePathname();
   const hasChildren = item.children && item.children.length > 0;
   const active = item.href ? pathname.startsWith(item.href) : false;
+  const depthBg = depth > 0 ? 'bg-nav-sub border-l-2 border-nav-hover' : '';
+  const hoverBg = depth > 0 ? 'hover:bg-nav-sub-hover' : 'hover:bg-nav-hover';
+  const openClass = hasChildren && open ? 'bg-nav-hover text-white' : '';
   return (
     <div>
       <div
-        className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors text-gray-300 hover:bg-nav-hover hover:text-white ${
+        className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors text-indigo-100 ${depthBg} ${hoverBg} hover:text-white ${openClass} ${
           active ? 'bg-primary text-white shadow-md' : ''
         }`}
         style={{ paddingLeft: depth * 16 + 8 }}
@@ -58,7 +61,7 @@ export default function Menu({
   const [collapsed, setCollapsed] = useState(false);
   return (
     <aside
-      className={`flex flex-col h-screen border-r border-gray-700 shadow-lg bg-nav text-gray-200 transition-all ${
+        className={`flex flex-col h-screen border-r border-nav-hover shadow-lg bg-gradient-to-b from-nav-deep to-nav text-indigo-100 transition-all ${
         collapsed ? 'w-16' : 'w-56'
       }`}
     >
@@ -67,12 +70,12 @@ export default function Menu({
           <Item key={idx} item={item} collapsed={collapsed} />
         ))}
       </div>
-      <div className="p-2 space-y-1 border-t border-gray-700">
+      <div className="p-2 space-y-1 border-t border-nav-hover bg-nav-deep">
         {footerItems.map((item, idx) => (
           <Item key={idx} item={item} collapsed={collapsed} />
         ))}
         <button
-          className="w-full text-left p-2 rounded-md text-gray-300 hover:bg-nav-hover hover:text-white"
+          className="w-full text-left p-2 rounded-md text-indigo-200 hover:bg-nav-hover hover:text-white"
           onClick={() => setCollapsed(!collapsed)}
           title={collapsed ? '展开菜单' : '收起菜单'}
         >
