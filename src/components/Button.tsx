@@ -9,7 +9,7 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 export default function Button({ variant = 'primary', className = '', ...props }: Props) {
   const base =
-    'inline-flex items-center justify-center rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium bg-white shadow-sm transition-shadow focus:outline-none focus:ring-2 focus:ring-offset-2 hover:shadow-md focus:shadow-md';
+    'inline-flex items-center justify-center rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium shadow-sm transition-shadow focus:outline-none focus:ring-2 focus:ring-offset-2 hover:shadow-md focus:shadow-md';
   const variants: Record<string, string> = {
     primary: 'bg-primary text-white hover:bg-primary/90 focus:ring-primary',
     default: 'bg-default text-black hover:bg-default/90 focus:ring-default',

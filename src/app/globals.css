@@ -4,18 +4,9 @@
 
 
 @layer base {
-  /* 仅保留非 Tailwind 的自定义变量 */
+  /* 仅保留非 Tailwind 注入的自定义变量，避免覆盖颜色变量 */
   :root {
-    /* v4：从 Tailwind 注入的同名 CSS 变量取值 */
-    --color-primary: var(--color-primary);
-    --color-default: var(--color-default);
-    --color-warning: var(--color-warning);
-    --color-success: var(--color-success);
-    --color-error:   var(--color-error);
-    --color-info:    var(--color-info);
-    --color-bg:      var(--color-bg);
-    /* text 保留个回退，避免未定义时发灰 */
-    --color-text:    var(--color-text, var(--color-gray-800));
+    --color-text: var(--color-gray-800);
     --spacing-unit: 8px;
   }
 

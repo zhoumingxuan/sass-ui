@@ -29,7 +29,7 @@ export default function Table<T extends Record<string, ReactNode>>({
         <thead>
           <tr>
             {columns.map((col) => (
-              <th key={String(col.key)} className="border-b bg-gray-50 p-2 text-left">
+              <th key={String(col.key)} className="border-b border-gray-200 bg-gray-50 p-2 text-left">
                 {col.title}
               </th>
             ))}
@@ -39,7 +39,7 @@ export default function Table<T extends Record<string, ReactNode>>({
           {data.map((row, idx) => (
             <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
               {columns.map((col) => (
-                <td key={String(col.key)} className="p-2 border-b">
+                <td key={String(col.key)} className="p-2 border-b border-gray-200">
                   {row[col.key] as ReactNode}
                 </td>
               ))}

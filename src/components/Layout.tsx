@@ -5,7 +5,7 @@ import Menu, { MenuItem } from './Menu';
 
 export function Header({ children }: { children: ReactNode }) {
   return (
-    <div className="h-12 flex items-center px-4 border-b bg-white shadow-sm">
+    <div className="h-12 flex items-center px-4 border-b border-gray-200 bg-white shadow-sm">
       {children}
     </div>
   );
