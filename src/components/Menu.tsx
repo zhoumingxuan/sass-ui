@@ -63,7 +63,7 @@ export default function Menu({
         collapsed ? 'w-16' : 'w-56'
       }`}
     >
-      <div className="flex-1 overflow-auto p-2 space-y-1">
+      <div className="flex-1 overflow-auto p-2 space-y-1 bg-nav">
         {items.map((item, idx) => (
           <Item key={idx} item={item} collapsed={collapsed} />
         ))}
