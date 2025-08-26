@@ -27,8 +27,8 @@ function Item({
   return (
     <div>
       <div
-        className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors text-gray-800 hover:bg-primary/10 ${
-          active ? 'bg-primary text-white border-l-4 border-primary' : ''
+        className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors text-gray-300 hover:bg-nav-hover hover:text-white ${
+          active ? 'bg-primary text-white shadow-md' : ''
         }`}
         style={{ paddingLeft: depth * 16 + 8 }}
         onClick={() => (hasChildren ? setOpen(!open) : undefined)}
@@ -58,7 +58,7 @@ export default function Menu({
   const [collapsed, setCollapsed] = useState(false);
   return (
     <aside
-      className={`flex flex-col h-screen border-r border-gray-200 shadow-sm bg-[#f4f6f8] transition-all ${
+      className={`flex flex-col h-screen border-r border-gray-700 shadow-lg bg-nav text-gray-200 transition-all ${
         collapsed ? 'w-16' : 'w-56'
       }`}
     >
@@ -67,12 +67,12 @@ export default function Menu({
           <Item key={idx} item={item} collapsed={collapsed} />
         ))}
       </div>
-      <div className="p-2 space-y-1 border-t border-gray-200">
+      <div className="p-2 space-y-1 border-t border-gray-700">
         {footerItems.map((item, idx) => (
           <Item key={idx} item={item} collapsed={collapsed} />
         ))}
         <button
-          className="w-full text-left p-2 rounded-lg hover:bg-primary/10"
+          className="w-full text-left p-2 rounded-md text-gray-300 hover:bg-nav-hover hover:text-white"
           onClick={() => setCollapsed(!collapsed)}
           title={collapsed ? '展开菜单' : '收起菜单'}
         >

@@ -13,6 +13,8 @@ export default {
         error:   '#ff4d4f',
         info:    '#13c2c2',
         bg:      '#f7f8fa',
+        nav: '#1f2937',
+        'nav-hover': '#374151',
       },
       fontFamily: {
         sans: ['Noto Sans', 'Noto Sans CJK SC', 'sans-serif'],
