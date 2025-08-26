@@ -1,33 +1,36 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-/* Design tokens */
-:root {
-  --color-primary: theme("colors.primary");
-  --color-default: theme("colors.default");
-  --color-warning: theme("colors.warning");
-  --color-success: theme("colors.success");
-  --color-error: theme("colors.error");
-  --color-info: theme("colors.info");
-  --color-bg: theme("colors.bg");
-  --color-text: theme("colors.gray.800");
-}
+@layer base {
+  /* Design tokens */
+  :root {
+    --color-primary: theme("colors.primary");
+    --color-default: theme("colors.default");
+    --color-warning: theme("colors.warning");
+    --color-success: theme("colors.success");
+    --color-error: theme("colors.error");
+    --color-info: theme("colors.info");
+    --color-bg: theme("colors.bg");
+    --color-text: theme("colors.gray.800");
+    --spacing-unit: 8px;
+  }
 
-/* Global resets */
-body {
-  margin: 0;
-  background-color: var(--color-bg);
-  color: var(--color-text);
-  font-family: var(--font-sans, 'Noto Sans', 'Noto Sans CJK SC', sans-serif);
-}
+  /* Global resets */
+  body {
+    margin: 0;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-sans, 'Noto Sans', 'Noto Sans CJK SC', sans-serif);
+    font-size: 14px;
+    line-height: 1.5;
+  }
 
-a {
-  color: var(--color-primary);
-  text-decoration: none;
-}
+  a {
+    color: var(--color-primary);
+    text-decoration: none;
+  }
 
-button {
-  font: inherit;
-  cursor: pointer;
+  button {
+    font: inherit;
+    cursor: pointer;
+  }
 }
