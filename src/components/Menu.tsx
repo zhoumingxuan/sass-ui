@@ -61,7 +61,7 @@ export default function Menu({
   const [collapsed, setCollapsed] = useState(false);
   return (
     <aside
-      className={`flex flex-col h-screen border-r border-nav-hover shadow-lg bg-gradient-to-b from-nav-deep to-nav text-indigo-100 transition-all ${
+        className={`flex flex-col h-screen border-r border-nav-hover shadow-lg bg-gradient-to-b from-nav-deep to-nav text-indigo-100 transition-all ${
         collapsed ? 'w-16' : 'w-56'
       }`}
     >
