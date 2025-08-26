@@ -3,12 +3,17 @@ import { ReactNode } from 'react';
 type Props = {
   title?: string;
   children: ReactNode;
+  className?: string;
 };
 
-export default function Card({ title, children }: Props) {
+export default function Card({ title, children, className = '' }: Props) {
   return (
-    <div className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow mb-4">
-      {title && <h3 className="mt-0 mb-4 text-lg text-primary">{title}</h3>}
+    <div
+      className={`mb-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md ${className}`}
+    >
+      {title && (
+        <h3 className="mt-0 mb-4 text-lg font-medium text-primary">{title}</h3>
+      )}
       {children}
     </div>
   );

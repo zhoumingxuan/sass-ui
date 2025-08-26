@@ -2,7 +2,8 @@
 
 import { InputHTMLAttributes, SelectHTMLAttributes } from 'react';
 
-const base = 'p-2 border border-gray-300 rounded w-full';
+const base =
+  'w-full p-2 border border-gray-200 rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-inner';
 
 export function TextInput({ className = '', ...props }: InputHTMLAttributes<HTMLInputElement>) {
   return <input type="text" className={`${base} ${className}`} {...props} />;
