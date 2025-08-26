@@ -7,6 +7,8 @@ import Card from '@/components/Card';
 import Table, { Column } from '@/components/Table';
 import { TextInput } from '@/components/Input';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import Layout from '@/components/Layout';
+import { menuItems, footerItems } from '@/components/menuItems';
 
 interface UserRow {
   username: string;
@@ -43,7 +45,11 @@ export default function Users() {
   ];
 
   return (
-    <>
+    <Layout
+      menuItems={menuItems}
+      footerItems={footerItems}
+      header={<div className="text-xl font-semibold text-gray-800">用户管理</div>}
+    >
       <Breadcrumbs />
       <div className="flex justify-between items-center mb-4">
         <h2>用户管理</h2>
@@ -88,7 +94,7 @@ export default function Users() {
           </Button>
         </div>
       </Modal>
-    </>
+    </Layout>
   );
 }
 
