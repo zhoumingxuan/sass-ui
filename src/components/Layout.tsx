@@ -18,15 +18,17 @@ export function Content({ children }: { children: ReactNode }) {
 export default function Layout({
   header,
   menuItems,
+  footerItems,
   children,
 }: {
   header?: ReactNode;
   menuItems: MenuItem[];
+  footerItems?: MenuItem[];
   children: ReactNode;
 }) {
   return (
     <div className="flex h-screen">
-      <Menu items={menuItems} />
+      <Menu items={menuItems} footerItems={footerItems} />
       <div className="flex-1 flex flex-col">
         <Header>{header}</Header>
         <Content>{children}</Content>

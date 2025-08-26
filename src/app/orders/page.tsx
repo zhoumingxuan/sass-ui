@@ -11,11 +11,17 @@ import {
   SelectInput,
   DateInput,
 } from '@/components/Input';
+import Layout from '@/components/Layout';
+import { menuItems, footerItems } from '@/components/menuItems';
 
 export default function Orders() {
   const [showMore, setShowMore] = useState(false);
   return (
-    <>
+    <Layout
+      menuItems={menuItems}
+      footerItems={footerItems}
+      header={<div className="text-xl font-semibold text-gray-800">订单管理</div>}
+    >
       <Breadcrumbs />
       <h2 className="mb-4">订单查询</h2>
       <Card>
@@ -48,6 +54,6 @@ export default function Orders() {
           </div>
         </form>
       </Card>
-    </>
+    </Layout>
   );
 }
