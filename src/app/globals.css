@@ -1,23 +1,30 @@
 @import "tailwindcss";
 
+@config "../../tailwind.config.ts";
+
+
 @layer base {
-  /* Design tokens */
+  /* 仅保留非 Tailwind 的自定义变量 */
   :root {
-    --color-primary: theme("colors.primary");
-    --color-default: theme("colors.default");
-    --color-warning: theme("colors.warning");
-    --color-success: theme("colors.success");
-    --color-error: theme("colors.error");
-    --color-info: theme("colors.info");
-    --color-bg: theme("colors.bg");
-    --color-text: theme("colors.gray.800");
+    /* v4：从 Tailwind 注入的同名 CSS 变量取值 */
+    --color-primary: var(--color-primary);
+    --color-default: var(--color-default);
+    --color-warning: var(--color-warning);
+    --color-success: var(--color-success);
+    --color-error:   var(--color-error);
+    --color-info:    var(--color-info);
+    --color-bg:      var(--color-bg);
+    /* text 保留个回退，避免未定义时发灰 */
+    --color-text:    var(--color-text, var(--color-gray-800));
     --spacing-unit: 8px;
   }
 
-  /* Global resets */
+  /* 全局重置 */
   body {
     margin: 0;
+    /* 直接使用 Tailwind v4 注入的主题变量 */
     background-color: var(--color-bg);
+    /* 若未定义 --color-text，则回退到灰色 800 */
     color: var(--color-text);
     font-family: var(--font-sans, 'Noto Sans', 'Noto Sans CJK SC', sans-serif);
     font-size: 14px;
