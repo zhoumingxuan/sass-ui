@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Layout from '@/components/Layout';
-import { MenuItem } from '@/components/Menu';
+import { menuItems, footerItems } from '@/components/menuItems';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import {
@@ -17,21 +17,6 @@ import Table, { Column } from '@/components/Table';
 import Alert from '@/components/Alert';
 
 export default function Home() {
-  const menuItems: MenuItem[] = [
-    { label: '仪表盘', href: '/dashboard' },
-    {
-      label: '用户管理',
-      children: [
-        { label: '用户列表', href: '/users' },
-        { label: '角色管理', href: '#' },
-      ],
-    },
-    {
-      label: '订单管理',
-      children: [{ label: '订单列表', href: '/orders' }],
-    },
-  ];
-
   const columns: Column<{ name: string; age: number }>[] = [
     { key: 'name', title: '姓名' },
     { key: 'age', title: '年龄' },
@@ -49,6 +34,7 @@ export default function Home() {
   return (
     <Layout
       menuItems={menuItems}
+      footerItems={footerItems}
       header={<div className="text-xl font-semibold text-gray-800">Sass UI Demo</div>}
     >
       <Card title="按钮">
