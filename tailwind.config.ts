@@ -1,8 +1,8 @@
-import type { Config } from 'tailwindcss';
+import type { Config } from 'tailwindcss'
 
 export default {
-  // Include CSS files so that utilities used with `@apply` are recognized
-  content: ['./src/**/*.{ts,tsx,css}'],
+  // v4 自动检测源码，content 可删
+  // content: ['./src/**/*.{ts,tsx,css}'],
   theme: {
     extend: {
       colors: {
@@ -10,13 +10,16 @@ export default {
         default: '#d1d5db',
         warning: '#faad14',
         success: '#52c41a',
-        error: '#ff4d4f',
-        info: '#13c2c2',
-        bg: '#f7f8fa',
+        error:   '#ff4d4f',
+        info:    '#13c2c2',
+        bg:      '#f7f8fa',
       },
       fontFamily: {
         sans: ['Noto Sans', 'Noto Sans CJK SC', 'sans-serif'],
       },
     },
   },
-} satisfies Config;
+} satisfies Config
+
+
+
