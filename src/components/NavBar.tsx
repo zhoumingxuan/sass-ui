@@ -18,7 +18,7 @@ export default function NavBar() {
       <div>
         <TextInput
           placeholder="搜索..."
-          className="h-8 w-48 bg-nav-sub text-indigo-50 placeholder-indigo-200 border border-nav-hover focus:border-primary focus:ring-1 focus:ring-primary"
+          className="h-8 w-48 bg-nav-sub text-gray-100 placeholder-gray-400 border border-nav-hover focus:border-primary focus:ring-1 focus:ring-primary"
         />
       </div>
     </header>
