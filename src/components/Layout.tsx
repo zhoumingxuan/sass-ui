@@ -5,7 +5,7 @@ import Menu, { MenuItem } from './Menu';
 
 export function Header({ children }: { children: ReactNode }) {
   return (
-    <div className="h-12 flex items-center px-4 border-b border-gray-200 bg-white shadow-sm">
+    <div className="flex items-center px-0 py-2 border-b border-gray-200 bg-white shadow-sm">
       {children}
     </div>
   );
@@ -27,7 +27,7 @@ export default function Layout({
   children: ReactNode;
 }) {
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen bg-bg">
       <Menu items={menuItems} footerItems={footerItems} />
       <div className="flex-1 flex flex-col">
         <Header>{header}</Header>
