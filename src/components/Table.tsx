@@ -89,11 +89,11 @@ export default function Table<T extends Record<string, unknown>>({
     // 行高：紧凑 40 / 适中 48 / 宽松 56，符合后台可读性
     switch (density) {
       case 'compact':
-        return { tr: 'h-10', cell: 'px-4 py-2 text-[13px]', th: 'px-4 py-2 text-[13px]' };
+        return { tr: 'h-10', cell: 'px-4 py-2 text-xs', th: 'px-4 py-2 text-xs' };
       case 'comfortable':
-        return { tr: 'h-14', cell: 'px-5 py-3 text-[14px]', th: 'px-5 py-3 text-[13px]' };
+        return { tr: 'h-14', cell: 'px-5 py-3 text-sm', th: 'px-5 py-3 text-xs' };
       default:
-        return { tr: 'h-12', cell: 'px-4 py-2.5 text-[14px]', th: 'px-4 py-2.5 text-[13px]' };
+        return { tr: 'h-12', cell: 'px-4 py-2.5 text-sm', th: 'px-4 py-2.5 text-xs' };
     }
   }, [density]);
 
@@ -109,7 +109,7 @@ export default function Table<T extends Record<string, unknown>>({
       {(title || onSearch || toolbar) && (
         <div className="grid grid-cols-[1fr_auto] items-center gap-3 border-b border-gray-200 bg-white px-5 py-3">
           <div className="min-w-0">
-            <div className="text-[14px] font-medium text-gray-900">
+            <div className="text-sm font-medium text-gray-900">
               {title}
               {typeof total === 'number' && title ? (
                 <span className="ml-1 text-gray-500"> · {total} 条</span>
@@ -181,9 +181,9 @@ export default function Table<T extends Record<string, unknown>>({
             className={[
               stickyHeader ? 'sticky top-0 z-10' : '',
               sizeClass.th,
-              'bg-gray-50 text-gray-600',
+              'bg-gray-50 text-gray-700',
               'border-b border-gray-200',
-              scrolled ? 'shadow-[0_1px_0_rgba(0,0,0,0.04)]' : '',
+              scrolled ? 'shadow-sm' : '',
             ].join(' ')}
           >
             <tr>
@@ -201,14 +201,14 @@ export default function Table<T extends Record<string, unknown>>({
                     key={String(col.key)}
                     scope="col"
                     aria-sort={ariaSort}
-                    className={`font-medium ${col.align === 'right' ? 'text-right' : 'text-left'}`}
+                    className={`font-medium text-gray-700 ${col.align === 'right' ? 'text-right' : 'text-left'}`}
                     style={{ minWidth: col.minWidth, width: col.width }}
                   >
                     <button
                       type="button"
                       className={`group flex w-full items-center gap-1 ${
                         col.align === 'right' ? 'justify-end' : 'justify-start'
-                      } text-gray-700`}
+                      }`}
                       onClick={() => sortable && onSort?.(col.key)}
                     >
                       <span className="truncate">{col.title}</span>
