@@ -6,16 +6,23 @@ import { ButtonHTMLAttributes } from 'react';
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: 'primary' | 'default' | 'warning' | 'success' | 'error' | 'info';
   outline?: boolean;
+  size?: 'large' | 'medium' | 'small';
 };
 
 export default function Button({
   variant = 'primary',
   outline = false,
+  size = 'medium',
   className = '',
   ...props
 }: Props) {
   const base =
-    'inline-flex h-9 items-center justify-center rounded-lg px-4 text-sm font-medium shadow-sm transition-shadow focus-visible:outline-none focus-visible:ring-2 ring-offset-2 ring-offset-white hover:shadow-md active:shadow';
+    'inline-flex items-center justify-center rounded-lg font-medium shadow-sm transition-shadow focus-visible:outline-none focus-visible:ring-2 ring-offset-2 ring-offset-white hover:shadow-md active:shadow';
+  const sizes: Record<string, string> = {
+    large: 'h-11 px-6 text-base',
+    medium: 'h-9 px-4 text-sm',
+    small: 'h-7 px-3 text-xs',
+  };
   const solid: Record<string, string> = {
     primary: 'border border-transparent bg-primary text-white focus-visible:ring-primary',
     default: 'border border-transparent bg-default text-white focus-visible:ring-default',
@@ -33,5 +40,10 @@ export default function Button({
     info: 'border border-info text-info bg-white focus-visible:ring-info',
   };
   const variants = outline ? outlined : solid;
-  return <button className={`${base} ${variants[variant]} ${className}`} {...props} />;
+  return (
+    <button
+      className={`${base} ${sizes[size]} ${variants[variant]} ${className}`}
+      {...props}
+    />
+  );
 }

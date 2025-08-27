@@ -38,13 +38,47 @@ export default function Home() {
       header={<div className="text-xl font-semibold text-gray-800">Sass UI Demo</div>}
     >
       <Card title="按钮">
-        <div className="flex flex-wrap gap-3">
-          <Button variant="primary">主按钮</Button>
-          <Button variant="default">默认按钮</Button>
-          <Button variant="success">成功按钮</Button>
-          <Button variant="warning">警告按钮</Button>
-          <Button variant="error">错误按钮</Button>
-          <Button variant="info">信息按钮</Button>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap gap-3">
+            <Button size="large" variant="primary">
+              大按钮
+            </Button>
+            <Button size="large" variant="default">
+              大按钮
+            </Button>
+            <Button size="large" variant="success">
+              大按钮
+            </Button>
+            <Button size="large" variant="warning">
+              大按钮
+            </Button>
+            <Button size="large" variant="error">大按钮</Button>
+            <Button size="large" variant="info">大按钮</Button>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Button variant="primary">中按钮</Button>
+            <Button variant="default">中按钮</Button>
+            <Button variant="success">中按钮</Button>
+            <Button variant="warning">中按钮</Button>
+            <Button variant="error">中按钮</Button>
+            <Button variant="info">中按钮</Button>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Button size="small" variant="primary">
+              小按钮
+            </Button>
+            <Button size="small" variant="default">
+              小按钮
+            </Button>
+            <Button size="small" variant="success">
+              小按钮
+            </Button>
+            <Button size="small" variant="warning">
+              小按钮
+            </Button>
+            <Button size="small" variant="error">小按钮</Button>
+            <Button size="small" variant="info">小按钮</Button>
+          </div>
         </div>
       </Card>
       <Card title="输入">
