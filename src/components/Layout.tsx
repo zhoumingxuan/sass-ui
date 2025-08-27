@@ -12,7 +12,7 @@ export function Header({ children }: { children: ReactNode }) {
 }
 
 export function Content({ children }: { children: ReactNode }) {
-  return <div className="flex-1 overflow-auto p-4 bg-bg">{children}</div>;
+  return <div className="flex-1 overflow-auto p-6 bg-bg">{children}</div>;
 }
 
 export default function Layout({

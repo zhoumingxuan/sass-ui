@@ -3,7 +3,7 @@
 import { InputHTMLAttributes, SelectHTMLAttributes } from 'react';
 
 const base =
-  'w-full p-2 text-sm bg-white border border-gray-200 rounded-lg shadow-sm transition-shadow focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary hover:shadow-md focus:shadow-md';
+  'w-full p-2 text-sm bg-white border border-gray-200 rounded-lg shadow-sm transition-shadow placeholder-gray-400 focus:outline-none focus:border-primary hover:shadow-md focus:shadow-md';
 
 export function TextInput({ className = '', ...props }: InputHTMLAttributes<HTMLInputElement>) {
   return <input type="text" className={`${base} ${className}`} {...props} />;
