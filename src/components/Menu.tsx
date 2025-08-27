@@ -27,10 +27,10 @@ function Item({
   return (
     <div>
       <div
-        className={`flex items-center gap-2 px-2 py-2 cursor-pointer transition-colors rounded-lg ${
+        className={`relative flex items-center gap-2 px-2 py-2 cursor-pointer transition-colors rounded-lg ${
           active
-            ? 'bg-nav-hover text-white shadow-md'
-            : 'text-gray-300 hover:bg-nav-hover hover:text-white'
+            ? 'bg-white/10 text-white before:absolute before:inset-y-1 before:left-0 before:w-1 before:bg-primary'
+            : 'text-gray-300 hover:bg-white/5'
         }`}
         style={{ paddingLeft: depth * 16 + 8 }}
         onClick={() => (hasChildren ? setOpen(!open) : undefined)}
@@ -69,7 +69,7 @@ export default function Menu({
           <Item key={idx} item={item} collapsed={collapsed} />
         ))}
       </div>
-      <div className="pt-2 mt-2 border-t border-nav-hover space-y-2">
+      <div className="mt-6 border-t border-white/10 pt-4 space-y-2">
         {footerItems.map((item, idx) => (
           <Item key={idx} item={item} collapsed={collapsed} />
         ))}
