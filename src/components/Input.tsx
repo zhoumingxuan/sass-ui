@@ -3,48 +3,89 @@
 import { InputHTMLAttributes, SelectHTMLAttributes } from 'react';
 
 const base =
-  'w-full p-2 text-sm bg-white border border-gray-200 rounded-lg shadow-sm transition-shadow placeholder-gray-400 focus:outline-none focus:border-primary hover:shadow-md focus:shadow-md';
+  'w-full h-10 rounded-lg border border-gray-200 px-3 text-sm placeholder-gray-400 focus:border-transparent focus:ring-2 focus:ring-primary/50 shadow-none';
 
-export function TextInput({ className = '', ...props }: InputHTMLAttributes<HTMLInputElement>) {
-  return <input type="text" className={`${base} ${className}`} {...props} />;
-}
+type InputProps = InputHTMLAttributes<HTMLInputElement> & { label?: string };
 
-export function NumberInput({ className = '', ...props }: InputHTMLAttributes<HTMLInputElement>) {
-  return <input type="number" className={`${base} ${className}`} {...props} />;
-}
-
-export function PasswordInput({ className = '', ...props }: InputHTMLAttributes<HTMLInputElement>) {
-  return <input type="password" className={`${base} ${className}`} {...props} />;
-}
-
-export function SelectInput({ options, className = '', ...props }: SelectHTMLAttributes<HTMLSelectElement> & { options: { value: string; label: string }[] }) {
+export function TextInput({ label, className = '', ...props }: InputProps) {
   return (
-    <select className={`${base} ${className}`} {...props}>
-      {options.map((o) => (
-        <option key={o.value} value={o.value}>
-          {o.label}
-        </option>
-      ))}
-    </select>
+    <label className="block">
+      {label && <span className="mb-2 block text-xs text-gray-500">{label}</span>}
+      <input type="text" className={`${base} ${className}`} {...props} />
+    </label>
   );
 }
 
-export function DateInput({ className = '', ...props }: InputHTMLAttributes<HTMLInputElement>) {
-  return <input type="date" className={`${base} ${className}`} {...props} />;
+export function NumberInput({ label, className = '', ...props }: InputProps) {
+  return (
+    <label className="block">
+      {label && <span className="mb-2 block text-xs text-gray-500">{label}</span>}
+      <input type="number" className={`${base} ${className}`} {...props} />
+    </label>
+  );
+}
+
+export function PasswordInput({ label, className = '', ...props }: InputProps) {
+  return (
+    <label className="block">
+      {label && <span className="mb-2 block text-xs text-gray-500">{label}</span>}
+      <input type="password" className={`${base} ${className}`} {...props} />
+    </label>
+  );
+}
+
+export function SelectInput({
+  options,
+  label,
+  className = '',
+  ...props
+}: SelectHTMLAttributes<HTMLSelectElement> & {
+  options: { value: string; label: string }[];
+  label?: string;
+}) {
+  return (
+    <label className="block">
+      {label && <span className="mb-2 block text-xs text-gray-500">{label}</span>}
+      <div className="relative">
+        <select className={`${base} pr-10 appearance-none ${className}`} {...props}>
+          {options.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">⌄</span>
+      </div>
+    </label>
+  );
+}
+
+export function DateInput({ label, className = '', ...props }: InputProps) {
+  return (
+    <label className="block">
+      {label && <span className="mb-2 block text-xs text-gray-500">{label}</span>}
+      <input type="date" className={`${base} ${className}`} {...props} />
+    </label>
+  );
 }
 
 export function DateRangeInput({
   startProps = {},
   endProps = {},
+  label,
 }: {
   startProps?: InputHTMLAttributes<HTMLInputElement>;
   endProps?: InputHTMLAttributes<HTMLInputElement>;
+  label?: string;
 }) {
   return (
-    <div className="flex items-center gap-2">
-      <input type="date" className={base} {...startProps} />
-      <span>至</span>
-      <input type="date" className={base} {...endProps} />
-    </div>
+    <label className="block">
+      {label && <span className="mb-2 block text-xs text-gray-500">{label}</span>}
+      <div className="inline-flex items-center gap-2">
+        <input type="date" className={`${base} w-[180px]`} {...startProps} />
+        <span className="px-2 text-xs text-gray-500">至</span>
+        <input type="date" className={`${base} w-[180px]`} {...endProps} />
+      </div>
+    </label>
   );
 }

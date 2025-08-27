@@ -15,12 +15,13 @@ export default function Pagination({
 }) {
   const totalPages = Math.ceil(total / pageSize);
   return (
-    <div className="flex justify-end items-center gap-2 p-2 text-sm bg-white border border-gray-200 rounded-lg shadow-sm">
+    <div className="flex items-center space-x-2 text-sm">
       <Button
         variant="default"
+        outline
         disabled={page <= 1}
         onClick={() => onPageChange(page - 1)}
-        className="px-2 py-1"
+        className="h-9 px-3"
       >
         上一页
       </Button>
@@ -29,9 +30,10 @@ export default function Pagination({
       </span>
       <Button
         variant="default"
+        outline
         disabled={page >= totalPages}
         onClick={() => onPageChange(page + 1)}
-        className="px-2 py-1"
+        className="h-9 px-3"
       >
         下一页
       </Button>
