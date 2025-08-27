@@ -3,7 +3,6 @@
 import { ReactNode, useState } from 'react';
 import Button from '@/components/Button';
 import Modal from '@/components/Modal';
-import Card from '@/components/Card';
 import Table, { Column } from '@/components/Table';
 import { TextInput } from '@/components/Input';
 import Breadcrumbs from '@/components/Breadcrumbs';
@@ -51,20 +50,19 @@ export default function Users() {
       header={<div className="text-xl font-semibold text-gray-800">用户管理</div>}
     >
       <Breadcrumbs />
-      <div className="flex justify-between items-center mb-4">
+      <div className="mb-4 flex items-center justify-between">
         <h2>用户管理</h2>
         <Button onClick={() => setShowAdd(true)}>新增用户</Button>
       </div>
-      <Card>
-        <Table
-          columns={columns}
-          data={data}
-          page={1}
-          pageSize={10}
-          total={data.length}
-          onPageChange={() => {}}
-        />
-      </Card>
+      <Table
+        title="用户"
+        columns={columns}
+        data={data}
+        page={1}
+        pageSize={10}
+        total={data.length}
+        onPageChange={() => {}}
+      />
 
       <Modal show={showAdd} title="新增用户" onClose={() => setShowAdd(false)}>
         <form className="flex flex-col gap-2">

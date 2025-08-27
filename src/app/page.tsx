@@ -18,8 +18,8 @@ import Alert from '@/components/Alert';
 
 export default function Home() {
   const columns: Column<{ name: string; age: number }>[] = [
-    { key: 'name', title: '姓名' },
-    { key: 'age', title: '年龄' },
+    { key: 'name', title: '姓名', minWidth: 160 },
+    { key: 'age', title: '年龄', align: 'right', minWidth: 80, sortable: true },
   ];
   const data = [
     { name: '张三', age: 28 },
@@ -106,16 +106,15 @@ export default function Home() {
           </div>
         </div>
       </Card>
-      <Card title="表格">
-        <Table
-          columns={columns}
-          data={paged}
-          page={page}
-          pageSize={pageSize}
-          total={data.length}
-          onPageChange={setPage}
-        />
-      </Card>
+      <Table
+        title="员工"
+        columns={columns}
+        data={paged}
+        page={page}
+        pageSize={pageSize}
+        total={data.length}
+        onPageChange={setPage}
+      />
       <Card title="提示">
         <div className="flex flex-col space-y-3">
           <Alert variant="success">操作成功</Alert>
