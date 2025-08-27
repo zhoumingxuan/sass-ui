@@ -24,22 +24,21 @@ function Item({
   const pathname = usePathname();
   const hasChildren = item.children && item.children.length > 0;
   const active = item.href ? pathname.startsWith(item.href) : false;
-  const depthBg = depth > 0 ? 'bg-nav-sub border-l-2 border-nav-hover' : '';
-  const hoverBg = depth > 0 ? 'hover:bg-nav-sub-hover' : 'hover:bg-nav-hover';
-  const openClass = hasChildren && open ? 'bg-nav-hover text-white' : '';
-    return (
-      <div>
-        <div
-          className={`flex items-center gap-2 px-2 py-3 cursor-pointer transition-colors text-gray-300 ${depthBg} ${hoverBg} hover:text-white ${openClass} ${active ? 'bg-primary text-white shadow-md' : ''}`}
-          style={{ paddingLeft: depth * 16 + 8 }}
-          onClick={() => (hasChildren ? setOpen(!open) : undefined)}
-          title={collapsed && depth === 0 ? item.label : undefined}
-        >
+  return (
+    <div>
+      <div
+        className={`flex items-center gap-2 px-2 py-2 cursor-pointer transition-colors rounded-lg border border-gray-200 bg-white shadow-sm text-gray-700 hover:bg-gray-50 hover:shadow-md ${
+          active ? 'bg-primary/10 border-primary text-primary shadow-md' : ''
+        }`}
+        style={{ paddingLeft: depth * 16 + 8 }}
+        onClick={() => (hasChildren ? setOpen(!open) : undefined)}
+        title={collapsed && depth === 0 ? item.label : undefined}
+      >
         {item.icon && <span className="w-5 h-5 flex items-center justify-center">{item.icon}</span>}
         {!collapsed && <span>{item.href ? <Link href={item.href}>{item.label}</Link> : item.label}</span>}
       </div>
       {hasChildren && open && !collapsed && (
-        <div>
+        <div className="mt-2 space-y-2">
           {item.children!.map((child, idx) => (
             <Item key={idx} item={child} depth={depth + 1} collapsed={collapsed} />
           ))}
@@ -59,16 +58,16 @@ export default function Menu({
   const [collapsed] = useState(false);
   return (
     <aside
-        className={`flex flex-col h-screen border-r border-nav-hover shadow-lg bg-gradient-to-b from-nav-deep to-nav text-gray-100 transition-all ${
+      className={`flex flex-col h-screen border-r border-gray-200 bg-bg p-2 transition-all ${
         collapsed ? 'w-16' : 'w-56'
       }`}
     >
-      <div className="flex-1 overflow-auto space-y-2 bg-nav">
+      <div className="flex-1 overflow-auto space-y-2">
         {items.map((item, idx) => (
           <Item key={idx} item={item} collapsed={collapsed} />
         ))}
       </div>
-      <div className="space-y-2 border-t border-nav-hover bg-nav-deep">
+      <div className="pt-2 mt-2 border-t border-gray-200 space-y-2">
         {footerItems.map((item, idx) => (
           <Item key={idx} item={item} collapsed={collapsed} />
         ))}
