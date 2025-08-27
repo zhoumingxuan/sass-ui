@@ -5,14 +5,18 @@ import Menu, { MenuItem } from './Menu';
 
 export function Header({ children }: { children: ReactNode }) {
   return (
-    <div className="flex items-center px-0 py-2 border-b border-gray-200 bg-white shadow-sm">
+    <div className="flex items-center px-6 py-2 border-b border-gray-200 bg-white shadow-sm">
       {children}
     </div>
   );
 }
 
 export function Content({ children }: { children: ReactNode }) {
-  return <div className="flex-1 overflow-auto p-6 bg-bg">{children}</div>;
+  return (
+    <div className="flex-1 overflow-auto bg-bg px-6 py-6">
+      <div className="mx-auto max-w-screen-2xl space-y-6">{children}</div>
+    </div>
+  );
 }
 
 export default function Layout({

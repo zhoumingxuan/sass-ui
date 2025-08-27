@@ -5,18 +5,33 @@ import { ButtonHTMLAttributes } from 'react';
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: 'primary' | 'default' | 'warning' | 'success' | 'error' | 'info';
+  outline?: boolean;
 };
 
-export default function Button({ variant = 'primary', className = '', ...props }: Props) {
+export default function Button({
+  variant = 'primary',
+  outline = false,
+  className = '',
+  ...props
+}: Props) {
   const base =
-    'inline-flex items-center justify-center rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium shadow-sm transition-shadow focus:outline-none focus:ring-2 focus:ring-offset-2 hover:shadow-md focus:shadow-md';
-  const variants: Record<string, string> = {
-    primary: 'bg-primary text-white hover:bg-primary/90 focus:ring-primary',
-    default: 'bg-default text-black hover:bg-default/90 focus:ring-default',
-    warning: 'bg-warning text-white hover:bg-warning/90 focus:ring-warning',
-    success: 'bg-success text-white hover:bg-success/90 focus:ring-success',
-    error: 'bg-error text-white hover:bg-error/90 focus:ring-error',
-    info: 'bg-info text-white hover:bg-info/90 focus:ring-info',
+    'inline-flex h-9 items-center justify-center rounded-lg px-4 text-sm font-medium shadow-sm transition-shadow focus-visible:outline-none focus-visible:ring-2 ring-offset-2 ring-offset-white hover:shadow-md active:shadow';
+  const solid: Record<string, string> = {
+    primary: 'border border-transparent bg-primary text-white focus-visible:ring-primary',
+    default: 'border border-transparent bg-default text-white focus-visible:ring-default',
+    warning: 'border border-transparent bg-warning text-white focus-visible:ring-warning',
+    success: 'border border-transparent bg-success text-white focus-visible:ring-success',
+    error: 'border border-transparent bg-error text-white focus-visible:ring-error',
+    info: 'border border-transparent bg-info text-white focus-visible:ring-info',
   };
+  const outlined: Record<string, string> = {
+    primary: 'border border-primary text-primary bg-white focus-visible:ring-primary',
+    default: 'border border-default text-default bg-white focus-visible:ring-default',
+    warning: 'border border-warning text-warning bg-white focus-visible:ring-warning',
+    success: 'border border-success text-success bg-white focus-visible:ring-success',
+    error: 'border border-error text-error bg-white focus-visible:ring-error',
+    info: 'border border-info text-info bg-white focus-visible:ring-info',
+  };
+  const variants = outline ? outlined : solid;
   return <button className={`${base} ${variants[variant]} ${className}`} {...props} />;
 }

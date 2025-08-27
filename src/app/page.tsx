@@ -38,7 +38,7 @@ export default function Home() {
       header={<div className="text-xl font-semibold text-gray-800">Sass UI Demo</div>}
     >
       <Card title="按钮">
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex flex-wrap gap-3">
           <Button variant="primary">主按钮</Button>
           <Button variant="default">默认按钮</Button>
           <Button variant="success">成功按钮</Button>
@@ -48,15 +48,28 @@ export default function Home() {
         </div>
       </Card>
       <Card title="输入">
-        <div className="grid gap-2 grid-cols-1 md:grid-cols-2">
-          <TextInput placeholder="文本输入" />
-          <NumberInput placeholder="数字输入" />
-          <PasswordInput placeholder="密码输入" />
-          <SelectInput
-            options={[{ value: '', label: '请选择' }, { value: '1', label: '选项1' }]}
-          />
-          <DateInput />
-          <DateRangeInput />
+        <div className="grid grid-cols-12 gap-4 md:gap-6">
+          <div className="col-span-12 md:col-span-6">
+            <TextInput label="文本输入" placeholder="请输入文本" />
+          </div>
+          <div className="col-span-12 md:col-span-6">
+            <NumberInput label="数字输入" placeholder="请输入数字" />
+          </div>
+          <div className="col-span-12 md:col-span-6">
+            <PasswordInput label="密码输入" placeholder="请输入密码" />
+          </div>
+          <div className="col-span-12 md:col-span-6">
+            <SelectInput
+              label="选择输入"
+              options={[{ value: '', label: '请选择' }, { value: '1', label: '选项1' }]}
+            />
+          </div>
+          <div className="col-span-12 md:col-span-6">
+            <DateInput label="日期输入" />
+          </div>
+          <div className="col-span-12 md:col-span-6">
+            <DateRangeInput label="日期范围" />
+          </div>
         </div>
       </Card>
       <Card title="表格">
@@ -70,7 +83,7 @@ export default function Home() {
         />
       </Card>
       <Card title="提示">
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col space-y-3">
           <Alert variant="success">操作成功</Alert>
           <Alert variant="warning">警告信息</Alert>
           <Alert variant="error">错误信息</Alert>
