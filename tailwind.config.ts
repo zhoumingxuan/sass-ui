@@ -13,12 +13,12 @@ export default {
         error:   '#ff4d4f',
         info:    '#13c2c2',
         bg:      '#f7f8fa',
-        // Dark navigation palette with subtle blue tints for depth
-        nav: '#1a1d24',
-        'nav-deep': '#13151b',
-        'nav-hover': '#2b3038',
-        'nav-sub': '#22262e',
-        'nav-sub-hover': '#343a44',
+        // Dark navigation palette with clearer depth cues
+        nav: '#1e293b',
+        'nav-deep': '#0f172a',
+        'nav-hover': '#334155',
+        'nav-sub': '#273449',
+        'nav-sub-hover': '#3a4c66',
       },
       fontFamily: {
         sans: ['Noto Sans', 'Noto Sans CJK SC', 'sans-serif'],

@@ -30,7 +30,7 @@ function Item({
     return (
       <div>
         <div
-          className={`flex items-center gap-2 p-2  cursor-pointer transition-colors text-gray-300 ${depthBg} ${hoverBg} hover:text-white ${openClass} ${active ? 'bg-primary text-white shadow-md' : ''}`}
+          className={`flex items-center gap-2 px-2 py-3 cursor-pointer transition-colors text-gray-300 ${depthBg} ${hoverBg} hover:text-white ${openClass} ${active ? 'bg-primary text-white shadow-md' : ''}`}
           style={{ paddingLeft: depth * 16 + 8 }}
           onClick={() => (hasChildren ? setOpen(!open) : undefined)}
           title={collapsed && depth === 0 ? item.label : undefined}
@@ -56,19 +56,19 @@ export default function Menu({
   items: MenuItem[];
   footerItems?: MenuItem[];
 }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed] = useState(false);
   return (
     <aside
         className={`flex flex-col h-screen border-r border-nav-hover shadow-lg bg-gradient-to-b from-nav-deep to-nav text-gray-100 transition-all ${
         collapsed ? 'w-16' : 'w-56'
       }`}
     >
-      <div className="flex-1 overflow-auto space-y-1 bg-nav">
+      <div className="flex-1 overflow-auto space-y-2 bg-nav">
         {items.map((item, idx) => (
           <Item key={idx} item={item} collapsed={collapsed} />
         ))}
       </div>
-      <div className="space-y-1 border-t border-nav-hover bg-nav-deep">
+      <div className="space-y-2 border-t border-nav-hover bg-nav-deep">
         {footerItems.map((item, idx) => (
           <Item key={idx} item={item} collapsed={collapsed} />
         ))}

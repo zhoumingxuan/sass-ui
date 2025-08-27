@@ -4,19 +4,10 @@
 
 
 @layer base {
-  /* 仅保留非 Tailwind 注入的自定义变量，避免覆盖颜色变量 */
-  :root {
-    --color-text: var(--color-gray-800);
-    --spacing-unit: 8px;
-  }
-
-  /* 全局重置 */
   body {
     margin: 0;
-    /* 直接使用 Tailwind v4 注入的主题变量 */
     background-color: var(--color-bg);
-    /* 若未定义 --color-text，则回退到灰色 800 */
-    color: var(--color-text);
+    color: var(--color-gray-800);
     font-family: var(--font-sans, 'Noto Sans', 'Noto Sans CJK SC', sans-serif);
     font-size: 14px;
     line-height: 1.5;
