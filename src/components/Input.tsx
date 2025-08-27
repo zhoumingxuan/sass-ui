@@ -3,7 +3,7 @@
 import { InputHTMLAttributes, SelectHTMLAttributes } from 'react';
 
 const base =
-  'w-full h-10 rounded-lg border border-gray-200 px-3 text-sm placeholder-gray-400 focus:border-transparent focus:ring-2 focus:ring-primary/50 shadow-none';
+  'w-full h-10 rounded-lg border border-gray-200 px-3 text-sm placeholder-gray-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-none';
 
 type InputProps = InputHTMLAttributes<HTMLInputElement> & { label?: string };
 
@@ -47,7 +47,10 @@ export function SelectInput({
     <label className="block">
       {label && <span className="mb-2 block text-xs text-gray-500">{label}</span>}
       <div className="relative">
-        <select className={`${base} pr-10 appearance-none ${className}`} {...props}>
+        <select
+          className={`${base} pr-10 appearance-none text-gray-500 ${className}`}
+          {...props}
+        >
           {options.map((o) => (
             <option key={o.value} value={o.value}>
               {o.label}
@@ -64,7 +67,11 @@ export function DateInput({ label, className = '', ...props }: InputProps) {
   return (
     <label className="block">
       {label && <span className="mb-2 block text-xs text-gray-500">{label}</span>}
-      <input type="date" className={`${base} ${className}`} {...props} />
+      <input
+        type="date"
+        className={`${base} text-gray-500 ${className}`}
+        {...props}
+      />
     </label>
   );
 }
@@ -82,9 +89,17 @@ export function DateRangeInput({
     <label className="block">
       {label && <span className="mb-2 block text-xs text-gray-500">{label}</span>}
       <div className="inline-flex items-center gap-2">
-        <input type="date" className={`${base} w-[180px]`} {...startProps} />
+        <input
+          type="date"
+          className={`${base} w-[180px] text-gray-500`}
+          {...startProps}
+        />
         <span className="px-2 text-xs text-gray-500">至</span>
-        <input type="date" className={`${base} w-[180px]`} {...endProps} />
+        <input
+          type="date"
+          className={`${base} w-[180px] text-gray-500`}
+          {...endProps}
+        />
       </div>
     </label>
   );
