@@ -1,28 +1,30 @@
 import { MenuItem } from './Menu';
 import {
-  DashboardIcon,
-  ToolsIcon,
-  UserIcon,
-  OrderIcon,
-  SettingsIcon,
-  HelpIcon,
-  LogoutIcon,
-} from './icons';
+  CircleHelp,
+  HelpingHand,
+  LogOut,
+  UserCog,
+  Users,
+  ReceiptText,
+  ToolCase,
+  ClipboardList,
+  LayoutDashboard,
+} from "lucide-react";
 
 export const menuItems: MenuItem[] = [
-  { label: '仪表盘', href: '/dashboard', icon: <DashboardIcon /> },
+  { label: '仪表盘', href: '/dashboard', icon: <LayoutDashboard /> },
   {
     label: '管理',
-    icon: <ToolsIcon />,
+    icon: <ToolCase />,
     children: [
-      { label: '用户管理', href: '/users', icon: <UserIcon /> },
-      { label: '订单管理', href: '/orders', icon: <OrderIcon /> },
+      { label: '用户管理', href: '/users', icon: <Users /> },
+      { label: '订单管理', href: '/orders', icon: <ClipboardList /> },
     ],
   },
 ];
 
 export const footerItems: MenuItem[] = [
-  { label: '设置', href: '#', icon: <SettingsIcon /> },
-  { label: '帮助', href: '#', icon: <HelpIcon /> },
-  { label: '退出登录', href: '#', icon: <LogoutIcon /> },
+  { label: '设置', href: '#', icon: <UserCog /> },
+  { label: '帮助', href: '#', icon: <HelpingHand /> },
+  { label: '退出登录', href: '#', icon: <LogOut /> },
 ];
