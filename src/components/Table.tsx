@@ -201,7 +201,7 @@ export default function Table<T extends Record<string, unknown>>({
                     key={String(col.key)}
                     scope="col"
                     aria-sort={ariaSort}
-                    className={`font-medium text-gray-700 ${col.align === 'right' ? 'text-right' : 'text-left'}`}
+                    className={`font-medium text-gray-700 h-12 ${col.align === 'right' ? 'text-right' : 'text-left'}`}
                     style={{ minWidth: col.minWidth, width: col.width }}
                   >
                     <button
