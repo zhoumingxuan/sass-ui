@@ -15,6 +15,7 @@ import {
 } from '@/components/Input';
 import Table, { Column } from '@/components/Table';
 import Alert from '@/components/Alert';
+import { Plus, Search, Check, AlertTriangle, Info, ArrowRight } from 'lucide-react';
 
 type Row = { name: string; age: number };
 
@@ -110,6 +111,19 @@ export default function Home() {
             <Button size="small" variant="warning">小按钮</Button>
             <Button size="small" variant="error">小按钮</Button>
             <Button size="small" variant="info">小按钮</Button>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Button variant="primary" icon={<Plus />}>新增</Button>
+            <Button variant="default" icon={<Search />}>搜索</Button>
+            <Button variant="success" icon={<Check />}>提交</Button>
+            <Button variant="warning" icon={<AlertTriangle />}>警告</Button>
+            <Button variant="error" icon={<AlertTriangle />}>错误</Button>
+            <Button variant="info" icon={<Info />}>信息</Button>
+          </div>
+          <div className="flex flex-wrap gap-3 items-center">
+            <Button variant="primary" icon={<ArrowRight />} iconPosition="right">下一步</Button>
+            <Button variant="primary" aria-label="新增" icon={<Plus />} />
+            <Button variant="primary" icon={<Plus />} disabled>禁用</Button>
           </div>
         </div>
       </Card>
