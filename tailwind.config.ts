@@ -19,6 +19,9 @@ export default {
         'nav-hover': '#334155',
         'nav-sub': '#273449',
         'nav-sub-hover': '#3a4c66',
+        // Navigation foreground tokens (avoid raw white/gray)
+        'nav-fg': '#e5e7eb',        // slate-200
+        'nav-fg-muted': '#cbd5e1',  // slate-300
       },
       fontFamily: {
         sans: ['Noto Sans', 'Noto Sans CJK SC', 'sans-serif'],
