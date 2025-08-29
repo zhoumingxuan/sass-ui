@@ -5,6 +5,10 @@ export default {
   // content: ['./src/**/*.{ts,tsx,css}'],
   theme: {
     extend: {
+      spacing: {
+        // Single source of truth for app header/nav height
+        header: '3rem', // 48px
+      },
       colors: {
         primary: '#1e80ff',
         default: '#d1d5db',
@@ -42,4 +46,3 @@ export default {
     },
   },
 } satisfies Config
-
