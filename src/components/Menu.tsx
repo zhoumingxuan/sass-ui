@@ -100,7 +100,7 @@ export default function Menu({
           <Item key={idx} item={item} collapsed={collapsed} />
         ))}
       </div>
-      <div className="mt-6 border-t border-nav-hover pt-4 space-y-0">
+      <div className="mt-6 border-t border-nav-hover space-y-0">
         {footerItems.map((item, idx) => (
           <Item key={idx} item={item} collapsed={collapsed} />
         ))}
