@@ -51,7 +51,7 @@ function Item({
   return (
     <div>
       <div
-        className={`relative flex items-center gap-2 px-3 ${padY} cursor-pointer rounded-md transition-colors ${
+        className={`relative flex items-center gap-2 px-3 ${padY} cursor-pointer rounded-md transition-colors select-none ${
           active
             ? 'bg-primary/15 ring-1 ring-primary/30 text-nav-fg before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-primary/80'
             : `${depthText} ${depthHover}`
@@ -88,14 +88,14 @@ export default function Menu({
   const [collapsed] = useState(false);
   return (
     <aside
-      className={`flex flex-col h-screen border-r border-nav-hover/50 bg-nav-deep text-nav-fg transition-all ${
+      className={`flex flex-col h-screen border-r border-nav-hover/50 bg-nav-deep text-nav-fg transition-all select-none ${
         collapsed ? 'w-16' : 'w-56'
       }`}
     >
-      <div className="sticky top-0 z-10 flex items-center px-4 py-4 border-b border-white/10 bg-nav-header backdrop-blur-md backdrop-saturate-150 shadow-md">
+      <div className="sticky top-0 z-10 flex items-center px-4 py-4 border-b border-white/10 bg-nav-header backdrop-blur-md backdrop-saturate-150 shadow-md select-none">
         <span className="text-[15px] font-semibold tracking-wide text-nav-fg">导航</span>
       </div>
-      <div className="flex-1 overflow-auto bg-nav-body px-2 py-3 space-y-1.5">
+      <div className="flex-1 overflow-auto overscroll-contain bg-nav-body px-2 py-3 space-y-1.5 nice-scrollbar sidebar-scroll scrollbar-stable pr-1">
         {items.map((item, idx) => (
           <Item key={idx} item={item} collapsed={collapsed} />
         ))}

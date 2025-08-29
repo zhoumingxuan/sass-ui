@@ -23,3 +23,93 @@
     cursor: pointer;
   }
 }
+
+/* Global scrollbar styling (light + dark aware) */
+:root {
+  --sb-size: 10px;
+  --sb-track: transparent;
+  /* Light content area: neutral greys from Tailwind tokens (with safe fallbacks) */
+  --sb-thumb: var(--color-sb-thumb, color-mix(in srgb, var(--color-gray-400) 55%, transparent));
+  --sb-thumb-hover: var(--color-sb-thumb-hover, color-mix(in srgb, var(--color-gray-500) 65%, transparent));
+  --sb-thumb-active: var(--color-sb-thumb-active, color-mix(in srgb, var(--color-gray-700) 75%, transparent));
+}
+
+/* Firefox */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sb-thumb) var(--sb-track);
+}
+
+/* WebKit */
+html::-webkit-scrollbar {
+  width: var(--sb-size);
+  height: var(--sb-size);
+}
+html::-webkit-scrollbar-track {
+  background: var(--sb-track);
+}
+html::-webkit-scrollbar-thumb {
+  background-color: var(--sb-thumb);
+  border-radius: 9999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+html:hover::-webkit-scrollbar-thumb { background-color: var(--sb-thumb-hover); }
+html::-webkit-scrollbar-thumb:active {
+  background-color: var(--sb-thumb-active);
+}
+
+/* Sidebar-specific scrollbar (neutral, no blue) */
+/* Sidebar: no-jitter, calm, short pill thumb */
+.sidebar-scroll {
+  /* keep width stable to avoid layout jump */
+  --sb-size: 10px;
+  --sb-track: transparent;
+  /* default: invisible (neutral) thumb, appears softly on hover/focus */
+  --sb-thumb: transparent;
+  --sb-thumb-hover: var(--color-sb-thumb-sidebar-hover, color-mix(in srgb, var(--color-nav-fg) 32%, transparent));
+  --sb-thumb-active: var(--color-sb-thumb-sidebar-active, color-mix(in srgb, var(--color-nav-fg) 48%, transparent));
+  scrollbar-width: thin; /* Firefox keeps space, thumb transparent by default */
+}
+.sidebar-scroll:hover,
+.sidebar-scroll:focus-within {
+  --sb-track: var(--color-sb-track-sidebar, color-mix(in srgb, var(--color-nav) 22%, transparent));
+  --sb-thumb: var(--sb-thumb-hover);
+}
+/* WebKit refinements for the sidebar */
+.sidebar-scroll::-webkit-scrollbar {
+  width: var(--sb-size);
+  height: var(--sb-size);
+}
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: var(--sb-track);
+  border-radius: 9999px;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--sb-thumb);
+  border-radius: 9999px;
+  border: 3px solid transparent; /* inner padding */
+  background-clip: padding-box;
+  min-height: 28px; /* shorter, calmer pill */
+}
+.sidebar-scroll:hover::-webkit-scrollbar-thumb { background-color: var(--sb-thumb-hover); }
+.sidebar-scroll::-webkit-scrollbar-thumb:active { background-color: var(--sb-thumb-active); }
+
+/* Optional utility: pretty scrollbar for any overflow container */
+.nice-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sb-thumb) var(--sb-track);
+}
+.nice-scrollbar::-webkit-scrollbar { width: var(--sb-size); height: var(--sb-size); }
+.nice-scrollbar::-webkit-scrollbar-track { background: var(--sb-track); }
+.nice-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--sb-thumb);
+  border-radius: 9999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+.nice-scrollbar:hover::-webkit-scrollbar-thumb { background-color: var(--sb-thumb-hover); }
+.nice-scrollbar::-webkit-scrollbar-thumb:active { background-color: var(--sb-thumb-active); }
+
+/* Prevent layout shift when the scrollbar appears */
+.scrollbar-stable { scrollbar-gutter: stable both-edges; }

@@ -28,6 +28,13 @@ export default {
         'nav-footer': 'rgba(255, 255, 255, 0.01)',
         // Body: central, darker surface to anchor content
         'nav-body':   '#0b1526',
+        // Scrollbar design tokens
+        'sb-thumb': 'rgba(156, 163, 175, 0.55)',
+        'sb-thumb-hover': 'rgba(107, 114, 128, 0.65)',
+        'sb-thumb-active': 'rgba(55, 65, 81, 0.75)',
+        'sb-thumb-sidebar-hover': 'rgba(203, 213, 225, 0.34)',
+        'sb-thumb-sidebar-active': 'rgba(203, 213, 225, 0.52)',
+        'sb-track-sidebar': 'rgba(30, 41, 59, 0.22)',
       },
       fontFamily: {
         sans: ['Noto Sans', 'Noto Sans CJK SC', 'sans-serif'],
@@ -35,6 +42,4 @@ export default {
     },
   },
 } satisfies Config
-
-
 

@@ -13,7 +13,7 @@ export function Header({ children }: { children: ReactNode }) {
 
 export function Content({ children }: { children: ReactNode }) {
   return (
-    <div className="flex-1 overflow-auto bg-bg px-6 py-6">
+    <div className="flex-1 overflow-auto bg-bg px-6 py-6 nice-scrollbar scrollbar-stable">
       <div className="mx-auto max-w-screen-2xl space-y-6">{children}</div>
     </div>
   );
