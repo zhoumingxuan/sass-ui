@@ -49,7 +49,7 @@ function MessageHolder() {
       {list.map((m) => (
         <div
           key={m.id}
-          className={`pointer-events-auto min-w-message max-w-message rounded-md px-4 py-2 shadow-lg ${typeStyles[m.type]}`}
+          className={`pointer-events-auto min-w-52 max-w-md rounded-md px-4 py-2 shadow-elevation-2 ${typeStyles[m.type]}`}
           role="status"
         >
           <div className="text-sm">{m.content}</div>

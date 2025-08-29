@@ -6,31 +6,21 @@ export default {
   theme: {
     extend: {
       spacing: {
-        // Single source of truth for app header/nav height
-        header: '2.75rem', // 44px, slightly shorter
+        // Single source of truth for app header/nav height (8px grid)
+        header: '2.5rem', // 40px = 5 * 8
         // Sidebar widths
         sidebar: '14rem', // 224px
         'sidebar-collapsed': '4rem', // 64px
         // Modal default width
         modal: '25rem', // 400px
-        // Component-specific fixed paddings
-        indent72: '72px',
-        indent88: '88px',
         // Inputs
-        'date-input': '180px',
+        'date-input': '11rem', // 176px = 22 * 8
       },
       boxShadow: {
-        header: '0 6px 12px -6px rgba(0,0,0,0.12)',
-        sidebar: '8px 0 16px -14px rgba(2,6,23,0.45)',
-      },
-      fontSize: {
-        15: '15px',
-      },
-      minWidth: {
-        'message': '200px',
-      },
-      maxWidth: {
-        'message': '80vw',
+        // Elevation scale for consistent depth
+        'elevation-1': '0 6px 12px -6px rgba(0,0,0,0.12)',
+        'elevation-2': '8px 0 16px -14px rgba(2,6,23,0.45)',
+        'elevation-3': '0 16px 32px -16px rgba(0,0,0,0.24)',
       },
       colors: {
         primary: '#1e80ff',
