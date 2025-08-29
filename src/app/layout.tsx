@@ -1,12 +1,6 @@
 import type { Metadata } from "next";
-import { Noto_Sans_SC } from "next/font/google";
 import "./globals.css";
 
-const notoSans = Noto_Sans_SC({
-  variable: "--font-sans",
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
-});
 
 export const metadata: Metadata = {
   title: "Sass UI Demo",
@@ -18,7 +12,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="zh">
-      <body className={`${notoSans.variable} antialiased`}>
+      <body className={`antialiased font-sans`}>
         <main>{children}</main>
       </body>
     </html>

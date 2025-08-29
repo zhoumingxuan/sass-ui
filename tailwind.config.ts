@@ -54,7 +54,24 @@ export default {
         'sb-track-sidebar': 'rgba(30, 41, 59, 0.22)',
       },
       fontFamily: {
-        sans: ['Noto Sans', 'Noto Sans CJK SC', 'sans-serif'],
+        // System-first stack with CJK priority for better Chinese rendering
+        // macOS → PingFang SC; Windows → Microsoft YaHei/UI; Linux → Noto/Source Han
+        sans: [
+          'system-ui',
+          '-apple-system',
+          'Segoe UI',
+          'Roboto',
+          'Helvetica Neue',
+          'Arial',
+          'PingFang SC',
+          'Hiragino Sans GB',
+          'Microsoft YaHei UI',
+          'Microsoft YaHei',
+          'Noto Sans SC',
+          'Source Han Sans SC',
+          'Inter',
+          'sans-serif',
+        ],
       },
     },
   },
