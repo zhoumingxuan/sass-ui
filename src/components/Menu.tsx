@@ -41,7 +41,7 @@ function Item({
       setOpen(shouldBeOpen);
     }
   }, [pathname, hasChildren, shouldBeOpen]);
-  const depthHover = depth > 0 ? 'hover:bg-nav-sub' : 'hover:bg-nav-hover';
+  const depthHover = 'hover:bg-white/5';
   const depthText = depth > 0 ? 'text-nav-fg' : 'text-nav-fg-muted';
   // Tailwind-managed indentation per depth (no inline styles)
   const indentByDepth = ['pl-2', 'pl-6', 'pl-10', 'pl-14', 'pl-[72px]', 'pl-[88px]'];
@@ -51,9 +51,9 @@ function Item({
   return (
     <div>
       <div
-        className={`relative flex items-center gap-2 px-2 ${padY} cursor-pointer transition-colors ${
+        className={`relative flex items-center gap-2 px-3 ${padY} cursor-pointer rounded-md transition-colors ${
           active
-            ? 'bg-nav-sub text-nav-fg before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-primary'
+            ? 'bg-primary/15 ring-1 ring-primary/30 text-nav-fg before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-primary/80'
             : `${depthText} ${depthHover}`
         } ${indentClass}`}
         onClick={() => (hasChildren ? setOpen(!open) : undefined)}
@@ -68,7 +68,7 @@ function Item({
         )}
       </div>
       {hasChildren && open && !collapsed && (
-        <div className="space-y-0 bg-nav-deep">
+        <div className="space-y-1 mt-1 ml-1 pl-3">
           {item.children!.map((child, idx) => (
             <Item key={idx} item={child} depth={depth + 1} collapsed={collapsed} />
           ))}
@@ -88,19 +88,19 @@ export default function Menu({
   const [collapsed] = useState(false);
   return (
     <aside
-      className={`flex flex-col h-screen border-r border-nav-deep bg-nav text-nav-fg transition-all ${
+      className={`flex flex-col h-screen border-r border-nav-hover/50 bg-nav-deep text-nav-fg transition-all ${
         collapsed ? 'w-16' : 'w-56'
       }`}
     >
-      <div className="sticky top-0 z-10 flex items-center px-3 py-3 border-b border-nav-hover bg-nav/95">
-        <span className="text-sm font-semibold">导航</span>
+      <div className="sticky top-0 z-10 flex items-center px-4 py-4 border-b border-white/10 bg-nav-header backdrop-blur-md backdrop-saturate-150 shadow-md">
+        <span className="text-[15px] font-semibold tracking-wide text-nav-fg">导航</span>
       </div>
-      <div className="flex-1 overflow-auto space-y-0">
+      <div className="flex-1 overflow-auto bg-nav-body px-2 py-3 space-y-1.5">
         {items.map((item, idx) => (
           <Item key={idx} item={item} collapsed={collapsed} />
         ))}
       </div>
-      <div className="border-t border-nav-hover space-y-0">
+      <div className="border-t border-white/10 bg-nav-footer backdrop-blur-md backdrop-saturate-150 px-2 py-3 space-y-1.5 shadow-[0_-6px_12px_-6px_rgba(0,0,0,0.35)]">
         {footerItems.map((item, idx) => (
           <Item key={idx} item={item} collapsed={collapsed} />
         ))}

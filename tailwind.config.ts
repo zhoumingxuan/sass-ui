@@ -22,6 +22,12 @@ export default {
         // Navigation foreground tokens (avoid raw white/gray)
         'nav-fg': '#e5e7eb',        // slate-200
         'nav-fg-muted': '#cbd5e1',  // slate-300
+        // App-specific sidebar segmentation (header/body/footer)
+        // Header/Footer: subtle translucent layer for glass effect, slightly darker than before
+        'nav-header': 'rgba(255, 255, 255, 0.01)',
+        'nav-footer': 'rgba(255, 255, 255, 0.01)',
+        // Body: central, darker surface to anchor content
+        'nav-body':   '#0b1526',
       },
       fontFamily: {
         sans: ['Noto Sans', 'Noto Sans CJK SC', 'sans-serif'],
