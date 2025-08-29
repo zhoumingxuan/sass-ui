@@ -114,7 +114,7 @@ export default function Home() {
           </div>
           <div className="flex flex-wrap gap-3">
             <Button variant="primary" icon={<Plus />}>新增</Button>
-            <Button variant="default" icon={<Search />}>搜索</Button>
+            <Button appearance="ghost" variant="default" icon={<Search />}>搜索</Button>
             <Button variant="success" icon={<Check />}>提交</Button>
             <Button variant="warning" icon={<AlertTriangle />}>警告</Button>
             <Button variant="error" icon={<AlertTriangle />}>错误</Button>

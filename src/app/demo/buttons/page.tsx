@@ -104,6 +104,17 @@ export default function ButtonsDemo() {
         </div>
       </Card>
 
+      <Card title="玻璃（Glass）">
+        <div className="flex flex-wrap gap-3">
+          <Button appearance="glass" variant="primary">Primary</Button>
+          <Button appearance="glass" variant="default">Default</Button>
+          <Button appearance="glass" variant="success">Success</Button>
+          <Button appearance="glass" variant="warning">Warning</Button>
+          <Button appearance="glass" variant="error">Error</Button>
+          <Button appearance="glass" variant="info">Info</Button>
+        </div>
+      </Card>
+
       <Card title="块级（Block）">
         <div className="space-y-3 max-w-md">
           <Button block variant="primary">主要操作（Block）</Button>

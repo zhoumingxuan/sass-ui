@@ -32,7 +32,7 @@ export default function Users() {
       email: 'zhang@example.com',
       actions: (
         <div className="flex gap-2">
-          <Button variant="default" onClick={() => setShowEdit(true)}>
+          <Button appearance="ghost" variant="default" onClick={() => setShowEdit(true)}>
             修改
           </Button>
           <Button variant="error" onClick={() => setShowDelete(true)}>

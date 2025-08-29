@@ -6,7 +6,7 @@ import { ButtonHTMLAttributes, ReactNode, isValidElement, cloneElement } from 'r
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: 'primary' | 'default' | 'warning' | 'success' | 'error' | 'info';
   outline?: boolean; // deprecated; kept for backward compatibility
-  appearance?: 'solid' | 'outline' | 'dashed' | 'link' | 'ghost';
+  appearance?: 'solid' | 'outline' | 'dashed' | 'link' | 'ghost' | 'glass';
   size?: 'large' | 'medium' | 'small';
   icon?: ReactNode;
   iconPosition?: 'left' | 'right';
@@ -72,6 +72,25 @@ export default function Button({
     error: 'border border-transparent bg-transparent text-error hover:bg-error/10 focus-visible:ring-error',
     info: 'border border-transparent bg-transparent text-info hover:bg-info/10 focus-visible:ring-info',
   };
+  const glass: Record<string, string> = {
+    primary: 'border border-primary/20 bg-primary/10 text-primary backdrop-blur-sm hover:bg-primary/15 focus-visible:ring-primary/40',
+    // Default glass should feel frosted on浅色背景也能显现层次
+    // 使用更透明的底 + 渐变 + 更明显的模糊与中性描边
+    default: [
+      'border border-gray-200/60',
+      'bg-white/30',
+      'bg-gradient-to-b from-white/60 to-white/30',
+      'text-gray-700',
+      'backdrop-blur-md',
+      'shadow-sm',
+      'hover:from-white/70 hover:to-white/40',
+      'focus-visible:ring-gray-300/50',
+    ].join(' '),
+    warning: 'border border-warning/25 bg-warning/10 text-warning backdrop-blur-sm hover:bg-warning/15 focus-visible:ring-warning/40',
+    success: 'border border-success/25 bg-success/10 text-success backdrop-blur-sm hover:bg-success/15 focus-visible:ring-success/40',
+    error: 'border border-error/25 bg-error/10 text-error backdrop-blur-sm hover:bg-error/15 focus-visible:ring-error/40',
+    info: 'border border-info/25 bg-info/10 text-info backdrop-blur-sm hover:bg-info/15 focus-visible:ring-info/40',
+  };
   const variants = outline ? outlined : solid;
 
   const hasLabel = !!props.children;
@@ -94,7 +113,7 @@ export default function Button({
   }
 
   // determine appearance (solid/outline/dashed/link)
-  const mode: 'solid' | 'outline' | 'dashed' | 'link' | 'ghost' = appearance
+  const mode: 'solid' | 'outline' | 'dashed' | 'link' | 'ghost' | 'glass' = appearance
     ? appearance
     : outline
     ? 'outline'
@@ -106,6 +125,7 @@ export default function Button({
   else if (mode === 'dashed') modeClasses = dashed[variant];
   else if (mode === 'link') modeClasses = linkStyles[variant];
   else if (mode === 'ghost') modeClasses = ghost[variant];
+  else if (mode === 'glass') modeClasses = glass[variant];
 
   const linkSizes: Record<'large'|'medium'|'small', string> = { large: 'h-auto p-0 text-base', medium: 'h-auto p-0 text-sm', small: 'h-auto p-0 text-xs' };
   const finalSize = mode === 'link' ? linkSizes[size] : sizes[size];
