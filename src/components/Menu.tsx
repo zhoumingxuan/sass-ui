@@ -92,7 +92,7 @@ export default function Menu({
         collapsed ? 'w-16' : 'w-56'
       }`}
     >
-      <div className="sticky top-0 z-10 flex items-center px-4 py-4 border-b border-white/10 bg-nav-header backdrop-blur-md backdrop-saturate-150 shadow-md select-none">
+      <div className="sticky top-0 z-10 flex items-center px-4 h-header border-b border-white/10 bg-nav-header backdrop-blur-md backdrop-saturate-150 shadow-md select-none">
         <span className="text-[15px] font-semibold tracking-wide text-nav-fg">导航</span>
       </div>
       <div className="flex-1 overflow-auto overscroll-contain bg-nav-body px-2 py-3 space-y-1.5 nice-scrollbar sidebar-scroll scrollbar-stable pr-1">

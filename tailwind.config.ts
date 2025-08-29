@@ -7,7 +7,7 @@ export default {
     extend: {
       spacing: {
         // Single source of truth for app header/nav height
-        header: '3rem', // 48px
+        header: '2.75rem', // 44px, slightly shorter
       },
       colors: {
         primary: '#1e80ff',
