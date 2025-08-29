@@ -21,11 +21,10 @@ export default function ModalDemo() {
       <Modal show={open} title="标题" onClose={() => setOpen(false)}>
         <p>这是模态框内容。</p>
         <div className="mt-4 flex justify-end gap-3">
-          <Button variant="default" onClick={() => setOpen(false)}>取消</Button>
+          <Button appearance="outline" variant="default" onClick={() => setOpen(false)}>取消</Button>
           <Button onClick={() => setOpen(false)}>确定</Button>
         </div>
       </Modal>
     </Layout>
   );
 }
-

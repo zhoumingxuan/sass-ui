@@ -47,7 +47,7 @@ export default function Orders() {
             </>
           )}
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="default" onClick={() => setShowMore(!showMore)}>
+            <Button type="button" appearance="link" variant="default" onClick={() => setShowMore(!showMore)}>
               {showMore ? '隐藏高级' : '更多条件'}
             </Button>
             <Button type="submit">查询</Button>

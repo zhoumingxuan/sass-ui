@@ -21,11 +21,10 @@ export default function CardDemo() {
         <Card title="组合">
           <div className="flex gap-3">
             <Button>主要操作</Button>
-            <Button variant="default">次要操作</Button>
+            <Button appearance="outline" variant="default">次要操作</Button>
           </div>
         </Card>
       </div>
     </Layout>
   );
 }
-

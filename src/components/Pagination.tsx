@@ -17,8 +17,8 @@ export default function Pagination({
   return (
     <div className="flex items-center space-x-2 text-sm">
       <Button
+        appearance="outline"
         variant="default"
-        outline
         disabled={page <= 1}
         onClick={() => onPageChange(page - 1)}
         className="h-9 px-3"
@@ -29,8 +29,8 @@ export default function Pagination({
         {page} / {totalPages}
       </span>
       <Button
+        appearance="outline"
         variant="default"
-        outline
         disabled={page >= totalPages}
         onClick={() => onPageChange(page + 1)}
         className="h-9 px-3"

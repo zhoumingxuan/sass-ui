@@ -45,14 +45,14 @@ export default function MessageDemo() {
       <Card title="位置与时长">
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-sm text-gray-500">位置:</span>
-          <Button variant="default" onClick={() => setPlacement("top-left")}>Top-Left</Button>
-          <Button variant="default" onClick={() => setPlacement("top-center")}>Top-Center</Button>
-          <Button variant="default" onClick={() => setPlacement("top-right")}>Top-Right</Button>
+          <Button appearance="outline" variant="default" onClick={() => setPlacement("top-left")}>Top-Left</Button>
+          <Button appearance="outline" variant="default" onClick={() => setPlacement("top-center")}>Top-Center</Button>
+          <Button appearance="outline" variant="default" onClick={() => setPlacement("top-right")}>Top-Right</Button>
           <span className="mx-3 h-6 w-px bg-gray-200" />
           <span className="text-sm text-gray-500">默认时长:</span>
-          <Button variant="default" onClick={() => setDefaultDuration(1000)}>1s</Button>
-          <Button variant="default" onClick={() => setDefaultDuration(3000)}>3s</Button>
-          <Button variant="default" onClick={() => setDefaultDuration(5000)}>5s</Button>
+          <Button appearance="outline" variant="default" onClick={() => setDefaultDuration(1000)}>1s</Button>
+          <Button appearance="outline" variant="default" onClick={() => setDefaultDuration(3000)}>3s</Button>
+          <Button appearance="outline" variant="default" onClick={() => setDefaultDuration(5000)}>5s</Button>
         </div>
       </Card>
 
