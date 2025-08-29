@@ -43,8 +43,8 @@ function Item({
   }, [pathname, hasChildren, shouldBeOpen]);
   const depthHover = 'hover:bg-white/5';
   const depthText = depth > 0 ? 'text-nav-fg' : 'text-nav-fg-muted';
-  // Tailwind-managed indentation per depth (no inline styles)
-  const indentByDepth = ['pl-2', 'pl-6', 'pl-10', 'pl-14', 'pl-[72px]', 'pl-[88px]'];
+  // Tailwind-managed indentation per depth (tokenized spacing)
+  const indentByDepth = ['pl-2', 'pl-6', 'pl-10', 'pl-14', 'pl-indent72', 'pl-indent88'];
   const indentClass = indentByDepth[Math.min(depth, indentByDepth.length - 1)];
   // Increase vertical padding for level-1; slightly roomier for others
   const padY = depth === 0 ? 'py-3' : 'py-2.5';
@@ -88,12 +88,12 @@ export default function Menu({
   const [collapsed] = useState(false);
   return (
     <aside
-      className={`flex flex-col h-screen border-r border-nav-hover/50 bg-nav-deep text-nav-fg transition-all select-none ${
-        collapsed ? 'w-16' : 'w-56'
+      className={`flex flex-col h-screen border-r border-nav-hover/50 bg-nav-deep text-nav-fg transition-all select-none shadow-sidebar ${
+        collapsed ? 'w-sidebar-collapsed' : 'w-sidebar'
       }`}
     >
       <div className="sticky top-0 z-10 flex items-center px-4 h-header border-b border-white/10 bg-nav-header backdrop-blur-md backdrop-saturate-150 shadow-md select-none">
-        <span className="text-[15px] font-semibold tracking-wide text-nav-fg">导航</span>
+        <span className="text-15 font-semibold tracking-wide text-nav-fg">导航</span>
       </div>
       <div className="flex-1 overflow-auto overscroll-contain bg-nav-body px-2 py-3 space-y-1.5 nice-scrollbar sidebar-scroll scrollbar-stable pr-1">
         {items.map((item, idx) => (

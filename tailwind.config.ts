@@ -8,6 +8,29 @@ export default {
       spacing: {
         // Single source of truth for app header/nav height
         header: '2.75rem', // 44px, slightly shorter
+        // Sidebar widths
+        sidebar: '14rem', // 224px
+        'sidebar-collapsed': '4rem', // 64px
+        // Modal default width
+        modal: '25rem', // 400px
+        // Component-specific fixed paddings
+        indent72: '72px',
+        indent88: '88px',
+        // Inputs
+        'date-input': '180px',
+      },
+      boxShadow: {
+        header: '0 6px 12px -6px rgba(0,0,0,0.12)',
+        sidebar: '8px 0 16px -14px rgba(2,6,23,0.45)',
+      },
+      fontSize: {
+        15: '15px',
+      },
+      minWidth: {
+        'message': '200px',
+      },
+      maxWidth: {
+        'message': '80vw',
       },
       colors: {
         primary: '#1e80ff',

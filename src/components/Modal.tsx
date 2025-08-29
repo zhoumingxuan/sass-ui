@@ -13,7 +13,7 @@ export default function Modal({ show, title, children, onClose }: Props) {
   if (!show) return null;
   return (
     <div className="fixed inset-0 bg-black/40 flex justify-center items-center">
-      <div className="bg-white p-4 rounded-lg w-[400px] shadow-lg">
+      <div className="bg-white p-4 rounded-lg w-modal shadow-lg">
         <div className="flex justify-between items-center mb-4">
           <h3 className="m-0">{title}</h3>
           <button

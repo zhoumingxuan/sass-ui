@@ -91,13 +91,13 @@ export function DateRangeInput({
       <div className="inline-flex items-center gap-2">
         <input
           type="date"
-          className={`${base} w-[180px] text-gray-500`}
+          className={`${base} w-date-input text-gray-500`}
           {...startProps}
         />
         <span className="px-2 text-xs text-gray-500">至</span>
         <input
           type="date"
-          className={`${base} w-[180px] text-gray-500`}
+          className={`${base} w-date-input text-gray-500`}
           {...endProps}
         />
       </div>

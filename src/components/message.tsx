@@ -49,7 +49,7 @@ function MessageHolder() {
       {list.map((m) => (
         <div
           key={m.id}
-          className={`pointer-events-auto min-w-[200px] max-w-[80vw] rounded-md px-4 py-2 shadow-lg ${typeStyles[m.type]}`}
+          className={`pointer-events-auto min-w-message max-w-message rounded-md px-4 py-2 shadow-lg ${typeStyles[m.type]}`}
           role="status"
         >
           <div className="text-sm">{m.content}</div>
@@ -84,4 +84,3 @@ const message = {
 };
 
 export default message;
-
