@@ -52,6 +52,10 @@ export type SuperSearchProps = {
   filterFieldSelectionMode?: "single" | "multiple";
   filterEmptyMeansAll?: boolean;
   onFilterSearch?: (query: string, fields: string[]) => void;
+  // Multi-group filter (fields) mode
+  allowMultiFilterGroups?: boolean;
+  maxFilterGroups?: number;
+  onFilterSearchGroups?: (groups: { query: string; fields: string[] }[]) => void;
   capCounts?: boolean;
   // Whether to show truncation hint when matches exceed display cap
   showTruncationHint?: boolean;
@@ -100,6 +104,9 @@ export default function SuperSearch({
   filterFieldSelectionMode = "multiple",
   filterEmptyMeansAll = true,
   onFilterSearch,
+  allowMultiFilterGroups = false,
+  maxFilterGroups = 5,
+  onFilterSearchGroups,
   capCounts = true,
   showTruncationHint = true,
   renderTruncationHint,
@@ -121,6 +128,7 @@ export default function SuperSearch({
   const selection = isControlled ? (selected as Record<string, SuperSearchItem[]>) : innerSel;
   const [activeEntities, setActiveEntities] = useState<string[]>([]);
   const [activeFields, setActiveFields] = useState<string[]>([]);
+  const [filterGroups, setFilterGroups] = useState<{ query: string; fields: string[] }[]>([]);
   const [inputHeight, setInputHeight] = useState(0);
   const [overlayHeight, setOverlayHeight] = useState(0);
   const selectedCount = Object.values(selection ?? {}).flat().length;
@@ -313,10 +321,26 @@ export default function SuperSearch({
   // Fire filter callback in fields mode on changes (debounced input)
   useEffect(() => {
     if (!chipsMode || filterMode !== "fields") return;
-    if (!onFilterSearch) return;
-    const selected = activeFields.length > 0 ? activeFields : (filterEmptyMeansAll ? filterFields.map((f) => f.param) : []);
-    onFilterSearch(dText, selected);
-  }, [chipsMode, filterMode, dText, activeFields, filterEmptyMeansAll, filterFields, onFilterSearch]);
+    const getAllFields = () => filterFields.map((f) => f.param);
+    const currentFields = activeFields.length > 0 ? activeFields : (filterEmptyMeansAll ? getAllFields() : []);
+
+    if (allowMultiFilterGroups) {
+      const composed = [
+        ...filterGroups,
+        ...(dText ? [{ query: dText, fields: currentFields }] : []),
+      ].map((g) => ({
+        query: g.query,
+        fields: g.fields.length > 0 ? g.fields : (filterEmptyMeansAll ? getAllFields() : []),
+      }));
+      onFilterSearchGroups?.(composed);
+      // Also keep backward compatibility by calling single callback using current input if provided and no groups
+      if (!onFilterSearchGroups && onFilterSearch) {
+        onFilterSearch(dText, currentFields);
+      }
+    } else if (onFilterSearch) {
+      onFilterSearch(dText, currentFields);
+    }
+  }, [chipsMode, filterMode, dText, activeFields, filterEmptyMeansAll, filterFields, allowMultiFilterGroups, filterGroups, onFilterSearchGroups, onFilterSearch]);
 
   return (
     <div
@@ -362,9 +386,20 @@ export default function SuperSearch({
           placeholder={dynamicPlaceholder}
           className="flex-1 bg-transparent text-sm placeholder-gray-400 focus:outline-none"
           onKeyDown={(e) => {
-            if (chipsMode && filterMode === "fields" && e.key === "Enter" && onFilterSearch) {
-              const selected = activeFields.length > 0 ? activeFields : (filterEmptyMeansAll ? filterFields.map((f) => f.param) : []);
-              onFilterSearch(text, selected);
+            if (chipsMode && filterMode === "fields" && e.key === "Enter") {
+              if (allowMultiFilterGroups) {
+                const trimmed = text.trim();
+                if (trimmed) {
+                  const fields = activeFields.length > 0 ? activeFields : (filterEmptyMeansAll ? filterFields.map((f) => f.param) : []);
+                  if (filterGroups.length < maxFilterGroups) {
+                    setFilterGroups((prev) => [...prev, { query: trimmed, fields }]);
+                    setText("");
+                  }
+                }
+              } else if (onFilterSearch) {
+                const selected = activeFields.length > 0 ? activeFields : (filterEmptyMeansAll ? filterFields.map((f) => f.param) : []);
+                onFilterSearch(text, selected);
+              }
             }
           }}
         />
@@ -411,6 +446,7 @@ export default function SuperSearch({
               clearAllSelection();
               setActiveEntities([]);
               setActiveFields([]);
+              setFilterGroups([]);
             }}
             className="text-gray-600"
           >
@@ -450,6 +486,62 @@ export default function SuperSearch({
                     </button>
                   );
                 })}
+
+                {allowMultiFilterGroups && (
+                  <>
+                    {filterGroups.length > 0 && <span className="ml-2 text-xs text-gray-400">条件组</span>}
+                    {filterGroups.map((g, gi) => {
+                      const labelFields = (filterFields || [])
+                        .filter((f) => g.fields.includes(f.param))
+                        .map((f) => f.label)
+                        .slice(0, 2)
+                        .join("+") + (g.fields.length > 2 ? "+…" : "");
+                      const label = `${labelFields || "全部字段"}: ${g.query}`;
+                      return (
+                        <span key={gi} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700">
+                          {label}
+                          <button
+                            className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                            aria-label="编辑条件"
+                            onClick={() => {
+                              setText(g.query);
+                              setActiveFields(g.fields);
+                              setFilterGroups((prev) => prev.filter((_, idx) => idx !== gi));
+                              inputRef.current?.focus();
+                            }}
+                          >
+                            ✎
+                          </button>
+                          <button
+                            className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                            aria-label="移除条件"
+                            onClick={() => setFilterGroups((prev) => prev.filter((_, idx) => idx !== gi))}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </span>
+                      );
+                    })}
+
+                    <Button
+                      size={density === "compact" ? "small" : "medium"}
+                      appearance="ghost"
+                      variant="default"
+                      onClick={() => {
+                        const trimmed = text.trim();
+                        if (!trimmed) return;
+                        if (filterGroups.length >= maxFilterGroups) return;
+                        const fields = activeFields.length > 0 ? activeFields : (filterEmptyMeansAll ? (filterFields || []).map((f) => f.param) : []);
+                        setFilterGroups((prev) => [...prev, { query: trimmed, fields }]);
+                        setText("");
+                        inputRef.current?.focus();
+                      }}
+                      className="text-gray-600"
+                    >
+                      添加条件
+                    </Button>
+                  </>
+                )}
               </>
             )}
             {filterMode !== "fields" && (

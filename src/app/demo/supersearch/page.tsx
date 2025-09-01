@@ -168,6 +168,7 @@ function buildSections(): SuperSearchSection[] {
 export default function SuperSearchDemoPage() {
   const sections = buildSections();
   const [lastFilter, setLastFilter] = useState<{ q: string; fields: string[] } | null>(null);
+  const [groups, setGroups] = useState<{ query: string; fields: string[] }[] | null>(null);
   return (
     <Layout
       menuItems={menuItems}
@@ -209,12 +210,21 @@ export default function SuperSearchDemoPage() {
                 { label: '用户邮箱', param: 'userEmail' },
                 { label: '订单编号', param: 'orderNo' },
               ]}
-              onFilterSearch={(q, fields) => setLastFilter({ q, fields })}
+              allowMultiFilterGroups
+              maxFilterGroups={5}
+              onFilterSearchGroups={(gs) => {
+                setGroups(gs);
+                const last = gs[gs.length - 1];
+                if (last) setLastFilter({ q: last.query, fields: last.fields });
+              }}
             />
           </div>
-          {lastFilter && (
-            <div className="text-xs text-gray-500">
-              将作为筛选条件传参：q = "{lastFilter.q}", fields = [{lastFilter.fields.join(', ')}]
+          {groups && (
+            <div className="text-xs text-gray-500 space-y-1">
+              <div>多组条件：</div>
+              {groups.map((g, i) => (
+                <div key={i}>[{i + 1}] q = "{g.query}", fields = [{g.fields.join(', ')}]</div>
+              ))}
             </div>
           )}
           <div className="text-xs text-gray-400">
