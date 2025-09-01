@@ -50,12 +50,12 @@ function buildSections(): SuperSearchSection[] {
       {
         id: 'o_2024_001',
         title: '2024-001',
-        subtitle: '张三 · ￥1299 · 已支付',
+        subtitle: '张三 · ￥299 · 已支付',
         status: '已支付',
         meta: {
           订单ID: 'o_2024_001',
           用户: '张三',
-          金额: '￥1299',
+          金额: '￥299',
           创建时间: '2024-11-02 14:22',
           最近更新: '2024-11-03 09:01',
           渠道: 'App',
@@ -64,12 +64,12 @@ function buildSections(): SuperSearchSection[] {
       {
         id: 'o_2024_002',
         title: '2024-002',
-        subtitle: '李四 · ￥599 · 待支付',
+        subtitle: '李四 · ￥99 · 待支付',
         status: '待支付',
         meta: {
           订单ID: 'o_2024_002',
           用户: '李四',
-          金额: '￥599',
+          金额: '￥99',
           创建时间: '2024-11-05 09:10',
           最近更新: '2024-11-05 09:12',
           渠道: 'Web',
@@ -78,6 +78,14 @@ function buildSections(): SuperSearchSection[] {
     ],
     seeAllHref: '#',
   };
+
+  // 追加 150 条产品用于大数量场景演示
+  const extraProducts = Array.from({ length: 150 }, (_, i) => ({
+    id: `p_demo_${i + 1}`,
+    title: `测试产品 ${i + 1}`,
+    subtitle: i % 2 === 0 ? '演示数据 · 批量' : '演示数据',
+    meta: { 产品ID: `p_demo_${i + 1}`, 分类: '演示', 库存: '充足' },
+  }));
 
   const products: SuperSearchSection = {
     key: 'products',
@@ -106,6 +114,7 @@ function buildSections(): SuperSearchSection[] {
           上架时间: '2024-03-15',
         },
       },
+      ...extraProducts,
     ],
     seeAllHref: '#',
   };
@@ -143,7 +152,16 @@ function buildSections(): SuperSearchSection[] {
     seeAllHref: '#',
   };
 
-  return [users, orders, products, projects];
+  // 追加 120 条订单用于大数量场景演示
+  const extraOrders = Array.from({ length: 120 }, (_, i) => ({
+    id: `o_bulk_${(i + 1).toString().padStart(3, '0')}`,
+    title: `BULK-${(i + 1).toString().padStart(3, '0')}`,
+    subtitle: i % 3 === 0 ? '批量导入 · 待支付' : '批量导入 · 已创建',
+    status: i % 3 === 0 ? '待支付' : undefined,
+    meta: { 订单ID: `o_bulk_${i + 1}`, 渠道: '批量', 金额: '￥' + String((i % 9) * 11 + 9) },
+  }));
+
+  return [users, { ...orders, items: [...orders.items, ...extraOrders] }, products, projects];
 }
 
 export default function SuperSearchDemoPage() {
@@ -152,12 +170,12 @@ export default function SuperSearchDemoPage() {
     <Layout
       menuItems={menuItems}
       footerItems={footerItems}
-      header={<div className="text-xl font-semibold text-gray-800">超级搜索框 · SuperSearch</div>}
+      header={<div className="text-xl font-semibold text-gray-800">超级搜索 · SuperSearch</div>}
     >
       <Card>
         <div className="space-y-6">
           <p className="text-sm text-gray-600">
-            该组件遵循本项目的 Tailwind 设计令牌与样式，演示跨实体（不限于用户/订单）的统一搜索体验。下方为示例：
+            该组件遵循本项目的 Tailwind 设计令牌与样式，演示跨实体（用户/订单/产品/项目）的统一搜索体验。
           </p>
           <div className="w-full max-w-3xl">
             <SuperSearch
@@ -167,19 +185,12 @@ export default function SuperSearchDemoPage() {
               highlight="tint"
               actions="hoverOnly"
               className="w-full"
-              placeholder="搜索用户、订单、产品、项目…"
+              placeholder="搜索用户、订单、产品、项目"
               history={['报表', '新增客户', '近7天订单', '退款', '库存']}
-              hints={[
-                '示例：用户 张三',
-                '示例：订单 2024-001',
-                '示例：产品 iPhone',
-                '示例：项目 飞鹰计划',
-              ]}
-              // Configurable interactions
+              hints={['示例：用户 张三', '示例：订单 2024-001', '示例：产品 iPhone', '示例：项目 飞鹰计划']}
               enablePreview
               previewDelay={120}
               previewHideDelay={120}
-              // Selection configs: users/products multiple; orders/projects single
               selectable
               selectionMode="multiple"
               sectionSelectionMode={{ orders: 'single', projects: 'single' }}
@@ -187,10 +198,11 @@ export default function SuperSearchDemoPage() {
             />
           </div>
           <div className="text-xs text-gray-400">
-            提示：输入关键字如 “张三”、“2024-001”、“iPhone”、“飞鹰” 观察分栏结果与预览卡；点击“转为筛选”查看 Chips 条的示意。
+            提示：输入“张三”“2024-001”“iPhone”“飞鹰计划”观察匹配与预览；点击“转为筛选”查看 Chips 示例。
           </div>
         </div>
       </Card>
     </Layout>
   );
 }
+
