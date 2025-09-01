@@ -47,6 +47,10 @@ export type SuperSearchProps = {
   onSelectionChange?: (sel: Record<string, SuperSearchItem[]>) => void;
   filterEntitySelectionMode?: "single" | "multiple";
   capCounts?: boolean;
+  // Whether to show truncation hint when matches exceed display cap
+  showTruncationHint?: boolean;
+  // Custom renderer for the truncation hint
+  renderTruncationHint?: (args: { displayed: number; total: number; section: SuperSearchSection }) => ReactNode;
 };
 
 function useDebounced<T>(value: T, delay = 160) {
@@ -84,6 +88,8 @@ export default function SuperSearch({
   onSelectionChange,
   filterEntitySelectionMode = "multiple",
   capCounts = true,
+  showTruncationHint = true,
+  renderTruncationHint,
 }: SuperSearchProps) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
@@ -547,7 +553,19 @@ export default function SuperSearch({
                           </li>
                         );
                       })}
-
+                      {showTruncationHint && !!dText && (matchedCounts[sec.key] ?? 0) > sec.items.length && (
+                        <li className="px-3 py-2 text-[11px] text-gray-400 text-center">
+                          {renderTruncationHint ? (
+                            renderTruncationHint({
+                              displayed: sec.items.length,
+                              total: matchedCounts[sec.key] ?? 0,
+                              section: sec,
+                            })
+                          ) : (
+                            <span>匹配较多，仅展示前{sec.items.length}条</span>
+                          )}
+                        </li>
+                      )}
                     </ul>
                   </div>
                 ))}

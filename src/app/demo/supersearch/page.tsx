@@ -196,6 +196,9 @@ export default function SuperSearchDemoPage() {
               selectionMode="multiple"
               sectionSelectionMode={{ orders: 'single', projects: 'single' }}
               showSelectedBelow
+              renderTruncationHint={({ displayed }) => (
+                <span>匹配较多，仅展示前 {displayed} 条</span>
+              )}
             />
           </div>
           <div className="text-xs text-gray-400">
@@ -206,4 +209,3 @@ export default function SuperSearchDemoPage() {
     </Layout>
   );
 }
-
