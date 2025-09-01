@@ -108,6 +108,18 @@ export default function SuperSearch({
     }));
   }, [sections, dText]);
 
+  // Matched counts before slicing for improved UX hints
+  const matchedCounts = useMemo(() => {
+    if (!dText) return Object.fromEntries(sections.map((s) => [s.key, s.items.length]));
+    const q = dText.trim();
+    return Object.fromEntries(
+      sections.map((s) => [
+        s.key,
+        s.items.filter((it) => matchQuery(q, it.title + " " + (it.subtitle ?? ""))).length,
+      ]),
+    );
+  }, [sections, dText]);
+
   const hasAny = filtered.some((s) => s.items.length > 0);
   const densityRow = density === "compact" ? "h-10" : "h-12";
 
@@ -387,16 +399,14 @@ export default function SuperSearch({
                     <div className="sticky top-0 z-10 mb-1 flex h-9 items-center justify-between rounded-md bg-white/80 px-2 text-sm font-semibold text-gray-700 backdrop-blur">
                       <div className="flex items-center gap-2">
                         <span className="inline-flex h-4 w-4 items-center justify-center text-gray-500">{sec.icon}</span>
-                        <span>
-                          {sec.label}
-                          <span className="ml-1 text-xs font-normal text-gray-400">({sec.items.length})</span>
-                        </span>
+                        <span>{sec.label}</span>
                       </div>
-                      {sec.seeAllHref && (
-                        <a className="text-xs font-medium text-gray-400 hover:text-gray-500" href={sec.seeAllHref} onClick={(e) => e.preventDefault()}>
-                          查看全部
-                        </a>
-                      )}
+                      <span
+                        className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary/90"
+                        aria-label="匹配数量"
+                      >
+                        {matchedCounts[sec.key] ?? sec.items.length}
+                      </span>
                     </div>
 
                     <ul className="divide-y divide-gray-100 rounded-lg border border-gray-100">
@@ -444,11 +454,18 @@ export default function SuperSearch({
                         );
                       })}
 
-                      {sec.seeAllHref && sec.items.length > 0 && (
+                      {false && sec.seeAllHref && sec.items.length > 0 && (
                         <li className="flex justify-end">
                           <a className="px-3 py-2 text-right text-xs text-gray-500 hover:text-gray-600" href={sec.seeAllHref} onClick={(e) => e.preventDefault()}>
                             查看全部 {sec.items.length} 条
                           </a>
+                        </li>
+                      )}
+                      {dText && (matchedCounts[sec.key] ?? 0) > sec.items.length && (
+                        <li className="flex justify-end">
+                          <div className="px-3 py-2 text-right text-[11px] text-gray-400">
+                            结果较多，继续输入以缩小范围
+                          </div>
                         </li>
                       )}
                     </ul>
