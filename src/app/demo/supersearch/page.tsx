@@ -1,6 +1,7 @@
 'use client';
 
 import Layout from '@/components/Layout';
+import { useState } from 'react';
 import Card from '@/components/Card';
 import SuperSearch, { SuperSearchSection } from '@/components/SuperSearch';
 import { menuItems, footerItems } from '@/components/menuItems';
@@ -166,6 +167,7 @@ function buildSections(): SuperSearchSection[] {
 
 export default function SuperSearchDemoPage() {
   const sections = buildSections();
+  const [lastFilter, setLastFilter] = useState<{ q: string; fields: string[] } | null>(null);
   return (
     <Layout
       menuItems={menuItems}
@@ -200,8 +202,21 @@ export default function SuperSearchDemoPage() {
               renderTruncationHint={({ displayed }) => (
                 <span>匹配较多，仅展示前 {displayed} 条</span>
               )}
+              filterMode="fields"
+              filterFields={[
+                { label: '用户ID', param: 'userId' },
+                { label: '用户名称', param: 'userName' },
+                { label: '用户邮箱', param: 'userEmail' },
+                { label: '订单编号', param: 'orderNo' },
+              ]}
+              onFilterSearch={(q, fields) => setLastFilter({ q, fields })}
             />
           </div>
+          {lastFilter && (
+            <div className="text-xs text-gray-500">
+              将作为筛选条件传参：q = "{lastFilter.q}", fields = [{lastFilter.fields.join(', ')}]
+            </div>
+          )}
           <div className="text-xs text-gray-400">
             提示：输入“张三”“2024-001”“iPhone”“飞鹰计划”观察匹配与预览；点击“转为筛选”查看 Chips 示例。
           </div>

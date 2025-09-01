@@ -46,6 +46,12 @@ export type SuperSearchProps = {
   selected?: Record<string, SuperSearchItem[]>;
   onSelectionChange?: (sel: Record<string, SuperSearchItem[]>) => void;
   filterEntitySelectionMode?: "single" | "multiple";
+  // Filter (fields) mode props
+  filterMode?: "entity" | "fields";
+  filterFields?: { label: string; param: string; icon?: ReactNode }[];
+  filterFieldSelectionMode?: "single" | "multiple";
+  filterEmptyMeansAll?: boolean;
+  onFilterSearch?: (query: string, fields: string[]) => void;
   capCounts?: boolean;
   // Whether to show truncation hint when matches exceed display cap
   showTruncationHint?: boolean;
@@ -89,6 +95,11 @@ export default function SuperSearch({
   selected,
   onSelectionChange,
   filterEntitySelectionMode = "multiple",
+  filterMode = "entity",
+  filterFields = [],
+  filterFieldSelectionMode = "multiple",
+  filterEmptyMeansAll = true,
+  onFilterSearch,
   capCounts = true,
   showTruncationHint = true,
   renderTruncationHint,
@@ -109,6 +120,7 @@ export default function SuperSearch({
   const [innerSel, setInnerSel] = useState<Record<string, SuperSearchItem[]>>({});
   const selection = isControlled ? (selected as Record<string, SuperSearchItem[]>) : innerSel;
   const [activeEntities, setActiveEntities] = useState<string[]>([]);
+  const [activeFields, setActiveFields] = useState<string[]>([]);
   const [inputHeight, setInputHeight] = useState(0);
   const [overlayHeight, setOverlayHeight] = useState(0);
   const selectedCount = Object.values(selection ?? {}).flat().length;
@@ -287,6 +299,25 @@ export default function SuperSearch({
     }
   }
 
+  // Build dynamic placeholder in fields filter mode
+  const dynamicPlaceholder = useMemo(() => {
+    if (!chipsMode || filterMode !== "fields") return placeholder;
+    const labels = (filterFields || [])
+      .filter((f) => (activeFields.length > 0 ? activeFields.includes(f.param) : true))
+      .map((f) => f.label);
+    if (labels.length === 0) return placeholder;
+    const joined = labels.slice(0, 3).join("、") + (labels.length > 3 ? "…" : "");
+    return `在${joined}中搜索`;
+  }, [chipsMode, filterMode, filterFields, activeFields, placeholder]);
+
+  // Fire filter callback in fields mode on changes (debounced input)
+  useEffect(() => {
+    if (!chipsMode || filterMode !== "fields") return;
+    if (!onFilterSearch) return;
+    const selected = activeFields.length > 0 ? activeFields : (filterEmptyMeansAll ? filterFields.map((f) => f.param) : []);
+    onFilterSearch(dText, selected);
+  }, [chipsMode, filterMode, dText, activeFields, filterEmptyMeansAll, filterFields, onFilterSearch]);
+
   return (
     <div
       ref={containerRef}
@@ -328,8 +359,14 @@ export default function SuperSearch({
           onFocus={() => {
             if (!chipsMode) setOpen(true);
           }}
-          placeholder={placeholder}
+          placeholder={dynamicPlaceholder}
           className="flex-1 bg-transparent text-sm placeholder-gray-400 focus:outline-none"
+          onKeyDown={(e) => {
+            if (chipsMode && filterMode === "fields" && e.key === "Enter" && onFilterSearch) {
+              const selected = activeFields.length > 0 ? activeFields : (filterEmptyMeansAll ? filterFields.map((f) => f.param) : []);
+              onFilterSearch(text, selected);
+            }
+          }}
         />
         {!chipsMode && selectedCount > 0 && (
           <span className="inline-flex items-center gap-0.5 select-none rounded-md bg-primary/10 px-1.5 py-0.5 text-xs text-primary">
@@ -373,6 +410,7 @@ export default function SuperSearch({
               setOpen(false);
               clearAllSelection();
               setActiveEntities([]);
+              setActiveFields([]);
             }}
             className="text-gray-600"
           >
@@ -389,7 +427,34 @@ export default function SuperSearch({
           style={{ top: inputHeight + 8 }}
         >
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-gray-400">实体</span>
+            {filterMode === "fields" && (
+              <>
+                <span className="text-xs text-gray-400">字段</span>
+                {(filterFields ?? []).map((f) => {
+                  const active = activeFields.includes(f.param);
+                  return (
+                    <button
+                      key={f.param}
+                      className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs ${
+                        active ? "border-primary/20 bg-primary/10 text-primary" : "border-gray-200 bg-gray-50 text-gray-600"
+                      }`}
+                      onClick={() => {
+                        setActiveFields((prev) => {
+                          if (filterFieldSelectionMode === "single") return active ? [] : [f.param];
+                          return active ? prev.filter((k) => k !== f.param) : [...prev, f.param];
+                        });
+                      }}
+                    >
+                      {f.icon && <span className="h-3.5 w-3.5 text-current">{f.icon}</span>}
+                      {f.label}
+                    </button>
+                  );
+                })}
+              </>
+            )}
+            {filterMode !== "fields" && (
+              <>
+                <span className="text-xs text-gray-400">实体</span>
             {sections.map((s) => {
               const active = activeEntities.includes(s.key);
               return (
@@ -410,6 +475,8 @@ export default function SuperSearch({
                 </button>
               );
             })}
+              </>
+            )}
             {text && (
               <>
                 <span className="text-xs text-gray-400">关键词</span>
