@@ -46,6 +46,7 @@ export type SuperSearchProps = {
   selected?: Record<string, SuperSearchItem[]>;
   onSelectionChange?: (sel: Record<string, SuperSearchItem[]>) => void;
   filterEntitySelectionMode?: "single" | "multiple";
+  capCounts?: boolean;
 };
 
 function useDebounced<T>(value: T, delay = 160) {
@@ -82,6 +83,7 @@ export default function SuperSearch({
   selected,
   onSelectionChange,
   filterEntitySelectionMode = "multiple",
+  capCounts = true,
 }: SuperSearchProps) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
@@ -131,6 +133,11 @@ export default function SuperSearch({
       ]),
     );
   }, [sections, dText]);
+
+  function formatBadgeCount(n: number) {
+    if (capCounts && n > 99) return "99+";
+    return String(n);
+  }
 
   const hasAny = filtered.some((s) => s.items.length > 0);
   const densityRow = density === "compact" ? "h-10" : "h-12";
@@ -408,17 +415,28 @@ export default function SuperSearch({
               >
                 {filtered.map((sec, si) => (
                   <div key={sec.key} className="min-w-0">
-                    <div className="sticky top-0 z-10 mb-1 flex h-9 items-center justify-between rounded-md bg-white/80 px-2 text-sm font-semibold text-gray-700 backdrop-blur">
-                      <div className="flex items-center gap-2">
+                    <div className="sticky top-0 z-10 mb-1 flex h-9 items-center rounded-md bg-white/80 px-2 text-sm font-semibold text-gray-700 backdrop-blur">
+                      <div className="flex items-center gap-2 w-full">
                         <span className="inline-flex h-4 w-4 items-center justify-center text-gray-500">{sec.icon}</span>
-                        <span>{sec.label}</span>
+                        <h3 className="flex items-center gap-2 text-gray-700 w-full">
+                          <span>{sec.label}</span>
+                          {(matchedCounts[sec.key] ?? sec.items.length) > 0 && (
+                            <span
+                              className={`inline-flex items-center h-5 px-2 rounded-full text-xs font-medium text-[color:var(--badge-fg)] bg-[color:var(--badge-bg)] ring-1 ring-[color:var(--badge-br)] ${
+                                (si === activeSection || (selection?.[sec.key] ?? []).length > 0) ? "bg-[color:#DDEEFF]" : ""
+                              }`}
+                              aria-label={`${sec.label} 匹配 ${matchedCounts[sec.key] ?? sec.items.length} 条`}
+                              style={{
+                                ["--badge-fg" as any]: "#0A66C2",
+                                ["--badge-bg" as any]: "#EAF3FF",
+                                ["--badge-br" as any]: "#CDE1FF",
+                              }}
+                            >
+                              {formatBadgeCount(matchedCounts[sec.key] ?? sec.items.length)}
+                            </span>
+                          )}
+                        </h3>
                       </div>
-                      <span
-                        className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary/90"
-                        aria-label="匹配数量"
-                      >
-                        {matchedCounts[sec.key] ?? sec.items.length}
-                      </span>
                     </div>
 
                     <ul className="divide-y divide-gray-100 rounded-lg border border-gray-100">
