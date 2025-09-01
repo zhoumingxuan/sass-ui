@@ -459,23 +459,21 @@ export default function SuperSearch({
                               if (enablePreview) {
                                 if (hideTimer.current) window.clearTimeout(hideTimer.current);
                                 if (showTimer.current) window.clearTimeout(showTimer.current);
-                                showTimer.current = window.setTimeout(() => setHoverKey(k), previewDelay);
+                                // 仅基于 hover 显示预览，不需要延迟
+                                setHoverKey(k);
                               }
                             }}
                             onMouseLeave={() => {
                               if (enablePreview) {
                                 if (showTimer.current) window.clearTimeout(showTimer.current);
                                 if (hideTimer.current) window.clearTimeout(hideTimer.current);
-                                hideTimer.current = window.setTimeout(() => setHoverKey((prev) => (prev === k ? null : prev)), previewHideDelay);
+                                // 仅基于 hover 隐藏预览，不需要延迟
+                                setHoverKey((prev) => (prev === k ? null : prev));
                               }
                             }}
                           >
                             <button
                               className={`${baseRow} ${activeRing} ${activeTint} ${activeBold}`}
-                              onMouseEnter={() => {
-                                setActiveSection(si);
-                                setActiveIndex(ii);
-                              }}
                               onFocus={() => {
                                 setActiveSection(si);
                                 setActiveIndex(ii);
