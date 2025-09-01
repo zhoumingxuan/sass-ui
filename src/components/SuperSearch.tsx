@@ -97,6 +97,18 @@ export default function SuperSearch({
   const selection = isControlled ? (selected as Record<string, SuperSearchItem[]>) : innerSel;
   const [activeEntities, setActiveEntities] = useState<string[]>([]);
 
+  // Preview control
+  const [hoverKey, setHoverKey] = useState<string | null>(null);
+  const showTimer = useRef<number | null>(null);
+  const hideTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (showTimer.current) window.clearTimeout(showTimer.current);
+      if (hideTimer.current) window.clearTimeout(hideTimer.current);
+    };
+  }, []);
+
   const filtered = useMemo(() => {
     if (!dText) return sections.map((s) => ({ ...s, items: s.items.slice(0, 6) }));
     const q = dText.trim();
@@ -420,8 +432,26 @@ export default function SuperSearch({
                         const activeRing = highlight === "outline" ? (active ? "ring-1 ring-primary" : "") : "";
                         const activeTint = highlight === "tint" ? (active ? "bg-primary/10" : "") : "";
                         const activeBold = highlight === "bold" ? (active ? "font-semibold" : "") : "";
+                        const k = `${sec.key}-${it.id}`;
                         return (
-                          <li key={it.id} className="relative">
+                          <li
+                            key={it.id}
+                            className="relative"
+                            onMouseEnter={() => {
+                              if (enablePreview) {
+                                if (hideTimer.current) window.clearTimeout(hideTimer.current);
+                                if (showTimer.current) window.clearTimeout(showTimer.current);
+                                showTimer.current = window.setTimeout(() => setHoverKey(k), previewDelay);
+                              }
+                            }}
+                            onMouseLeave={() => {
+                              if (enablePreview) {
+                                if (showTimer.current) window.clearTimeout(showTimer.current);
+                                if (hideTimer.current) window.clearTimeout(hideTimer.current);
+                                hideTimer.current = window.setTimeout(() => setHoverKey((prev) => (prev === k ? null : prev)), previewHideDelay);
+                              }
+                            }}
+                          >
                             <button
                               className={`${baseRow} ${activeRing} ${activeTint} ${activeBold}`}
                               onMouseEnter={() => {
@@ -450,6 +480,9 @@ export default function SuperSearch({
                                 {isSelected && <Check className="h-4 w-4 text-primary" aria-hidden />}
                               </div>
                             </button>
+                            {enablePreview && hoverKey === k && (
+                              <PreviewCard item={it} sectionLabel={sec.label} placement={preview} />
+                            )}
                           </li>
                         );
                       })}
@@ -500,6 +533,80 @@ function Chip({ label, removable, onRemove }: { label: string; removable?: boole
         </button>
       )}
     </span>
+  );
+}
+
+function PreviewCard({
+  item,
+  sectionLabel,
+  placement,
+}: {
+  item: SuperSearchItem;
+  sectionLabel: string;
+  placement: PreviewPlacement;
+}) {
+  const [visible, setVisible] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    // Animate in on mount
+    const id = window.setTimeout(() => setVisible(true), 0);
+    return () => window.clearTimeout(id);
+  }, []);
+
+  return (
+    <div
+      className={
+        (placement === "bottom"
+          ? "absolute left-1/2 top-full mt-2 w-72 -translate-x-1/2"
+          : "absolute left-full top-1/2 ml-2 w-80 -translate-y-1/2") +
+        " z-20 rounded-xl border border-gray-200 bg-white p-3 text-left shadow-elevation-1 transition-all duration-150 ease-out transform-gpu " +
+        (visible ? "opacity-100 scale-100" : "opacity-0 scale-95")
+      }
+      role="dialog"
+      aria-label="预览"
+    >
+      <div className="flex items-start gap-2.5">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-md bg-gray-100 text-gray-400">
+          {item.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={item.avatarUrl} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <span className="text-xs leading-none">{sectionLabel.slice(0, 1)}</span>
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-medium leading-tight text-gray-900">{item.title}</div>
+          {item.subtitle && <div className="mt-0.5 truncate text-xs leading-snug text-gray-500">{item.subtitle}</div>}
+          {item.status && <div className="mt-1 inline-flex rounded bg-gray-100 px-1.5 py-0.5 text-[11px] text-gray-600">{item.status}</div>}
+          {item.meta && (
+            <div className="mt-2 space-y-1 text-xs leading-snug text-gray-600">
+              {Object.entries(item.meta).map(([k2, v2]) => (
+                <div key={k2} className="flex gap-2">
+                  <span className="w-16 shrink-0 text-gray-400">{k2}</span>
+                  <span className="truncate">{v2}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="mt-2.5 flex items-center justify-start gap-3 pt-1 text-[11px] text-gray-500">
+        <button
+          className="text-primary/90 hover:underline"
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(item.id);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 900);
+            } catch {}
+          }}
+        >
+          复制ID
+        </button>
+        {copied && <span className="text-gray-400">已复制</span>}
+      </div>
+    </div>
   );
 }
 
