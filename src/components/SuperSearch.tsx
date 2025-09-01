@@ -427,9 +427,9 @@ export default function SuperSearch({
                               }`}
                               aria-label={`${sec.label} 匹配 ${matchedCounts[sec.key] ?? sec.items.length} 条`}
                               style={{
-                                ["--badge-fg" as any]: "#0A66C2",
-                                ["--badge-bg" as any]: "#EAF3FF",
-                                ["--badge-br" as any]: "#CDE1FF",
+                                ["--badge-fg" as string]: "#0A66C2",
+                                ["--badge-bg" as string]: "#EAF3FF",
+                                ["--badge-br" as string]: "#CDE1FF",
                               }}
                             >
                               {formatBadgeCount(matchedCounts[sec.key] ?? sec.items.length)}
@@ -439,7 +439,7 @@ export default function SuperSearch({
                       </div>
                     </div>
 
-                    <ul className="divide-y divide-gray-100 rounded-lg border border-gray-100">
+                    <ul className="divide-y divide-gray-100 rounded-lg border border-gray-100 pb-1.5">
                       {sec.items.length === 0 && (
                         <li className="p-4 text-center text-sm text-gray-400">没有找到匹配项</li>
                       )}
@@ -505,20 +505,6 @@ export default function SuperSearch({
                         );
                       })}
 
-                      {false && sec.seeAllHref && sec.items.length > 0 && (
-                        <li className="flex justify-end">
-                          <a className="px-3 py-2 text-right text-xs text-gray-500 hover:text-gray-600" href={sec.seeAllHref} onClick={(e) => e.preventDefault()}>
-                            查看全部 {sec.items.length} 条
-                          </a>
-                        </li>
-                      )}
-                      {dText && (matchedCounts[sec.key] ?? 0) > sec.items.length && (
-                        <li className="flex justify-end">
-                          <div className="px-3 py-2 text-right text-[11px] text-gray-400">
-                            结果较多，继续输入以缩小范围
-                          </div>
-                        </li>
-                      )}
                     </ul>
                   </div>
                 ))}
