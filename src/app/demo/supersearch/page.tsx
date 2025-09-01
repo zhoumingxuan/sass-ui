@@ -184,6 +184,7 @@ export default function SuperSearchDemoPage() {
               preview="right"
               highlight="tint"
               actions="hoverOnly"
+              capCounts={false}
               className="w-full"
               placeholder="搜索用户、订单、产品、项目"
               history={['报表', '新增客户', '近7天订单', '退款', '库存']}
