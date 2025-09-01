@@ -612,29 +612,19 @@ function PreviewCard({
   );
 }
 
-function renderHighlight(text: string, q: string, mode: HighlightMode) {
+function renderHighlight(text: string, q: string, _mode: HighlightMode) {
   if (!q) return text;
   const parts = text.split(new RegExp(`(${escapeRegExp(q)})`, "ig"));
   return (
     <>
       {parts.map((p, i) => {
         const hit = p.toLowerCase() === q.toLowerCase();
-        if (!hit) return <span key={i}>{p}</span>;
-        if (mode === "bold") return (
-          <span key={i} className="font-semibold text-gray-900">
+        return hit ? (
+          <span key={i} className="text-orange-500">
             {p}
           </span>
-        );
-        if (mode === "outline")
-          return (
-            <span key={i} className="rounded ring-1 ring-primary px-0.5">
-              {p}
-            </span>
-          );
-        return (
-          <span key={i} className="rounded bg-primary/15 px-0.5 font-medium text-gray-900">
-            {p}
-          </span>
+        ) : (
+          <span key={i}>{p}</span>
         );
       })}
     </>
