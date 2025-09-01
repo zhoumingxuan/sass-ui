@@ -192,6 +192,7 @@ export default function SuperSearchDemoPage() {
               enablePreview
               previewDelay={120}
               previewHideDelay={120}
+              showEmptySections={false}
               selectable
               selectionMode="multiple"
               sectionSelectionMode={{ orders: 'single', projects: 'single' }}

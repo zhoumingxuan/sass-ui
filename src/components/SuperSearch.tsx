@@ -51,6 +51,8 @@ export type SuperSearchProps = {
   showTruncationHint?: boolean;
   // Custom renderer for the truncation hint
   renderTruncationHint?: (args: { displayed: number; total: number; section: SuperSearchSection }) => ReactNode;
+  // Whether to show sections with zero matches in normal search mode (default: false)
+  showEmptySections?: boolean;
 };
 
 function useDebounced<T>(value: T, delay = 160) {
@@ -90,6 +92,7 @@ export default function SuperSearch({
   capCounts = true,
   showTruncationHint = true,
   renderTruncationHint,
+  showEmptySections = false,
 }: SuperSearchProps) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
@@ -132,6 +135,12 @@ export default function SuperSearch({
         .slice(0, 10),
     }));
   }, [sections, dText]);
+
+  // Sections to render in normal search mode considering whether to hide empty sections
+  const renderSections = useMemo(() => {
+    if (!dText) return filtered;
+    return showEmptySections ? filtered : filtered.filter((s) => s.items.length > 0);
+  }, [filtered, dText, showEmptySections]);
 
   // Matched counts before slicing for improved UX hints
   const matchedCounts = useMemo(() => {
@@ -202,7 +211,7 @@ export default function SuperSearch({
   }, [open]);
 
   function moveHighlight(dir: 1 | -1) {
-    const sec = filtered[activeSection];
+    const sec = renderSections[activeSection];
     if (!sec) return;
     const len = sec.items.length;
     if (len === 0) return;
@@ -210,19 +219,39 @@ export default function SuperSearch({
   }
 
   function switchSection(dir: 1 | -1) {
-    const len = filtered.length;
+    const len = renderSections.length;
     if (len <= 1) return;
     const next = (activeSection + dir + len) % len;
     setActiveSection(next);
-    const targetLen = filtered[next]?.items.length ?? 0;
+    const targetLen = renderSections[next]?.items.length ?? 0;
     setActiveIndex((i) => (targetLen === 0 ? 0 : Math.min(i, targetLen - 1)));
   }
 
   const gridCols = useMemo(() => {
-    if (columns === 2) return "grid-cols-2";
-    if (columns === 3) return "grid-cols-3";
+    // Determine max columns based on visible sections when searching
+    const visibleCount = renderSections.length;
+    const maxCols = columns ?? Math.min(Math.max(visibleCount, 1), 3);
+    if (maxCols <= 1) return "grid-cols-1";
+    if (maxCols === 2) return "grid-cols-1 md:grid-cols-2";
     return "grid-cols-1 md:grid-cols-2 xl:grid-cols-3";
-  }, [columns]);
+  }, [columns, renderSections.length]);
+
+  // Keep active section/index in range when visible sections change
+  useEffect(() => {
+    const len = renderSections.length;
+    if (len === 0) {
+      setActiveSection(0);
+      setActiveIndex(0);
+      return;
+    }
+    if (activeSection >= len) {
+      setActiveSection(len - 1);
+      setActiveIndex(0);
+    } else {
+      const curLen = renderSections[activeSection]?.items.length ?? 0;
+      if (activeIndex >= curLen) setActiveIndex(curLen > 0 ? curLen - 1 : 0);
+    }
+  }, [renderSections.length, activeSection, activeIndex, renderSections]);
 
   function getSectionMode(key: string): "single" | "multiple" {
     return sectionSelectionMode?.[key] ?? selectionMode;
@@ -445,7 +474,7 @@ export default function SuperSearch({
               </div>
             )}
 
-            {!!dText && (
+            {!!dText && (showEmptySections || hasAny) && (
               <div
                 className={`grid gap-4 p-3 ${gridCols}`}
                 onKeyDown={(e) => {
@@ -460,13 +489,13 @@ export default function SuperSearch({
                     switchSection(e.shiftKey ? -1 : 1);
                   } else if (e.key === "Enter") {
                     e.preventDefault();
-                    const sec = filtered[activeSection];
+                    const sec = renderSections[activeSection];
                     const it = sec?.items[activeIndex];
                     if (sec && it) commitSelection(sec.key, it);
                   }
                 }}
               >
-                {filtered.map((sec, si) => (
+                {renderSections.map((sec, si) => (
                   <div key={sec.key} className="min-w-0">
                     <div className="sticky top-0 z-10 mb-1 flex h-9 items-center rounded-md bg-white/80 px-2 text-sm font-semibold text-gray-700 backdrop-blur">
                       <div className="flex items-center gap-2 w-full">
