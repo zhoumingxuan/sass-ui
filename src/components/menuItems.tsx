@@ -14,6 +14,7 @@ import {
   UserCog,
   HelpingHand,
   FolderOpenDot,
+  Search,
 } from 'lucide-react';
 
 export const menuItems: MenuItem[] = [
@@ -37,6 +38,7 @@ export const menuItems: MenuItem[] = [
       { label: '选项卡', href: '/demo/tabs', icon: <LayoutList /> },
       { label: '模态框', href: '/demo/modal', icon: <PanelsTopLeft /> },
       { label: '消息提示', href: '/demo/message', icon: <MessageSquareText /> },
+      { label: '超级搜索框', href: '/demo/supersearch', icon: <Search /> },
     ],
   },
 ];
@@ -46,4 +48,3 @@ export const footerItems: MenuItem[] = [
   { label: '帮助', href: '#', icon: <HelpingHand /> },
   { label: '退出登录', href: '#', icon: <LogOut /> },
 ];
-
