@@ -292,7 +292,9 @@ export default function SuperSearch({
           value={text}
           onChange={(e) => {
             setText(e.target.value);
+            // Ensure dropdown re-opens while typing in normal mode
             if (chipsMode) setOpen(false);
+            else setOpen(true);
           }}
           onFocus={() => {
             if (!chipsMode) setOpen(true);
