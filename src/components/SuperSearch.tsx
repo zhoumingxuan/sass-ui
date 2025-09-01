@@ -93,11 +93,16 @@ export default function SuperSearch({
   const [chipsMode, setChipsMode] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputWrapRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
   const [focusedWithin, setFocusedWithin] = useState(false);
   const isControlled = selected !== undefined;
   const [innerSel, setInnerSel] = useState<Record<string, SuperSearchItem[]>>({});
   const selection = isControlled ? (selected as Record<string, SuperSearchItem[]>) : innerSel;
   const [activeEntities, setActiveEntities] = useState<string[]>([]);
+  const [inputHeight, setInputHeight] = useState(0);
+  const [overlayHeight, setOverlayHeight] = useState(0);
+  const selectedCount = Object.values(selection ?? {}).flat().length;
 
   // Preview control
   const [hoverKey, setHoverKey] = useState<string | null>(null);
@@ -141,6 +146,34 @@ export default function SuperSearch({
 
   const hasAny = filtered.some((s) => s.items.length > 0);
   const densityRow = density === "compact" ? "h-10" : "h-12";
+
+  // Measure input and overlay heights to control floating layers and dropdown offsets
+  useEffect(() => {
+    function measure() {
+      const iw = inputWrapRef.current;
+      const ov = overlayRef.current;
+      setInputHeight(iw ? Math.round(iw.getBoundingClientRect().height) : 0);
+      const overlayVisible = (chipsMode && focusedWithin) || (showSelectedBelow && !chipsMode && focusedWithin && selectedCount > 0);
+      setOverlayHeight(overlayVisible && ov ? Math.round(ov.getBoundingClientRect().height) : 0);
+    }
+
+    measure();
+
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => measure()) : null;
+    if (ro) {
+      if (inputWrapRef.current) ro.observe(inputWrapRef.current);
+      if (overlayRef.current) ro.observe(overlayRef.current);
+    } else {
+      const id = window.setInterval(measure, 200);
+      return () => window.clearInterval(id);
+    }
+
+    return () => {
+      try {
+        ro?.disconnect();
+      } catch {}
+    };
+  }, [chipsMode, focusedWithin, showSelectedBelow, selectedCount]);
 
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
@@ -207,7 +240,7 @@ export default function SuperSearch({
     }
   }
 
-  const selectedCount = Object.values(selection ?? {}).flat().length;
+  
 
   function clearAllSelection() {
     const next: Record<string, SuperSearchItem[]> = {};
@@ -240,6 +273,7 @@ export default function SuperSearch({
     >
       {/* SearchInput */}
       <div
+        ref={inputWrapRef}
         className={`flex items-center gap-2 rounded-xl border border-gray-200 bg-white shadow-sm ${density === "compact" ? "h-10 px-3" : "h-12 px-4"}`}
         onClick={() => {
           if (!chipsMode) setOpen(true);
@@ -312,7 +346,11 @@ export default function SuperSearch({
 
       {/* Filter mode panel */}
       {chipsMode && focusedWithin && (
-        <div className={`mt-2 w-full rounded-xl border border-gray-200 bg-white p-2 shadow-sm`}>
+        <div
+          ref={overlayRef}
+          className={`absolute left-0 right-0 z-30 w-full rounded-xl border border-gray-200 bg-white p-2 shadow-sm`}
+          style={{ top: inputHeight + 8 }}
+        >
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs text-gray-400">实体</span>
             {sections.map((s) => {
@@ -352,7 +390,11 @@ export default function SuperSearch({
 
       {/* Selected items bar (normal mode only) */}
       {showSelectedBelow && !chipsMode && focusedWithin && selectedCount > 0 && (
-        <div className="mt-2 w-full rounded-xl border border-gray-200 bg-white p-2 shadow-sm">
+        <div
+          ref={overlayRef}
+          className="absolute left-0 right-0 z-30 w-full rounded-xl border border-gray-200 bg-white p-2 shadow-sm"
+          style={{ top: inputHeight + 8 }}
+        >
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs text-gray-400">已选</span>
             {Object.entries(selection).map(([k, arr]) =>
@@ -366,7 +408,10 @@ export default function SuperSearch({
 
       {/* Dropdown (normal search mode only) */}
       {open && !chipsMode && (
-        <div className="absolute z-20 mt-2 w-full">
+        <div
+          className="absolute z-20 w-full"
+          style={{ top: inputHeight + 8 + (showSelectedBelow && focusedWithin && selectedCount > 0 ? overlayHeight + 8 : 0) }}
+        >
           <div className="rounded-2xl border border-gray-200 bg-white shadow-elevation-1">
             {!dText && (
               <div className="p-3">
