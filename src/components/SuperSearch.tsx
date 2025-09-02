@@ -138,6 +138,14 @@ export default function SuperSearch({
   const showTimer = useRef<number | null>(null);
   const hideTimer = useRef<number | null>(null);
 
+  // Stable refs for external callbacks to avoid effect re-trigger loops
+  const onFilterSearchRef = useRef(onFilterSearch);
+  const onFilterSearchGroupsRef = useRef(onFilterSearchGroups);
+  useEffect(() => {
+    onFilterSearchRef.current = onFilterSearch;
+    onFilterSearchGroupsRef.current = onFilterSearchGroups;
+  }, [onFilterSearch, onFilterSearchGroups]);
+
   useEffect(() => {
     return () => {
       if (showTimer.current) window.clearTimeout(showTimer.current);
@@ -318,11 +326,25 @@ export default function SuperSearch({
     return `在${joined}中搜索`;
   }, [chipsMode, filterMode, filterFields, activeFields, placeholder]);
 
-  // Fire filter callback in fields mode on changes (debounced input)
+  // Fire filter callback in fields mode on meaningful changes (debounced input)
+  // Guard with a signature ref to prevent repeated calls when parent re-renders
+  const lastFilterSigRef = useRef<string>("");
   useEffect(() => {
     if (!chipsMode || filterMode !== "fields") return;
-    const getAllFields = () => filterFields.map((f) => f.param);
-    const currentFields = activeFields.length > 0 ? activeFields : (filterEmptyMeansAll ? getAllFields() : []);
+
+    const allFields = (filterFields || []).map((f) => f.param);
+    const currentFields = activeFields.length > 0 ? activeFields : (filterEmptyMeansAll ? allFields : []);
+
+    // Build a compact signature for change detection
+    const sig = JSON.stringify({
+      dText,
+      currentFields,
+      filterGroups,
+      allowMultiFilterGroups,
+      allFields,
+    });
+    if (lastFilterSigRef.current === sig) return;
+    lastFilterSigRef.current = sig;
 
     if (allowMultiFilterGroups) {
       const composed = [
@@ -330,17 +352,17 @@ export default function SuperSearch({
         ...(dText ? [{ query: dText, fields: currentFields }] : []),
       ].map((g) => ({
         query: g.query,
-        fields: g.fields.length > 0 ? g.fields : (filterEmptyMeansAll ? getAllFields() : []),
+        fields: g.fields.length > 0 ? g.fields : (filterEmptyMeansAll ? allFields : []),
       }));
-      onFilterSearchGroups?.(composed);
-      // Also keep backward compatibility by calling single callback using current input if provided and no groups
-      if (!onFilterSearchGroups && onFilterSearch) {
-        onFilterSearch(dText, currentFields);
+      onFilterSearchGroupsRef.current?.(composed);
+      // Backward compatibility: if group callback not provided, call single callback
+      if (!onFilterSearchGroupsRef.current && onFilterSearchRef.current) {
+        onFilterSearchRef.current(dText, currentFields);
       }
-    } else if (onFilterSearch) {
-      onFilterSearch(dText, currentFields);
+    } else if (onFilterSearchRef.current) {
+      onFilterSearchRef.current(dText, currentFields);
     }
-  }, [chipsMode, filterMode, dText, activeFields, filterEmptyMeansAll, filterFields, allowMultiFilterGroups, filterGroups, onFilterSearchGroups, onFilterSearch]);
+  }, [chipsMode, filterMode, dText, activeFields, filterEmptyMeansAll, allowMultiFilterGroups, filterGroups, filterFields]);
 
   return (
     <div
