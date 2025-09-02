@@ -581,7 +581,7 @@ export default function SuperSearch({
 
                 {allowMultiFilterGroups && (
                   <div className="w-full flex flex-wrap items-center gap-2 mt-1">
-                    {filterGroups.length > 0 && <span className="ml-2 text-xs text-gray-400">条件组</span>}
+                    {filterGroups.length > 0 && <span className="text-xs text-gray-400">条件组</span>}
                     {filterGroups.map((g, gi) => {
                       const labelFields = (filterFields || [])
                         .filter((f) => g.fields.includes(f.param))
@@ -647,7 +647,7 @@ export default function SuperSearch({
                   : (<span className="text-xs text-gray-400">输入后按回车或点击右侧添加</span>)}
                 <div className="ml-auto flex items-center gap-2">
                   {groupLimitNotice && (
-                    <span className="inline-flex items-center gap-1 text-[11px] text-amber-600">
+                    <span className="inline-flex items-center gap-1 text-[11px] text-amber-500">
                       <AlertCircle className="h-3.5 w-3.5" /> 已达上限（{maxFilterGroups}）
                     </span>
                   )}
