@@ -579,23 +579,6 @@ export default function SuperSearch({
                   );
                 })}
 
-                <div className="ml-auto">
-                  <Button
-                    size="small"
-                    appearance="link"
-                    variant="default"
-                    className="text-gray-500"
-                    onClick={() => {
-                      setActiveFields([]);
-                      setFilterGroups([]);
-                      setText("");
-                      focusInput();
-                    }}
-                  >
-                    <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> 清空筛选
-                  </Button>
-                </div>
-
                 {allowMultiFilterGroups && (
                   <div className="w-full flex flex-wrap items-center gap-2 mt-1">
                     {filterGroups.length > 0 && <span className="ml-2 text-xs text-gray-400">条件组</span>}
