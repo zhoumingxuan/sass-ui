@@ -226,6 +226,7 @@ export default function SuperSearch({
       if (!containerRef.current) return;
       if (containerRef.current.contains(e.target as Node)) return;
       setOpen(false);
+      setFocusedWithin(false);
     }
     function onKey(e: KeyboardEvent) {
       if (!open) return;
