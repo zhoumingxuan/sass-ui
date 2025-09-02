@@ -488,7 +488,7 @@ export default function SuperSearch({
                 })}
 
                 {allowMultiFilterGroups && (
-                  <>
+                  <div className="w-full flex flex-wrap items-center gap-2 mt-1">
                     {filterGroups.length > 0 && <span className="ml-2 text-xs text-gray-400">条件组</span>}
                     {filterGroups.map((g, gi) => {
                       const labelFields = (filterFields || [])
@@ -523,24 +523,8 @@ export default function SuperSearch({
                       );
                     })}
 
-                    <Button
-                      size={density === "compact" ? "small" : "medium"}
-                      appearance="ghost"
-                      variant="default"
-                      onClick={() => {
-                        const trimmed = text.trim();
-                        if (!trimmed) return;
-                        if (filterGroups.length >= maxFilterGroups) return;
-                        const fields = activeFields.length > 0 ? activeFields : (filterEmptyMeansAll ? (filterFields || []).map((f) => f.param) : []);
-                        setFilterGroups((prev) => [...prev, { query: trimmed, fields }]);
-                        setText("");
-                        inputRef.current?.focus();
-                      }}
-                      className="text-gray-600"
-                    >
-                      添加条件
-                    </Button>
-                  </>
+                    
+                  </div>
                 )}
               </>
             )}
@@ -569,6 +553,34 @@ export default function SuperSearch({
             })}
               </>
             )}
+            {allowMultiFilterGroups && (
+              <div className="flex items-center gap-2 w-full">
+                <span className="text-xs text-gray-400">关键词</span>
+                {text ? (
+                  <Chip label={text} removable onRemove={() => setText("")} />)
+                  : (<span className="text-xs text-gray-400">输入后按回车或点击右侧添加</span>)}
+                <div className="ml-auto">
+                  <Button
+                    size="small"
+                    appearance="link"
+                    variant="primary"
+                    onClick={() => {
+                      const trimmed = text.trim();
+                      if (!trimmed) return;
+                      if (filterGroups.length >= maxFilterGroups) return;
+                      const fields = activeFields.length > 0 ? activeFields : (filterEmptyMeansAll ? (filterFields || []).map((f) => f.param) : []);
+                      setFilterGroups((prev) => [...prev, { query: trimmed, fields }]);
+                      setText("");
+                      inputRef.current?.focus();
+                    }}
+                  >
+                    添加条件
+                  </Button>
+                </div>
+              </div>
+            )}
+            {!allowMultiFilterGroups && (
+              <>
             {text && (
               <>
                 <span className="text-xs text-gray-400">关键词</span>
@@ -576,10 +588,12 @@ export default function SuperSearch({
               </>
             )}
             <div className="ml-auto">
-              <Button size={density === "compact" ? "small" : "medium"} appearance="ghost" variant="default" onClick={() => setText("")}>
+              <Button size="small" appearance="link" variant="default" onClick={() => setText("")}>
                 清空筛选
               </Button>
             </div>
+              </>
+            )}
           </div>
         </div>
       )}
