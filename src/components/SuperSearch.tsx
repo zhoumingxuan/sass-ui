@@ -744,20 +744,6 @@ export default function SuperSearch({
           }}
         >
           <div className="rounded-2xl border border-gray-200 bg-white shadow-elevation-1">
-            {(selectedCount > 0 || (allowMultiFilterGroups && filterGroups.length > 0)) && (
-              <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-gray-100 bg-white/85 px-3 py-2 text-xs text-gray-600 backdrop-blur">
-                {selectedCount > 0 && (
-                  <span className="inline-flex items-center gap-1 rounded bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary">
-                    已选 {selectedCount}
-                  </span>
-                )}
-                {allowMultiFilterGroups && filterGroups.length > 0 && (
-                  <span className="inline-flex items-center gap-1 rounded bg-emerald-50 px-1.5 py-0.5 text-[11px] text-emerald-700">
-                    条件组 {filterGroups.length}
-                  </span>
-                )}
-              </div>
-            )}
             {!dText && (
               <div className="p-3">
                 {history.length > 0 && (
