@@ -520,7 +520,7 @@ export default function SuperSearch({
                     size="small"
                     appearance="link"
                     variant="default"
-                    className="text-gray-400"
+                    className="text-gray-500"
                     onClick={() => {
                       setActiveFields([]);
                       setFilterGroups([]);
@@ -623,7 +623,7 @@ export default function SuperSearch({
                     size="small"
                     appearance="link"
                     variant="default"
-                    className="text-gray-400"
+                    className="text-gray-500"
                     onClick={() => {
                       setText("");
                       inputRef.current?.focus();
@@ -636,26 +636,12 @@ export default function SuperSearch({
             )}
             {!allowMultiFilterGroups && (
               <>
-            {text && (
-              <>
-                <span className="text-xs text-gray-400">关键词</span>
-                <Chip label={text} removable onRemove={() => setText("")} />
-              </>
-            )}
-            <div className="ml-auto hidden">
-              <Button
-                size="small"
-                appearance="link"
-                variant="default"
-                onClick={() => {
-                  setText("");
-                  setActiveFields([]);
-                  inputRef.current?.focus();
-                }}
-              >
-                清空筛选
-              </Button>
-            </div>
+                {text && (
+                  <>
+                    <span className="text-xs text-gray-400">关键词</span>
+                    <Chip label={text} removable onRemove={() => setText("")} />
+                  </>
+                )}
               </>
             )}
           </div>

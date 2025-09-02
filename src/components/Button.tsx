@@ -58,7 +58,8 @@ export default function Button({
   };
   const linkStyles: Record<string, string> = {
     primary: 'border border-transparent bg-transparent text-primary shadow-none hover:underline focus-visible:ring-primary',
-    default: 'border border-transparent bg-transparent text-gray-700 shadow-none hover:underline focus-visible:ring-gray-300',
+    // default link should inherit text color so callers can downplay tone (e.g., text-gray-400)
+    default: 'border border-transparent bg-transparent text-[inherit] shadow-none hover:underline focus-visible:ring-gray-300',
     warning: 'border border-transparent bg-transparent text-warning shadow-none hover:underline focus-visible:ring-warning',
     success: 'border border-transparent bg-transparent text-success shadow-none hover:underline focus-visible:ring-success',
     error: 'border border-transparent bg-transparent text-error shadow-none hover:underline focus-visible:ring-error',
