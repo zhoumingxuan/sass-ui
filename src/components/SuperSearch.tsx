@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, ReactNode } from "react";
 import Button from "./Button";
-import { Search, X, Check } from "lucide-react";
+import { Search, X, Check, Plus, Eraser, RotateCcw } from "lucide-react";
 
 type HighlightMode = "tint" | "outline" | "bold";
 type Density = "compact" | "standard";
@@ -497,6 +497,22 @@ export default function SuperSearch({
                   );
                 })}
 
+                <div className="ml-auto">
+                  <Button
+                    size="small"
+                    appearance="link"
+                    variant="default"
+                    onClick={() => {
+                      setActiveFields([]);
+                      setFilterGroups([]);
+                      setText("");
+                      inputRef.current?.focus();
+                    }}
+                  >
+                    <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> 清空筛选
+                  </Button>
+                </div>
+
                 {allowMultiFilterGroups && (
                   <div className="w-full flex flex-wrap items-center gap-2 mt-1">
                     {filterGroups.length > 0 && <span className="ml-2 text-xs text-gray-400">条件组</span>}
@@ -510,18 +526,6 @@ export default function SuperSearch({
                       return (
                         <span key={gi} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700">
                           {label}
-                          <button
-                            className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                            aria-label="编辑条件"
-                            onClick={() => {
-                              setText(g.query);
-                              setActiveFields(g.fields);
-                              setFilterGroups((prev) => prev.filter((_, idx) => idx !== gi));
-                              inputRef.current?.focus();
-                            }}
-                          >
-                            ✎
-                          </button>
                           <button
                             className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                             aria-label="移除条件"
@@ -569,7 +573,7 @@ export default function SuperSearch({
                 {text ? (
                   <Chip label={text} removable onRemove={() => setText("")} />)
                   : (<span className="text-xs text-gray-400">输入后按回车或点击右侧添加</span>)}
-                <div className="ml-auto">
+                <div className="ml-auto flex items-center gap-1.5">
                   <Button
                     size="small"
                     appearance="link"
@@ -584,7 +588,18 @@ export default function SuperSearch({
                       inputRef.current?.focus();
                     }}
                   >
-                    添加条件
+                    <Plus className="mr-1.5 h-3.5 w-3.5" /> 添加条件
+                  </Button>
+                  <Button
+                    size="small"
+                    appearance="link"
+                    variant="default"
+                    onClick={() => {
+                      setText("");
+                      inputRef.current?.focus();
+                    }}
+                  >
+                    <Eraser className="mr-1.5 h-3.5 w-3.5" /> 清空条件
                   </Button>
                 </div>
               </div>
@@ -597,8 +612,17 @@ export default function SuperSearch({
                 <Chip label={text} removable onRemove={() => setText("")} />
               </>
             )}
-            <div className="ml-auto">
-              <Button size="small" appearance="link" variant="default" onClick={() => setText("")}>
+            <div className="ml-auto hidden">
+              <Button
+                size="small"
+                appearance="link"
+                variant="default"
+                onClick={() => {
+                  setText("");
+                  setActiveFields([]);
+                  inputRef.current?.focus();
+                }}
+              >
                 清空筛选
               </Button>
             </div>
