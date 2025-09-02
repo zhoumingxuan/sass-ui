@@ -537,7 +537,7 @@ export default function SuperSearch({
         <div
           ref={overlayRef}
           className={`absolute left-0 right-0 z-30 w-full rounded-xl border border-gray-200 bg-white p-2 shadow-sm`}
-          style={{ top: inputHeight + 8 }}
+          style={{ top: inputHeight + 4 }}
           onPointerDownCapture={() => {
             // Keep focus when interacting with the filter panel area
             focusInput();
@@ -720,11 +720,11 @@ export default function SuperSearch({
       )}
 
       {/* Unified overlay (normal mode): selected items and/or condition groups */}
-      {(!chipsMode && focusedWithin && ((showSelectedBelow && selectedCount > 0) || (allowMultiFilterGroups && filterGroups.length > 0))) && (
+      {(!chipsMode && focusedWithin && ((showSelectedBelow && selectedCount > 0) || (allowMultiFilterGroups && filterGroups.length > 0))) && false && (
         <div
           ref={overlayRef}
           className="absolute left-0 right-0 z-30 w-full rounded-xl border border-gray-200 bg-white p-2 shadow-sm"
-          style={{ top: inputHeight + 8 }}
+          style={{ top: inputHeight + 4 }}
           onPointerDownCapture={() => {
             // Clicking blank area should not close the panel; keep focus on input
             focusInput();
@@ -781,7 +781,7 @@ export default function SuperSearch({
         <div
           ref={overlayRef}
           className="absolute left-0 right-0 z-30 w-full rounded-xl border border-gray-200 bg-white p-2 shadow-sm"
-          style={{ top: inputHeight + 8 }}
+          style={{ top: inputHeight + 4 }}
           onMouseDownCapture={() => {
             // Preserve focus to prevent the overlay from closing on blank clicks
             try { inputRef.current?.focus(); } catch {}
@@ -803,23 +803,64 @@ export default function SuperSearch({
         <div
           className="absolute z-20 w-full"
           style={{
-            top:
-              inputHeight +
-              8 +
-              (((showSelectedBelow && selectedCount > 0) || (allowMultiFilterGroups && filterGroups.length > 0)) && focusedWithin
-                ? overlayHeight + 8
-                : 0),
+            top: inputHeight + 4,
           }}
         >
           <div className="rounded-2xl border border-gray-200 bg-white shadow-elevation-1">
+            {((showSelectedBelow && selectedCount > 0) || (allowMultiFilterGroups && filterGroups.length > 0)) && focusedWithin && (
+              <div className="p-2 border-b border-gray-100">
+                <div className="flex flex-col gap-2">
+                  {showSelectedBelow && selectedCount > 0 && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs text-gray-400">已选</span>
+                      {Object.entries(selection).map(([k, arr]) =>
+                        arr.map((it) => (
+                          <Chip key={`${k}-${it.id}`} label={`${it.title}`} removable onRemove={() => commitSelection(k, it)} />
+                        )),
+                      )}
+                    </div>
+                  )}
+                  {allowMultiFilterGroups && filterGroups.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs text-gray-400">条件</span>
+                      {filterGroups.map((g, gi) => {
+                        const labelFields = (filterFields || [])
+                          .filter((f) => g.fields.includes(f.param))
+                          .map((f) => f.label)
+                          .slice(0, 2)
+                          .join("+") + (g.fields.length > 2 ? "+…" : "");
+                        const label = `${labelFields || "全部字段"}: ${g.query}`;
+                        return (
+                          <span key={gi} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700">
+                            {label}
+                            <button
+                              className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                              aria-label="移除条件"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                try { inputRef.current?.focus(); } catch {}
+                                setFilterGroups((prev) => prev.filter((_, idx) => idx !== gi));
+                              }}
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
             {!dText && (
               <div className="p-3">
                 {history.length > 0 && (
                   <>
-                    <div className="mb-2 text-xs text-gray-500">历史记录</div>
+                    <div className="mb-1 text-xs text-gray-500">历史记录</div>
                     <div className="space-y-1">
                       {history.slice(0, 6).map((h) => (
-                        <button key={h} className="w-full rounded-lg px-2 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
+                        <button key={h} className="w-full rounded-lg px-2 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-50">
                           {h}
                         </button>
                       ))}
@@ -827,7 +868,7 @@ export default function SuperSearch({
                   </>
                 )}
                 {hints.length > 0 && (
-                  <div className="mt-3 text-xs text-gray-400">
+                  <div className="mt-2 text-xs text-gray-400">
                     {hints.map((t, i) => (
                       <div key={i}>{t}</div>
                     ))}
