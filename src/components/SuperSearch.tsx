@@ -590,8 +590,8 @@ export default function SuperSearch({
                         .join("+") + (g.fields.length > 2 ? "+…" : "");
                       const label = `${labelFields || "全部字段"}: ${g.query}`;
                       return (
-                        <span key={gi} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700">
-                          {label}
+                        <span key={gi} className="inline-flex max-w-[16rem] min-w-0 items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700">
+                          <span className="min-w-0 truncate">{label}</span>
                           <button
                             className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                             aria-label="移除条件"
@@ -735,8 +735,8 @@ export default function SuperSearch({
                     .join("+") + (g.fields.length > 2 ? "+…" : "");
                   const label = `${labelFields || "全部字段"}: ${g.query}`;
                   return (
-                    <span key={gi} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700">
-                      {label}
+                    <span key={gi} className="inline-flex max-w-[16rem] min-w-0 items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700">
+                      <span className="min-w-0 truncate">{label}</span>
                       <button
                         className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                         aria-label="移除条件"
@@ -814,8 +814,8 @@ export default function SuperSearch({
                           .join("+") + (g.fields.length > 2 ? "+…" : "");
                         const label = `${labelFields || "全部字段"}: ${g.query}`;
                         return (
-                          <span key={gi} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700">
-                            {label}
+                          <span key={gi} className="inline-flex max-w-[16rem] min-w-0 items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700">
+                            <span className="min-w-0 truncate">{label}</span>
                             <button
                               className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                               aria-label="移除条件"
@@ -1009,8 +1009,8 @@ export default function SuperSearch({
 
 function Chip({ label, removable, onRemove }: { label: string; removable?: boolean; onRemove?: () => void }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-600">
-      {label}
+    <span className="inline-flex max-w-[16rem] min-w-0 items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-600">
+      <span className="min-w-0 truncate">{label}</span>
       {removable && (
         <button
           className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-500"
