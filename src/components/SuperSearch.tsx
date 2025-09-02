@@ -32,13 +32,10 @@ export type SuperSearchProps = {
   columns?: 2 | 3;
   preview?: PreviewPlacement;
   highlight?: HighlightMode;
-  actions?: "hoverOnly" | "always";
   className?: string;
   history?: string[];
   hints?: string[];
   enablePreview?: boolean;
-  previewDelay?: number;
-  previewHideDelay?: number;
   selectable?: boolean;
   selectionMode?: "single" | "multiple";
   sectionSelectionMode?: Record<string, "single" | "multiple">;
@@ -85,13 +82,10 @@ export default function SuperSearch({
   columns,
   preview = "right",
   highlight = "tint",
-  actions = "hoverOnly",
   className = "",
   history = [],
   hints = [],
   enablePreview = true,
-  previewDelay = 120,
-  previewHideDelay = 120,
   selectable = true,
   selectionMode = "multiple",
   sectionSelectionMode,
@@ -135,8 +129,7 @@ export default function SuperSearch({
 
   // Preview control
   const [hoverKey, setHoverKey] = useState<string | null>(null);
-  const showTimer = useRef<number | null>(null);
-  const hideTimer = useRef<number | null>(null);
+  
 
   // Stable refs for external callbacks to avoid effect re-trigger loops
   const onFilterSearchRef = useRef(onFilterSearch);
@@ -146,12 +139,7 @@ export default function SuperSearch({
     onFilterSearchGroupsRef.current = onFilterSearchGroups;
   }, [onFilterSearch, onFilterSearchGroups]);
 
-  useEffect(() => {
-    return () => {
-      if (showTimer.current) window.clearTimeout(showTimer.current);
-      if (hideTimer.current) window.clearTimeout(hideTimer.current);
-    };
-  }, []);
+  
 
   const filtered = useMemo(() => {
     if (!dText) return sections.map((s) => ({ ...s, items: s.items.slice(0, 6) }));
@@ -734,16 +722,14 @@ export default function SuperSearch({
                             className="relative"
                             onMouseEnter={() => {
                               if (enablePreview) {
-                                if (hideTimer.current) window.clearTimeout(hideTimer.current);
-                                if (showTimer.current) window.clearTimeout(showTimer.current);
+                                
                                 // 仅基于 hover 显示预览，不需要延迟
                                 setHoverKey(k);
                               }
                             }}
                             onMouseLeave={() => {
                               if (enablePreview) {
-                                if (showTimer.current) window.clearTimeout(showTimer.current);
-                                if (hideTimer.current) window.clearTimeout(hideTimer.current);
+                                
                                 // 仅基于 hover 隐藏预览，不需要延迟
                                 setHoverKey((prev) => (prev === k ? null : prev));
                               }
