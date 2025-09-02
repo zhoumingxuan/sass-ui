@@ -520,6 +520,7 @@ export default function SuperSearch({
                     size="small"
                     appearance="link"
                     variant="default"
+                    className="text-gray-400"
                     onClick={() => {
                       setActiveFields([]);
                       setFilterGroups([]);
@@ -600,7 +601,8 @@ export default function SuperSearch({
                   <Button
                     size="small"
                     appearance="link"
-                    variant="primary"
+                    variant="default"
+                    className="text-gray-500"
                     disabled={filterGroups.length >= maxFilterGroups || !text.trim()}
                     onClick={() => {
                       const trimmed = text.trim();
@@ -621,6 +623,7 @@ export default function SuperSearch({
                     size="small"
                     appearance="link"
                     variant="default"
+                    className="text-gray-400"
                     onClick={() => {
                       setText("");
                       inputRef.current?.focus();
