@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, ReactNode } from "react";
 import Button from "./Button";
-import { Search, X, Check, Plus, Eraser, RotateCcw } from "lucide-react";
+import { Search, X, Check, Plus, Eraser, RotateCcw, AlertCircle } from "lucide-react";
 
 type HighlightMode = "tint" | "outline" | "bold";
 type Density = "compact" | "standard";
@@ -129,6 +129,21 @@ export default function SuperSearch({
 
   // Preview control
   const [hoverKey, setHoverKey] = useState<string | null>(null);
+  // Lightweight notice when reaching group limit
+  const [groupLimitNotice, setGroupLimitNotice] = useState(false);
+  const groupLimitTimerRef = useRef<number | null>(null);
+  const triggerGroupLimitNotice = () => {
+    try {
+      if (groupLimitTimerRef.current) window.clearTimeout(groupLimitTimerRef.current);
+    } catch {}
+    setGroupLimitNotice(true);
+    // Hide after a short delay
+    // 1400ms balances visibility and lightness
+    // Store as number for TS + DOM timeout
+    const id = window.setTimeout(() => setGroupLimitNotice(false), 1400);
+    // @ts-expect-error - window.setTimeout returns number in browser
+    groupLimitTimerRef.current = id as number;
+  };
   
 
   // Stable refs for external callbacks to avoid effect re-trigger loops
@@ -404,6 +419,9 @@ export default function SuperSearch({
                   if (filterGroups.length < maxFilterGroups) {
                     setFilterGroups((prev) => [...prev, { query: trimmed, fields }]);
                     setText("");
+                  } else {
+                    // Reached limit: show a lightweight inline notice
+                    triggerGroupLimitNotice();
                   }
                 }
               } else if (onFilterSearch) {
@@ -573,15 +591,24 @@ export default function SuperSearch({
                 {text ? (
                   <Chip label={text} removable onRemove={() => setText("")} />)
                   : (<span className="text-xs text-gray-400">输入后按回车或点击右侧添加</span>)}
-                <div className="ml-auto flex items-center gap-1.5">
+                <div className="ml-auto flex items-center gap-2">
+                  {groupLimitNotice && (
+                    <span className="inline-flex items-center gap-1 text-[11px] text-amber-600">
+                      <AlertCircle className="h-3.5 w-3.5" /> 已达上限（{maxFilterGroups}）
+                    </span>
+                  )}
                   <Button
                     size="small"
                     appearance="link"
                     variant="primary"
+                    disabled={filterGroups.length >= maxFilterGroups || !text.trim()}
                     onClick={() => {
                       const trimmed = text.trim();
                       if (!trimmed) return;
-                      if (filterGroups.length >= maxFilterGroups) return;
+                      if (filterGroups.length >= maxFilterGroups) {
+                        triggerGroupLimitNotice();
+                        return;
+                      }
                       const fields = activeFields.length > 0 ? activeFields : (filterEmptyMeansAll ? (filterFields || []).map((f) => f.param) : []);
                       setFilterGroups((prev) => [...prev, { query: trimmed, fields }]);
                       setText("");
@@ -818,6 +845,10 @@ export default function SuperSearch({
               </div>
             )}
           </div>
+          {/* screen-reader polite notice for group limit */}
+          <span aria-live="polite" className="sr-only">
+            {groupLimitNotice ? `已达到最大条件组数（${maxFilterGroups}）` : ""}
+          </span>
         </div>
       )}
     </div>
