@@ -222,7 +222,7 @@ export default function SuperSearch({
   }, [chipsMode, focusedWithin, showSelectedBelow, selectedCount, allowMultiFilterGroups, filterGroups.length]);
 
   useEffect(() => {
-    function onDocClick(e: MouseEvent) {
+    function onDocPointerDown(e: PointerEvent | MouseEvent) {
       if (!containerRef.current) return;
       if (containerRef.current.contains(e.target as Node)) return;
       setOpen(false);
@@ -233,10 +233,10 @@ export default function SuperSearch({
         setOpen(false);
       }
     }
-    document.addEventListener("click", onDocClick);
+    document.addEventListener("pointerdown", onDocPointerDown);
     document.addEventListener("keydown", onKey);
     return () => {
-      document.removeEventListener("click", onDocClick);
+      document.removeEventListener("pointerdown", onDocPointerDown);
       document.removeEventListener("keydown", onKey);
     };
   }, [open]);
@@ -564,7 +564,11 @@ export default function SuperSearch({
                           <button
                             className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                             aria-label="移除条件"
-                            onClick={() => setFilterGroups((prev) => prev.filter((_, idx) => idx !== gi))}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setFilterGroups((prev) => prev.filter((_, idx) => idx !== gi));
+                            }}
                           >
                             <X className="h-3.5 w-3.5" />
                           </button>
@@ -699,7 +703,11 @@ export default function SuperSearch({
                       <button
                         className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                         aria-label="移除条件"
-                        onClick={() => setFilterGroups((prev) => prev.filter((_, idx) => idx !== gi))}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setFilterGroups((prev) => prev.filter((_, idx) => idx !== gi));
+                        }}
                       >
                         <X className="h-3.5 w-3.5" />
                       </button>
@@ -920,7 +928,15 @@ function Chip({ label, removable, onRemove }: { label: string; removable?: boole
     <span className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-600">
       {label}
       {removable && (
-        <button className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-500" onClick={onRemove} aria-label="移除">
+        <button
+          className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-500"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onRemove?.();
+          }}
+          aria-label="移除"
+        >
           <X className="h-3.5 w-3.5" />
         </button>
       )}
