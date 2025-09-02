@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, ReactNode, useCallback } from "react";
 import Button from "./Button";
 import { Search, X, Check, Plus, Eraser, RotateCcw, AlertCircle } from "lucide-react";
 
@@ -146,6 +146,17 @@ export default function SuperSearch({
 
     groupLimitTimerRef.current = id as number;
   };
+
+  // Common helpers for event handlers
+  const keepFocusWithin = useCallback(() => {
+    setFocusedWithin(true);
+  }, []);
+
+  const focusInput = useCallback(() => {
+    try {
+      inputRef.current?.focus();
+    } catch {}
+  }, []);
   
 
   // Stable refs for external callbacks to avoid effect re-trigger loops
@@ -405,13 +416,13 @@ export default function SuperSearch({
       <div
         ref={inputWrapRef}
         className={`flex items-center gap-2 rounded-xl border border-gray-200 bg-white shadow-sm ${density === "compact" ? "h-10 px-3" : "h-12 px-4"}`}
-        onMouseDownCapture={() => {
+        onPointerDownCapture={() => {
           // Keep focus within to prevent the selected panel from hiding during input interactions
-          setFocusedWithin(true);
+          keepFocusWithin();
         }}
         onClick={() => {
           if (!chipsMode) setOpen(true);
-          inputRef.current?.focus();
+          focusInput();
         }}
       >
         <Search className="h-4 w-4 text-gray-400" />
@@ -477,9 +488,9 @@ export default function SuperSearch({
               aria-label="清除条件组"
               className="ml-0.5 rounded p-0 text-primary/70 hover:bg-primary/15 hover:text-primary"
               onClick={(e) => {
-                 e.stopPropagation();
-                 // Keep focus within the search to avoid closing the selected panel
-                 try { inputRef.current?.focus(); } catch {}
+                e.stopPropagation();
+                // Keep focus within the search to avoid closing the selected panel
+                 focusInput();
                  setFilterGroups([]);
               }}
             >
@@ -527,6 +538,10 @@ export default function SuperSearch({
           ref={overlayRef}
           className={`absolute left-0 right-0 z-30 w-full rounded-xl border border-gray-200 bg-white p-2 shadow-sm`}
           style={{ top: inputHeight + 8 }}
+          onPointerDownCapture={() => {
+            // Keep focus when interacting with the filter panel area
+            focusInput();
+          }}
         >
           <div className="flex flex-col gap-2">
             {selectedCount > 0 && (
@@ -574,7 +589,7 @@ export default function SuperSearch({
                       setActiveFields([]);
                       setFilterGroups([]);
                       setText("");
-                      inputRef.current?.focus();
+                      focusInput();
                     }}
                   >
                     <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> 清空筛选
@@ -669,7 +684,7 @@ export default function SuperSearch({
                       const fields = activeFields.length > 0 ? activeFields : (filterEmptyMeansAll ? (filterFields || []).map((f) => f.param) : []);
                       setFilterGroups((prev) => [...prev, { query: trimmed, fields }]);
                       setText("");
-                      inputRef.current?.focus();
+                      focusInput();
                     }}
                   >
                     <Plus className="mr-1.5 h-3.5 w-3.5" /> 添加条件
@@ -681,7 +696,7 @@ export default function SuperSearch({
                     className="text-gray-500"
                     onClick={() => {
                       setText("");
-                      inputRef.current?.focus();
+                      focusInput();
                     }}
                   >
                     <Eraser className="mr-1.5 h-3.5 w-3.5" /> 清空条件
@@ -710,9 +725,9 @@ export default function SuperSearch({
           ref={overlayRef}
           className="absolute left-0 right-0 z-30 w-full rounded-xl border border-gray-200 bg-white p-2 shadow-sm"
           style={{ top: inputHeight + 8 }}
-          onMouseDownCapture={() => {
+          onPointerDownCapture={() => {
             // Clicking blank area should not close the panel; keep focus on input
-            try { inputRef.current?.focus(); } catch {}
+            focusInput();
           }}
         >
           <div className="flex flex-col gap-2">
