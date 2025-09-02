@@ -432,7 +432,7 @@ export default function SuperSearch({
             }
           }}
         />
-        {!chipsMode && selectedCount > 0 && (
+        {selectedCount > 0 && (
           <span className="inline-flex items-center gap-0.5 select-none rounded-md bg-primary/10 px-1.5 py-0.5 text-xs text-primary">
             已选 {selectedCount}
             <button
@@ -448,12 +448,24 @@ export default function SuperSearch({
             </button>
           </span>
         )}
-        {chipsMode && allowMultiFilterGroups && filterMode === "fields" && filterGroups.length > 0 && (
+        {allowMultiFilterGroups && filterMode === "fields" && filterGroups.length > 0 && (
           <span
             className="inline-flex items-center gap-0.5 select-none rounded-md bg-primary/10 px-1.5 py-0.5 text-xs text-primary"
             aria-label={`已创建 ${filterGroups.length} 个条件组`}
           >
             已加 {filterGroups.length} 组
+            <button
+              type="button"
+              aria-label="清除条件组"
+              className="ml-0.5 rounded p-0 text-primary/70 hover:bg-primary/15 hover:text-primary"
+              onClick={(e) => {
+                 e.stopPropagation();
+                 setFilterGroups([]);
+              }}
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+                
           </span>
         )}
         {chipsMode ? (
