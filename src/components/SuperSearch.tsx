@@ -141,7 +141,7 @@ export default function SuperSearch({
     // 1400ms balances visibility and lightness
     // Store as number for TS + DOM timeout
     const id = window.setTimeout(() => setGroupLimitNotice(false), 1400);
-    // @ts-expect-error - window.setTimeout returns number in browser
+
     groupLimitTimerRef.current = id as number;
   };
   
@@ -199,7 +199,7 @@ export default function SuperSearch({
       const iw = inputWrapRef.current;
       const ov = overlayRef.current;
       setInputHeight(iw ? Math.round(iw.getBoundingClientRect().height) : 0);
-      const overlayVisible = (chipsMode && focusedWithin) || (showSelectedBelow && !chipsMode && focusedWithin && selectedCount > 0);
+      const overlayVisible = (chipsMode && focusedWithin) || (!chipsMode && focusedWithin && (((showSelectedBelow && selectedCount > 0)) || (allowMultiFilterGroups && filterGroups.length > 0)));
       setOverlayHeight(overlayVisible && ov ? Math.round(ov.getBoundingClientRect().height) : 0);
     }
 
@@ -219,7 +219,7 @@ export default function SuperSearch({
         ro?.disconnect();
       } catch {}
     };
-  }, [chipsMode, focusedWithin, showSelectedBelow, selectedCount]);
+  }, [chipsMode, focusedWithin, showSelectedBelow, selectedCount, allowMultiFilterGroups, filterGroups.length]);
 
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
@@ -447,6 +447,14 @@ export default function SuperSearch({
             </button>
           </span>
         )}
+        {chipsMode && allowMultiFilterGroups && filterMode === "fields" && filterGroups.length > 0 && (
+          <span
+            className="inline-flex items-center gap-0.5 select-none rounded-md bg-primary/10 px-1.5 py-0.5 text-xs text-primary"
+            aria-label={`已创建 ${filterGroups.length} 个条件组`}
+          >
+            已加 {filterGroups.length} 组
+          </span>
+        )}
         {chipsMode ? (
           <Button
             size={density === "compact" ? "small" : "medium"}
@@ -471,10 +479,7 @@ export default function SuperSearch({
               e.stopPropagation();
               setChipsMode(true);
               setOpen(false);
-              clearAllSelection();
-              setActiveEntities([]);
-              setActiveFields([]);
-              setFilterGroups([]);
+              // 保留已选匹配项与条件组，不清空
             }}
             className="text-gray-600"
           >
@@ -490,7 +495,18 @@ export default function SuperSearch({
           className={`absolute left-0 right-0 z-30 w-full rounded-xl border border-gray-200 bg-white p-2 shadow-sm`}
           style={{ top: inputHeight + 8 }}
         >
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-col gap-2">
+            {selectedCount > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-gray-400">已选</span>
+                {Object.entries(selection).map(([k, arr]) =>
+                  arr.map((it) => (
+                    <Chip key={`${k}-${it.id}`} label={`${it.title}`} removable onRemove={() => commitSelection(k, it)} />
+                  )),
+                )}
+              </div>
+            )}
+            <div className="flex flex-wrap items-center gap-2">
             {filterMode === "fields" && (
               <>
                 <span className="text-xs text-gray-400">字段</span>
@@ -644,12 +660,60 @@ export default function SuperSearch({
                 )}
               </>
             )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unified overlay (normal mode): selected items and/or condition groups */}
+      {(!chipsMode && focusedWithin && ((showSelectedBelow && selectedCount > 0) || (allowMultiFilterGroups && filterGroups.length > 0))) && (
+        <div
+          ref={overlayRef}
+          className="absolute left-0 right-0 z-30 w-full rounded-xl border border-gray-200 bg-white p-2 shadow-sm"
+          style={{ top: inputHeight + 8 }}
+        >
+          <div className="flex flex-col gap-2">
+            {showSelectedBelow && selectedCount > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-gray-400">已选</span>
+                {Object.entries(selection).map(([k, arr]) =>
+                  arr.map((it) => (
+                    <Chip key={`${k}-${it.id}`} label={`${it.title}`} removable onRemove={() => commitSelection(k, it)} />
+                  )),
+                )}
+              </div>
+            )}
+            {allowMultiFilterGroups && filterGroups.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-gray-400">条件组</span>
+                {filterGroups.map((g, gi) => {
+                  const labelFields = (filterFields || [])
+                    .filter((f) => g.fields.includes(f.param))
+                    .map((f) => f.label)
+                    .slice(0, 2)
+                    .join("+") + (g.fields.length > 2 ? "+…" : "");
+                  const label = `${labelFields || "全部字段"}: ${g.query}`;
+                  return (
+                    <span key={gi} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700">
+                      {label}
+                      <button
+                        className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                        aria-label="移除条件"
+                        onClick={() => setFilterGroups((prev) => prev.filter((_, idx) => idx !== gi))}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}
 
       {/* Selected items bar (normal mode only) */}
-      {showSelectedBelow && !chipsMode && focusedWithin && selectedCount > 0 && (
+      {showSelectedBelow && !chipsMode && focusedWithin && selectedCount > 0 && false && (
         <div
           ref={overlayRef}
           className="absolute left-0 right-0 z-30 w-full rounded-xl border border-gray-200 bg-white p-2 shadow-sm"
@@ -670,9 +734,30 @@ export default function SuperSearch({
       {open && !chipsMode && (
         <div
           className="absolute z-20 w-full"
-          style={{ top: inputHeight + 8 + (showSelectedBelow && focusedWithin && selectedCount > 0 ? overlayHeight + 8 : 0) }}
+          style={{
+            top:
+              inputHeight +
+              8 +
+              (((showSelectedBelow && selectedCount > 0) || (allowMultiFilterGroups && filterGroups.length > 0)) && focusedWithin
+                ? overlayHeight + 8
+                : 0),
+          }}
         >
           <div className="rounded-2xl border border-gray-200 bg-white shadow-elevation-1">
+            {(selectedCount > 0 || (allowMultiFilterGroups && filterGroups.length > 0)) && (
+              <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-gray-100 bg-white/85 px-3 py-2 text-xs text-gray-600 backdrop-blur">
+                {selectedCount > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary">
+                    已选 {selectedCount}
+                  </span>
+                )}
+                {allowMultiFilterGroups && filterGroups.length > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded bg-emerald-50 px-1.5 py-0.5 text-[11px] text-emerald-700">
+                    条件组 {filterGroups.length}
+                  </span>
+                )}
+              </div>
+            )}
             {!dText && (
               <div className="p-3">
                 {history.length > 0 && (
