@@ -117,6 +117,8 @@ export default function SuperSearch({
   const inputWrapRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const [focusedWithin, setFocusedWithin] = useState(false);
+  // Track whether the last pointerdown was outside to avoid sticky-keeping on external clicks
+  const externalClickRef = useRef(false);
   const isControlled = selected !== undefined;
   const [innerSel, setInnerSel] = useState<Record<string, SuperSearchItem[]>>({});
   const selection = isControlled ? (selected as Record<string, SuperSearchItem[]>) : innerSel;
@@ -225,6 +227,8 @@ export default function SuperSearch({
     function onDocPointerDown(e: PointerEvent | MouseEvent) {
       if (!containerRef.current) return;
       if (containerRef.current.contains(e.target as Node)) return;
+      // Mark as external click so blur handler won't force sticky open
+      externalClickRef.current = true;
       setOpen(false);
       setFocusedWithin(false);
     }
@@ -379,11 +383,21 @@ export default function SuperSearch({
           const root = containerRef.current;
           if (!root) return setFocusedWithin(false);
           const active = document.activeElement;
-          if ((active && root.contains(active)) || (rt && root.contains(rt))) {
+          const inside = (active && root.contains(active)) || (rt && root.contains(rt));
+          if (inside) {
             setFocusedWithin(true);
           } else {
-            setFocusedWithin(false);
+            // In normal mode with selections or groups, keep the panel sticky while interacting within the widget.
+            const shouldStick = !chipsMode && (((showSelectedBelow && selectedCount > 0) || (allowMultiFilterGroups && filterGroups.length > 0)));
+            // If the blur is caused by an external click, do not keep sticky
+            if (externalClickRef.current) {
+              setFocusedWithin(false);
+            } else {
+              setFocusedWithin(shouldStick ? true : false);
+            }
           }
+          // Reset external click marker after handling blur
+          externalClickRef.current = false;
         }, 0);
       }}
     >
@@ -391,6 +405,10 @@ export default function SuperSearch({
       <div
         ref={inputWrapRef}
         className={`flex items-center gap-2 rounded-xl border border-gray-200 bg-white shadow-sm ${density === "compact" ? "h-10 px-3" : "h-12 px-4"}`}
+        onMouseDownCapture={() => {
+          // Keep focus within to prevent the selected panel from hiding during input interactions
+          setFocusedWithin(true);
+        }}
         onClick={() => {
           if (!chipsMode) setOpen(true);
           inputRef.current?.focus();
@@ -453,13 +471,15 @@ export default function SuperSearch({
             className="inline-flex items-center gap-0.5 select-none rounded-md bg-primary/10 px-1.5 py-0.5 text-xs text-primary"
             aria-label={`已创建 ${filterGroups.length} 个条件组`}
           >
-            已加 {filterGroups.length} 组
+            已加 {filterGroups.length} 组条件
             <button
               type="button"
               aria-label="清除条件组"
               className="ml-0.5 rounded p-0 text-primary/70 hover:bg-primary/15 hover:text-primary"
               onClick={(e) => {
                  e.stopPropagation();
+                 // Keep focus within the search to avoid closing the selected panel
+                 try { inputRef.current?.focus(); } catch {}
                  setFilterGroups([]);
               }}
             >
@@ -580,6 +600,8 @@ export default function SuperSearch({
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
+                              // Maintain focus to keep chips panel open
+                              try { inputRef.current?.focus(); } catch {}
                               setFilterGroups((prev) => prev.filter((_, idx) => idx !== gi));
                             }}
                           >
@@ -688,6 +710,10 @@ export default function SuperSearch({
           ref={overlayRef}
           className="absolute left-0 right-0 z-30 w-full rounded-xl border border-gray-200 bg-white p-2 shadow-sm"
           style={{ top: inputHeight + 8 }}
+          onMouseDownCapture={() => {
+            // Clicking blank area should not close the panel; keep focus on input
+            try { inputRef.current?.focus(); } catch {}
+          }}
         >
           <div className="flex flex-col gap-2">
             {showSelectedBelow && selectedCount > 0 && (
@@ -719,6 +745,8 @@ export default function SuperSearch({
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
+                          // Keep focus on the input so focus-within remains true
+                          try { inputRef.current?.focus(); } catch {}
                           setFilterGroups((prev) => prev.filter((_, idx) => idx !== gi));
                         }}
                       >
@@ -739,6 +767,10 @@ export default function SuperSearch({
           ref={overlayRef}
           className="absolute left-0 right-0 z-30 w-full rounded-xl border border-gray-200 bg-white p-2 shadow-sm"
           style={{ top: inputHeight + 8 }}
+          onMouseDownCapture={() => {
+            // Preserve focus to prevent the overlay from closing on blank clicks
+            try { inputRef.current?.focus(); } catch {}
+          }}
         >
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs text-gray-400">已选</span>
