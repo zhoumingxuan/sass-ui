@@ -141,7 +141,7 @@ export default function SuperSearch({
     // 1400ms balances visibility and lightness
     // Store as number for TS + DOM timeout
     const id = window.setTimeout(() => setGroupLimitNotice(false), 1400);
-    // @ts-expect-error - window.setTimeout returns number in browser
+
     groupLimitTimerRef.current = id as number;
   };
   
@@ -445,6 +445,14 @@ export default function SuperSearch({
             >
               <X className="h-3.5 w-3.5" />
             </button>
+          </span>
+        )}
+        {chipsMode && allowMultiFilterGroups && filterMode === "fields" && filterGroups.length > 0 && (
+          <span
+            className="inline-flex items-center gap-0.5 select-none rounded-md bg-primary/10 px-1.5 py-0.5 text-xs text-primary"
+            aria-label={`已创建 ${filterGroups.length} 个条件组`}
+          >
+            已加 {filterGroups.length} 组
           </span>
         )}
         {chipsMode ? (
