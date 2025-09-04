@@ -23,6 +23,12 @@ export type SuperSearchSection = {
   icon?: ReactNode;
   items: SuperSearchItem[];
   seeAllHref?: string;
+  // New: optional multi-field search keys for normal search mode
+  // Example: ['title', 'subtitle', 'status', 'meta.订单ID']
+  search_keys?: string[];
+  // New: optional minimum width (px) for this section column in normal mode
+  // Used to compute dropdown width when multiple sections match
+  minWidth?: number;
 };
 
 export type SuperSearchProps = {
@@ -128,6 +134,7 @@ export default function SuperSearch({
   const [filterGroups, setFilterGroups] = useState<{ query: string; fields: string[] }[]>([]);
   const [inputHeight, setInputHeight] = useState(0);
   const [overlayHeight, setOverlayHeight] = useState(0);
+  const [inputWidth, setInputWidth] = useState(0);
   const selectedCount = Object.values(selection ?? {}).flat().length;
 
   // Local history (persisted with localStorage when cache_key provided)
@@ -225,7 +232,31 @@ export default function SuperSearch({
     onFilterSearchGroupsRef.current = onFilterSearchGroups;
   }, [onFilterSearch, onFilterSearchGroups]);
 
-  
+  // Helper: safely extract nested value by path like "meta.订单ID"
+  const getByPath = useCallback((obj: unknown, path: string): string => {
+    if (!obj || !path) return "";
+    const parts = path.split(".");
+    let cur:any = obj;
+    for (const p of parts) {
+      if (cur && typeof cur === "object" && p in cur) cur = cur[p];
+      else return "";
+    }
+    if (cur == null) return "";
+    if (typeof cur === "string") return cur;
+    if (typeof cur === "number" || typeof cur === "boolean") return String(cur);
+    if (typeof cur === "object") return Object.values(cur).join(" ");
+    return "";
+  }, []);
+
+  // Build searchable text for an item under a section based on optional search_keys
+  const buildSearchBlob = useCallback((section: SuperSearchSection, it: SuperSearchItem) => {
+    const keys = section.search_keys;
+    if (keys && keys.length > 0) {
+      return keys.map((k) => getByPath(it, k)).filter(Boolean).join(" ");
+    }
+    // default behavior (backward compatible)
+    return `${it.title ?? ""} ${it.subtitle ?? ""}`.trim();
+  }, [getByPath]);
 
   const filtered = useMemo(() => {
     if (!dText) return sections.map((s) => ({ ...s, items: s.items.slice(0, 6) }));
@@ -233,10 +264,10 @@ export default function SuperSearch({
     return sections.map((s) => ({
       ...s,
       items: s.items
-        .filter((it) => matchQuery(q, it.title + " " + (it.subtitle ?? "")))
+        .filter((it) => matchQuery(q, buildSearchBlob(s, it)))
         .slice(0, 10),
     }));
-  }, [sections, dText]);
+  }, [sections, dText, buildSearchBlob]);
 
   // Sections to render in normal search mode considering whether to hide empty sections
   const renderSections = useMemo(() => {
@@ -249,12 +280,9 @@ export default function SuperSearch({
     if (!dText) return Object.fromEntries(sections.map((s) => [s.key, s.items.length]));
     const q = dText.trim();
     return Object.fromEntries(
-      sections.map((s) => [
-        s.key,
-        s.items.filter((it) => matchQuery(q, it.title + " " + (it.subtitle ?? ""))).length,
-      ]),
+      sections.map((s) => [s.key, s.items.filter((it) => matchQuery(q, buildSearchBlob(s, it))).length]),
     );
-  }, [sections, dText]);
+  }, [sections, dText, buildSearchBlob]);
 
   function formatBadgeCount(n: number) {
     if (capCounts && n > 99) return "99+";
@@ -264,12 +292,13 @@ export default function SuperSearch({
   const hasAny = filtered.some((s) => s.items.length > 0);
   const densityRow = density === "compact" ? "h-10" : "h-12";
 
-  // Measure input and overlay heights to control floating layers and dropdown offsets
+  // Measure input geometry to control floating layers and dropdown offsets/width
   useEffect(() => {
     function measure() {
       const iw = inputWrapRef.current;
       const ov = overlayRef.current;
       setInputHeight(iw ? Math.round(iw.getBoundingClientRect().height) : 0);
+      setInputWidth(iw ? Math.round(iw.getBoundingClientRect().width) : 0);
       const overlayVisible = (chipsMode && focusedWithin) || (!chipsMode && focusedWithin && (((showSelectedBelow && selectedCount > 0)) || (allowMultiFilterGroups && filterGroups.length > 0)));
       setOverlayHeight(overlayVisible && ov ? Math.round(ov.getBoundingClientRect().height) : 0);
     }
@@ -291,6 +320,22 @@ export default function SuperSearch({
       } catch {}
     };
   }, [chipsMode, focusedWithin, showSelectedBelow, selectedCount, allowMultiFilterGroups, filterGroups.length]);
+
+  // Compute dropdown width in normal mode based on matched sections' minWidth
+  const dropdownWidth = useMemo(() => {
+    if (!open || chipsMode) return undefined as number | undefined;
+    const q = dText?.trim();
+    if (!q) return undefined;
+    // Determine how many columns are visible per current props
+    const visible = renderSections.filter((s) => showEmptySections ? true : (s.items.length > 0));
+    if (visible.length === 0) return undefined;
+    const colCount = columns ?? Math.min(Math.max(visible.length, 1), 3);
+    const considered = visible.slice(0, colCount);
+    const DEFAULT_MIN = 280; // px fallback for nice UX
+    const desired = considered.reduce((sum, s) => sum + (s.minWidth ?? DEFAULT_MIN), 0);
+    // Only expand beyond input width; otherwise keep natural width
+    return desired > inputWidth ? desired : undefined;
+  }, [open, chipsMode, dText, renderSections, showEmptySections, columns, inputWidth]);
 
   useEffect(() => {
     function onDocPointerDown(e: PointerEvent | MouseEvent) {
@@ -849,9 +894,10 @@ export default function SuperSearch({
       {/* Dropdown (normal search mode only) */}
       {open && !chipsMode && (
         <div
-          className="absolute z-20 w-full"
+          className="absolute z-20"
           style={{
             top: inputHeight + 4,
+            width: dropdownWidth ? dropdownWidth : "100%",
           }}
         >
           <div className="rounded-2xl border border-gray-200 bg-white shadow-elevation-1">

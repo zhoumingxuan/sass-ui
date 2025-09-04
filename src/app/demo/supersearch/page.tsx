@@ -12,6 +12,8 @@ function buildSections(): SuperSearchSection[] {
     key: 'users',
     label: '用户',
     icon: <Users className="h-4 w-4" />,
+    search_keys: ['title', 'subtitle', 'status', 'meta.邮箱', 'meta.组织', 'meta.角色'],
+    minWidth: 320,
     items: [
       {
         id: 'u_1001',
@@ -47,6 +49,8 @@ function buildSections(): SuperSearchSection[] {
     key: 'orders',
     label: '订单',
     icon: <ClipboardList className="h-4 w-4" />,
+    search_keys: ['title', 'subtitle', 'status', 'meta.订单ID', 'meta.用户', 'meta.渠道'],
+    minWidth: 360,
     items: [
       {
         id: 'o_2024_001',
@@ -92,6 +96,8 @@ function buildSections(): SuperSearchSection[] {
     key: 'products',
     label: '产品',
     icon: <Package className="h-4 w-4" />,
+    search_keys: ['title', 'subtitle', 'meta.产品ID', 'meta.分类'],
+    minWidth: 320,
     items: [
       {
         id: 'p_iphone',
@@ -124,6 +130,8 @@ function buildSections(): SuperSearchSection[] {
     key: 'projects',
     label: '项目',
     icon: <FolderKanban className="h-4 w-4" />,
+    search_keys: ['title', 'subtitle', 'status', 'meta.项目ID', 'meta.负责人', 'meta.阶段'],
+    minWidth: 340,
     items: [
       {
         id: 'prj_1',
@@ -216,6 +224,18 @@ export default function SuperSearchDemoPage() {
                 if (last) setLastFilter({ q: last.query, fields: last.fields });
               }}
             />
+          </div>
+          <div className="w-full">
+            <div className="text-sm text-gray-600 mb-2">普通搜索模式最小宽度测试（容器较窄，匹配多个分类时下拉会按分类最小宽度展开）</div>
+            <div className="w-full max-w-[420px] border rounded-lg p-3">
+              <SuperSearch
+                sections={sections}
+                density="standard"
+                preview="right"
+                className="w-full"
+                placeholder="试试输入：张三 / 2024-001 / iPhone"
+              />
+            </div>
           </div>
           {groups && (
             <div className="text-xs text-gray-500 space-y-1">
