@@ -48,25 +48,46 @@ function Item({
   const indentClass = indentByDepth[Math.min(depth, indentByDepth.length - 1)];
   // Increase vertical padding for level-1; slightly roomier for others
   const padY = depth === 0 ? 'py-3' : 'py-2.5';
+  const containerClasses = `relative flex items-center gap-2 px-3 ${padY} rounded-md transition-colors select-none ${
+    active
+      ? 'bg-primary/15 ring-1 ring-primary/30 text-nav-fg before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-primary/80'
+      : `${depthText} ${depthHover}`
+  } ${indentClass}`;
   return (
     <div>
-      <div
-        className={`relative flex items-center gap-2 px-3 ${padY} cursor-pointer rounded-md transition-colors select-none ${
-          active
-            ? 'bg-primary/15 ring-1 ring-primary/30 text-nav-fg before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-primary/80'
-            : `${depthText} ${depthHover}`
-        } ${indentClass}`}
-        onClick={() => (hasChildren ? setOpen(!open) : undefined)}
-        title={collapsed && depth === 0 ? item.label : undefined}
-        aria-expanded={hasChildren ? open : undefined}
-        role={hasChildren ? 'button' : undefined}
-      >
-        {item.icon && <span className="w-5 h-5 flex items-center justify-center">{item.icon}</span>}
-        {!collapsed && <span className="truncate">{item.href ? <Link href={item.href}>{item.label}</Link> : item.label}</span>}
-        {hasChildren && !collapsed && (
-          <ChevronDown className={`ml-auto h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
-        )}
-      </div>
+      {hasChildren ? (
+        <div
+          className={`${containerClasses} cursor-pointer`}
+          onClick={() => setOpen(!open)}
+          title={collapsed && depth === 0 ? item.label : undefined}
+          aria-expanded={open}
+          role="button"
+        >
+          {item.icon && <span className="w-5 h-5 flex items-center justify-center">{item.icon}</span>}
+          {!collapsed && <span className="truncate">{item.label}</span>}
+          {hasChildren && !collapsed && (
+            <ChevronDown className={`ml-auto h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
+          )}
+        </div>
+      ) : item.href ? (
+        <Link
+          href={item.href}
+          className={`${containerClasses} cursor-pointer`}
+          title={collapsed && depth === 0 ? item.label : undefined}
+          aria-current={active ? 'page' : undefined}
+        >
+          {item.icon && <span className="w-5 h-5 flex items-center justify-center">{item.icon}</span>}
+          {!collapsed && <span className="truncate">{item.label}</span>}
+        </Link>
+      ) : (
+        <div
+          className={`${containerClasses} cursor-default`}
+          title={collapsed && depth === 0 ? item.label : undefined}
+        >
+          {item.icon && <span className="w-5 h-5 flex items-center justify-center">{item.icon}</span>}
+          {!collapsed && <span className="truncate">{item.label}</span>}
+        </div>
+      )}
       {hasChildren && open && !collapsed && (
         <div className="space-y-1 mt-1 ml-1 pl-3">
           {item.children!.map((child, idx) => (
