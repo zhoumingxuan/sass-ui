@@ -5,7 +5,7 @@ import { useState } from 'react';
 import Card from '@/components/Card';
 import SuperSearch, { SuperSearchSection } from '@/components/SuperSearch';
 import { menuItems, footerItems } from '@/components/menuItems';
-import { Users, ClipboardList, Package, FolderKanban } from 'lucide-react';
+import { Users, ClipboardList, Package, FolderKanban, Building2, FileText } from 'lucide-react';
 
 function buildSections(): SuperSearchSection[] {
   const users: SuperSearchSection = {
@@ -15,6 +15,20 @@ function buildSections(): SuperSearchSection[] {
     search_keys: ['title', 'subtitle', 'status', 'meta.邮箱', 'meta.组织', 'meta.角色'],
     minWidth: 320,
     items: [
+      {
+        id: 'o_demo',
+        title: 'DEMO-ORDER-001',
+        subtitle: '演示订单 · 已创建',
+        status: '新建',
+        meta: { 订单ID: 'o_demo', 用户: 'SaaSUI DEMO', 金额: '¥0', 渠道: 'Demo' },
+      },
+      {
+        id: 'u_demo',
+        title: 'SaaSUI DEMO 用户',
+        subtitle: 'demo@example.com',
+        status: 'Active',
+        meta: { 用户ID: 'u_demo', 邮箱: 'demo@example.com', 角色: '访客', 组织: '演示', 备注: 'DEMO' },
+      },
       {
         id: 'u_1001',
         title: '张三',
@@ -100,6 +114,12 @@ function buildSections(): SuperSearchSection[] {
     minWidth: 320,
     items: [
       {
+        id: 'p_demo',
+        title: 'SaaSUI DEMO 产品',
+        subtitle: 'Demo Product',
+        meta: { 产品ID: 'p_demo', 分类: 'Demo', 备注: 'DEMO' },
+      },
+      {
         id: 'p_iphone',
         title: 'iPhone 15 Pro',
         subtitle: '智能手机 · 黑钛金属',
@@ -133,6 +153,13 @@ function buildSections(): SuperSearchSection[] {
     search_keys: ['title', 'subtitle', 'status', 'meta.项目ID', 'meta.负责人', 'meta.阶段'],
     minWidth: 340,
     items: [
+      {
+        id: 'prj_demo',
+        title: 'SaaSUI DEMO 项目',
+        subtitle: '演示项目 · 进行中',
+        status: '进行中',
+        meta: { 项目ID: 'prj_demo', 负责人: 'Demo', 阶段: 'Demo', 备注: 'DEMO' },
+      },
       {
         id: 'prj_1',
         title: '飞鹰计划',
@@ -170,7 +197,39 @@ function buildSections(): SuperSearchSection[] {
     meta: { 订单ID: `o_bulk_${i + 1}`, 渠道: '批量', 金额: '￥' + String((i % 9) * 11 + 9) },
   }));
 
-  return [users, { ...orders, items: [...orders.items, ...extraOrders] }, products, projects];
+  // 新增两个分类：供应商、发票，构成 6 个分类示例
+  const suppliers: SuperSearchSection = {
+    key: 'suppliers',
+    label: '供应商',
+    icon: <Building2 className="h-4 w-4" />,
+    search_keys: ['title', 'subtitle', 'status', 'meta.公司', 'meta.联系人', 'meta.备注'],
+    minWidth: 320,
+    items: [
+      { id: 's_demo', title: 'SaaSUI DEMO 供应商', subtitle: 'Demo Supplier', meta: { 公司: 'Demo Ltd', 联系人: 'Demo', 备注: 'DEMO' } },
+      { id: 's_1001', title: '恒星科技', subtitle: '电子元件供应商', meta: { 公司: '恒星科技', 联系人: '刘强' } },
+    ],
+  };
+
+  const invoices: SuperSearchSection = {
+    key: 'invoices',
+    label: '发票',
+    icon: <FileText className="h-4 w-4" />,
+    search_keys: ['title', 'subtitle', 'status', 'meta.发票号', 'meta.抬头', 'meta.备注'],
+    minWidth: 300,
+    items: [
+      { id: 'inv_demo', title: 'DEMO-INVOICE-001', subtitle: 'SaaSUI DEMO 抬头', status: '已开', meta: { 发票号: 'INV_DEMO_001', 抬头: 'SaaSUI DEMO', 备注: 'DEMO' } },
+      { id: 'inv_2024_001', title: 'INV-2024-001', subtitle: '恒星科技 抬头', status: '待开', meta: { 发票号: 'INV-2024-001', 抬头: '恒星科技' } },
+    ],
+  };
+
+  return [
+    users,
+    { ...orders, items: [...orders.items, ...extraOrders] },
+    products,
+    projects,
+    suppliers,
+    invoices,
+  ];
 }
 
 export default function SuperSearchDemoPage() {
