@@ -547,6 +547,7 @@ export default function SuperSearch({
           placeholder={dynamicPlaceholder}
           className="flex-1 bg-transparent text-sm placeholder-gray-400 focus:outline-none"
           onKeyDown={(e) => {
+            // Fields filter mode submit
             if (chipsMode && filterMode === "fields" && e.key === "Enter") {
               if (allowMultiFilterGroups) {
                 const trimmed = text.trim();
@@ -566,8 +567,29 @@ export default function SuperSearch({
                 addHistory(text);
                 onFilterSearch(text, selected);
               }
-            } else if (!chipsMode && e.key === "Enter") {
-              addHistory(text);
+              return;
+            }
+
+            // Normal mode navigation while keeping focus on input
+            if (!chipsMode) {
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setOpen(true);
+                moveHighlight(1);
+              } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setOpen(true);
+                moveHighlight(-1);
+              } else if (e.key === "Tab") {
+                e.preventDefault();
+                switchSection(e.shiftKey ? -1 : 1);
+              } else if (e.key === "Enter") {
+                e.preventDefault();
+                addHistory(text);
+                const sec = renderSections[activeSection];
+                const it = sec?.items[activeIndex];
+                if (sec && it) commitSelection(sec.key, it);
+              }
             }
           }}
         />
@@ -1065,6 +1087,9 @@ export default function SuperSearch({
                                 // 仅基于 hover 显示预览，不需要延迟
                                 setHoverKey(k);
                               }
+                              // 同步高亮到悬停项，便于方向键继续操作
+                              setActiveSection(si);
+                              setActiveIndex(ii);
                             }}
                             onMouseLeave={() => {
                               if (enablePreview) {
@@ -1075,7 +1100,14 @@ export default function SuperSearch({
                             }}
                           >
                             <button
-                              className={`${baseRow} ${activeRing} ${activeTint} ${activeBold}`}
+                              type="button"
+                              tabIndex={-1}
+                              className={`${baseRow} ${activeRing} ${activeTint} ${activeBold} focus:outline-none focus-visible:outline-none`}
+                              onMouseDown={(e) => {
+                                // 防止鼠标点击将焦点移到按钮，保持输入框持焦
+                                e.preventDefault();
+                                try { inputRef.current?.focus(); } catch {}
+                              }}
                               onFocus={() => {
                                 setActiveSection(si);
                                 setActiveIndex(ii);
