@@ -233,12 +233,13 @@ export default function SuperSearch({
   }, [onFilterSearch, onFilterSearchGroups]);
 
   // Helper: safely extract nested value by path like "meta.订单ID"
+
   const getByPath = useCallback((obj: unknown, path: string): string => {
     if (!obj || !path) return "";
     const parts = path.split(".");
-    let cur:any = obj;
+    let cur:unknown = obj;
     for (const p of parts) {
-      if (cur && typeof cur === "object" && p in cur) cur = cur[p];
+      if (cur && typeof cur === "object" && p in cur) cur = (cur as Record<string,unknown>)[p];
       else return "";
     }
     if (cur == null) return "";
