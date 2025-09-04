@@ -34,6 +34,7 @@ export type SuperSearchProps = {
   highlight?: HighlightMode;
   className?: string;
   history?: string[];
+  cache_key?: string;
   hints?: string[];
   enablePreview?: boolean;
   selectable?: boolean;
@@ -83,7 +84,6 @@ export default function SuperSearch({
   preview = "right",
   highlight = "tint",
   className = "",
-  history = [],
   hints = [],
   enablePreview = true,
   selectable = true,
@@ -105,6 +105,7 @@ export default function SuperSearch({
   showTruncationHint = true,
   renderTruncationHint,
   showEmptySections = false,
+  cache_key,
 }: SuperSearchProps) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
@@ -128,6 +129,63 @@ export default function SuperSearch({
   const [inputHeight, setInputHeight] = useState(0);
   const [overlayHeight, setOverlayHeight] = useState(0);
   const selectedCount = Object.values(selection ?? {}).flat().length;
+
+  // Local history (persisted with localStorage when cache_key provided)
+  const [localHistory, setLocalHistory] = useState<string[]>([]);
+  const maxHistory = 20;
+
+  const loadHistory = useCallback(() => {
+    if (!cache_key) {
+      setLocalHistory([]);
+      return;
+    }
+    try {
+      const raw = window.localStorage.getItem(cache_key);
+      if (raw) {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)) {
+          setLocalHistory(arr.filter((x) => typeof x === "string"));
+          return;
+        }
+      }
+      setLocalHistory([]);
+    } catch {
+      setLocalHistory([]);
+    }
+  }, [cache_key]);
+
+  const persistHistory = useCallback(
+    (arr: string[]) => {
+      if (!cache_key) return;
+      setLocalHistory(arr);
+      try {
+        window.localStorage.setItem(cache_key, JSON.stringify(arr));
+      } catch {}
+    },
+    [cache_key],
+  );
+
+  const addHistory = useCallback(
+    (q: string) => {
+      if (!cache_key) return;
+      const v = (q || "").trim();
+      if (!v) return;
+      setLocalHistory((prev) => {
+        const next = [v, ...prev.filter((x) => x !== v)].slice(0, maxHistory);
+        try { window.localStorage.setItem(cache_key, JSON.stringify(next)); } catch {}
+        return next;
+      });
+    },
+    [cache_key],
+  );
+
+  const clearHistory = useCallback(() => {
+    persistHistory([]);
+  }, [persistHistory]);
+
+  useEffect(() => {
+    loadHistory();
+  }, [loadHistory]);
 
   // Preview control
   const [hoverKey, setHoverKey] = useState<string | null>(null);
@@ -306,6 +364,8 @@ export default function SuperSearch({
 
   function commitSelection(secKey: string, item: SuperSearchItem) {
     if (!selectable) return;
+    // Store current query as a valuable history signal when a result is chosen
+    if (text.trim()) addHistory(text);
     const mode = getSectionMode(secKey);
     const next: Record<string, SuperSearchItem[]> = { ...(selection ?? {}) };
     const list = next[secKey] ?? [];
@@ -447,6 +507,7 @@ export default function SuperSearch({
                 if (trimmed) {
                   const fields = activeFields.length > 0 ? activeFields : (filterEmptyMeansAll ? filterFields.map((f) => f.param) : []);
                   if (filterGroups.length < maxFilterGroups) {
+                    addHistory(trimmed);
                     setFilterGroups((prev) => [...prev, { query: trimmed, fields }]);
                     setText("");
                   } else {
@@ -456,8 +517,11 @@ export default function SuperSearch({
                 }
               } else if (onFilterSearch) {
                 const selected = activeFields.length > 0 ? activeFields : (filterEmptyMeansAll ? filterFields.map((f) => f.param) : []);
+                addHistory(text);
                 onFilterSearch(text, selected);
               }
+            } else if (!chipsMode && e.key === "Enter") {
+              addHistory(text);
             }
           }}
         />
@@ -839,12 +903,36 @@ export default function SuperSearch({
             )}
             {!dText && (
               <div className="p-3">
-                {history.length > 0 && (
+                {(localHistory.length > 0) && (
                   <>
-                    <div className="mb-1 text-xs text-gray-500">历史记录</div>
+                    <div className="mb-1 flex items-center justify-between text-xs text-gray-500">
+                      <span>历史记录</span>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          clearHistory();
+                          try { inputRef.current?.focus(); } catch {}
+                        }}
+                        aria-label="清空历史记录"
+                        title="清空历史记录"
+                      >
+                        <Eraser className="h-3.5 w-3.5" /> 清空
+                      </button>
+                    </div>
                     <div className="space-y-1">
-                      {history.slice(0, 6).map((h) => (
-                        <button key={h} className="w-full rounded-lg px-2 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-50">
+                      {localHistory.slice(0, 8).map((h) => (
+                        <button
+                          key={h}
+                          className="w-full rounded-lg px-2 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-50"
+                          onClick={() => {
+                            setText(h);
+                            setOpen(true);
+                            try { inputRef.current?.focus(); } catch {}
+                            addHistory(h);
+                          }}
+                        >
                           {h}
                         </button>
                       ))}

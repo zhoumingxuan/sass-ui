@@ -188,6 +188,7 @@ export default function SuperSearchDemoPage() {
               highlight="tint"
               capCounts={false}
               className="w-full"
+              cache_key="demo:supersearch:history"
               placeholder="搜索用户、订单、产品、项目"
               history={['报表', '新增客户', '近7天订单', '退款', '库存']}
               hints={['示例：用户 张三', '示例：订单 2024-001', '示例：产品 iPhone', '示例：项目 飞鹰计划']}
