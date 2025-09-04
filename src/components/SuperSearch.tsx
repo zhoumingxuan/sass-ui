@@ -680,6 +680,7 @@ export default function SuperSearch({
                     onClick={() => {
                       setText("");
                       focusInput();
+                      setFilterGroups([]);
                     }}
                   >
                     <Eraser className="mr-1.5 h-3.5 w-3.5" /> 清空条件
