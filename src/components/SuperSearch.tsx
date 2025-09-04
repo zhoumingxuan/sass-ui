@@ -571,7 +571,7 @@ export default function SuperSearch({
           }}
         />
         {selectedCount > 0 && (
-          <span className="inline-flex items-center gap-0.5 select-none rounded-md bg-primary/10 px-1.5 py-0.5 text-xs text-primary">
+          <span className="inline-flex items-center gap-0.5 select-none rounded-md bg-primary/10 px-1.5 py-0.5 text-xs text-primary whitespace-nowrap">
             已选 {selectedCount}
             <button
               type="button"
@@ -619,7 +619,7 @@ export default function SuperSearch({
               setOpen(true);
               inputRef.current?.focus();
             }}
-            className="text-gray-600"
+            className="text-gray-600 whitespace-nowrap"
           >
             转为普通搜索
           </Button>
@@ -634,7 +634,7 @@ export default function SuperSearch({
               setOpen(false);
               // 保留已选匹配项与条件组，不清空
             }}
-            className="text-gray-600"
+            className="text-gray-600 whitespace-nowrap"
           >
             转为筛选
           </Button>
@@ -654,7 +654,7 @@ export default function SuperSearch({
         >
           <div className="flex flex-col gap-2">
             {selectedCount > 0 && (
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2 whitespace-nowrap">
                 <span className="text-xs text-gray-400">已选</span>
                 {Object.entries(selection).map(([k, arr]) =>
                   arr.map((it) => (
@@ -825,7 +825,7 @@ export default function SuperSearch({
         >
           <div className="flex flex-col gap-2">
             {showSelectedBelow && selectedCount > 0 && (
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2 whitespace-nowrap">
                 <span className="text-xs text-gray-400">已选</span>
                 {Object.entries(selection).map(([k, arr]) =>
                   arr.map((it) => (
@@ -880,7 +880,7 @@ export default function SuperSearch({
             try { inputRef.current?.focus(); } catch {}
           }}
         >
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex  items-center gap-2 whitespace-nowrap">
             <span className="text-xs text-gray-400">已选</span>
             {Object.entries(selection).map(([k, arr]) =>
               arr.map((it) => (
@@ -905,7 +905,7 @@ export default function SuperSearch({
               <div className="p-2 border-b border-gray-100">
                 <div className="flex flex-col gap-2">
                   {showSelectedBelow && selectedCount > 0 && (
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center gap-2 whitespace-nowrap">
                       <span className="text-xs text-gray-400">已选</span>
                       {Object.entries(selection).map(([k, arr]) =>
                         arr.map((it) => (
