@@ -387,6 +387,15 @@ export default function SuperSearch({
     return "grid-cols-1 md:grid-cols-2 xl:grid-cols-3";
   }, [columns, renderSections.length]);
 
+  // Masonry-like columns for better space usage when section heights vary
+  const masonryCols = useMemo(() => {
+    const visibleCount = renderSections.length;
+    const maxCols = columns ?? Math.min(Math.max(visibleCount, 1), 3);
+    if (maxCols <= 1) return "columns-1";
+    if (maxCols === 2) return "columns-1 md:columns-2";
+    return "columns-1 md:columns-2 xl:columns-3";
+  }, [columns, renderSections.length]);
+
   // Keep active section/index in range when visible sections change
   useEffect(() => {
     const len = renderSections.length;
@@ -1019,28 +1028,13 @@ export default function SuperSearch({
             )}
 
             {!!dText && (showEmptySections || hasAny) && (
-              <div
-                className={`grid gap-4 p-3 ${gridCols}`}
-                onKeyDown={(e) => {
-                  if (e.key === "ArrowDown") {
-                    e.preventDefault();
-                    moveHighlight(1);
-                  } else if (e.key === "ArrowUp") {
-                    e.preventDefault();
-                    moveHighlight(-1);
-                  } else if (e.key === "Tab") {
-                    e.preventDefault();
-                    switchSection(e.shiftKey ? -1 : 1);
-                  } else if (e.key === "Enter") {
-                    e.preventDefault();
-                    const sec = renderSections[activeSection];
-                    const it = sec?.items[activeIndex];
-                    if (sec && it) commitSelection(sec.key, it);
-                  }
-                }}
-              >
+              <div className={`p-3 gap-x-4 ${masonryCols} [column-fill:_balance]`}>
                 {renderSections.map((sec, si) => (
-                  <div key={sec.key} className="min-w-0">
+                  <div
+                    key={sec.key}
+                    className="min-w-0 mb-4 break-inside-avoid"
+                    style={{ breakInside: "avoid" as any }}
+                  >
                     <div className="sticky top-0 z-10 mb-1 flex h-9 items-center rounded-md bg-white/80 px-2 text-sm font-semibold text-gray-700 backdrop-blur">
                       <div className="flex items-center gap-2 w-full">
                         <span className="inline-flex h-4 w-4 items-center justify-center text-gray-500">{sec.icon}</span>
