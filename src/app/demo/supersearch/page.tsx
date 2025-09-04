@@ -227,13 +227,14 @@ export default function SuperSearchDemoPage() {
           </div>
           <div className="w-full">
             <div className="text-sm text-gray-600 mb-2">普通搜索模式最小宽度测试（容器较窄，匹配多个分类时下拉会按分类最小宽度展开）</div>
-            <div className="w-full max-w-[420px] border rounded-lg p-3">
+            <div className="w-full max-w-[420px] p-3">
               <SuperSearch
                 sections={sections}
                 density="standard"
                 preview="right"
                 className="w-full"
                 placeholder="试试输入：张三 / 2024-001 / iPhone"
+                hints={['示例：用户 张三', '示例：订单 2024-001', '示例：产品 iPhone', '示例：项目 飞鹰计划']}
               />
             </div>
           </div>
