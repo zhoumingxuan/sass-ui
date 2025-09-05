@@ -33,15 +33,15 @@ export function Checkbox({ label, description, indeterminate, className = '', di
         aria-checked={indeterminate ? 'mixed' : undefined}
         className={[
           'mt-0.5 h-4 w-4 shrink-0 rounded border bg-white',
-          // base/hover/disabled border tones
-          'border-gray-200 hover:border-gray-300 disabled:hover:border-gray-200',
-          // checked style via native accent; lighter border to reduce heaviness
-          !indeterminate || props.checked ? 'accent-primary disabled:accent-gray-300 checked:border-primary/60' : '',
-          // custom indeterminate visuals: tint background + centered dash
+          // base hover feedback & disabled neutralization
+          'border-gray-200 hover:border-gray-300 hover:bg-gray-50 disabled:hover:border-gray-200 disabled:hover:bg-white',
+          // checked hover refinement (keep subtle tint, stronger border)
+          !indeterminate || props.checked ? 'accent-primary disabled:accent-gray-300 checked:border-primary/60 checked:hover:border-primary checked:hover:bg-primary/5' : '',
+          // custom indeterminate visuals: tint background + centered dash (+ hover refinement)
           indeterminate && !props.checked
             ? [
-                'relative appearance-none border-primary/60 bg-primary/10',
-                'after:content-[""] after:absolute after:left-1/2 after:top-1/2 after:h-0.5 after:w-2.5 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded after:bg-primary',
+                'relative appearance-none border-primary/60 bg-primary/10 hover:bg-primary/15 hover:border-primary',
+                'after:content-[""] after:absolute after:left-1/2 after:top-1/2 after:h-0.5 after:w-2.5 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded after:bg-primary hover:after:bg-primary',
                 'disabled:after:bg-gray-400',
               ].join(' ')
             : '',
