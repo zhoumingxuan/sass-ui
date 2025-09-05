@@ -47,13 +47,13 @@ export default function DatePicker({ label, helper, value, defaultValue, min, ma
     <label className="block">
       {label && <span className={fieldLabel}>{label}</span>}
       <div ref={anchor} className={`relative ${className}`}>
-        <button type="button" onClick={() => setOpen((o) => !o)} className={`${inputBase} text-left pr-10`}> {v ?? ''} </button>
+        <button type="button" onClick={() => setOpen((o) => !o)} className={`${inputBase} text-left pr-10 leading-none flex items-center h-10`}>{v ?? ''}</button>
         {clearable && v && (
           <button type="button" onClick={clear} aria-label="清空" className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
             <X size={16} aria-hidden />
           </button>
         )}
-        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><CalendarIcon size={16} aria-hidden /></span>
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><CalendarIcon size={18} aria-hidden /></span>
         {open && (
           <div ref={pop} className="absolute z-20 mt-1 rounded-lg border border-gray-200 bg-white p-2 shadow-elevation-1">
             <Calendar

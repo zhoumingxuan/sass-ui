@@ -35,16 +35,17 @@ export default function Switch({
   const isControlled = typeof checked === 'boolean';
   const isOn = isControlled ? !!checked : internal;
 
-  const sizes: Record<Size, { track: string; thumb: string }>
+  const sizes: Record<Size, { track: string; thumbSize: string; thumbTranslate: string }>
     = {
-      small: { track: 'h-5 w-9', thumb: isOn ? 'translate-x-4' : 'translate-x-0' },
-      medium:{ track: 'h-6 w-11', thumb: isOn ? 'translate-x-5' : 'translate-x-0' },
-      large: { track: 'h-7 w-14', thumb: isOn ? 'translate-x-7' : 'translate-x-0' },
+      small:  { track: 'h-5 w-9',  thumbSize: 'h-4 w-4', thumbTranslate: isOn ? 'translate-x-4' : 'translate-x-0' },
+      medium: { track: 'h-6 w-11', thumbSize: 'h-5 w-5', thumbTranslate: isOn ? 'translate-x-5' : 'translate-x-0' },
+      large:  { track: 'h-7 w-14', thumbSize: 'h-6 w-6', thumbTranslate: isOn ? 'translate-x-7' : 'translate-x-0' },
     };
 
-  const trackOn = 'bg-primary';
-  const trackOff = 'bg-gray-200';
-  const thumbBase = 'inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition';
+  // Strong primary when ON; subtle neutral when OFF
+  const trackOn = 'bg-primary border border-primary/50 shadow-inner';
+  const trackOff = 'bg-gray-200 border border-gray-300 shadow-inner';
+  const thumbBase = 'inline-block transform rounded-full bg-white shadow-md ring-0 transition will-change-transform border border-black/5';
 
   const handleToggle = () => {
     if (disabled) return;
@@ -74,7 +75,7 @@ export default function Switch({
         >
           <span className="sr-only">toggle</span>
           <span
-            className={`pointer-events-none absolute top-1/2 -translate-y-1/2 ${thumbBase} ${sizes[size].thumb}`}
+            className={`pointer-events-none absolute top-1/2 -translate-y-1/2 ${thumbBase} ${sizes[size].thumbSize} ${sizes[size].thumbTranslate}`}
             style={{ left: '2px' }}
           />
         </button>
@@ -89,4 +90,3 @@ export default function Switch({
     </div>
   );
 }
-

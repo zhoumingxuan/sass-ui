@@ -66,18 +66,24 @@ export default function DateRangePicker({ label, helper, start, end, defaultStar
     <label className="block">
       {label && <span className={fieldLabel}>{label}</span>}
       <div ref={anchor} className={`relative ${className}`}>
-        <div className="grid grid-cols-[1fr_auto_1fr_auto] items-center gap-2">
-          <button type="button" onClick={() => setOpen(o => !o)} className={`${inputBase} text-left pr-8`}>{sv ?? ''}</button>
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+          <div className="relative">
+            <button type="button" onClick={() => setOpen(o => !o)} className={`${inputBase} text-left pr-10 leading-none flex items-center h-10`}>{sv ?? ''}</button>
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><CalendarIcon size={18} aria-hidden /></span>
+          </div>
           <span className="text-xs text-gray-500">—</span>
-          <button type="button" onClick={() => setOpen(o => !o)} className={`${inputBase} text-left pr-8`}>{ev ?? ''}</button>
-          <span className="pointer-events-none -ml-6 text-gray-400"><CalendarIcon size={16} aria-hidden /></span>
+          <div className="relative">
+            <button type="button" onClick={() => setOpen(o => !o)} className={`${inputBase} text-left pr-10 leading-none flex items-center h-10`}>{ev ?? ''}</button>
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><CalendarIcon size={18} aria-hidden /></span>
+          </div>
         </div>
         {open && (
           <div ref={pop} className="absolute z-20 mt-1 rounded-lg border border-gray-200 bg-white p-2 shadow-elevation-1">
             <div className="flex gap-2">
               <Calendar
                 month={left}
-                value={sDate}
+                rangeStart={sDate}
+                rangeEnd={eDate}
                 min={parseISO(min)}
                 max={parseISO(max)}
                 onMonthChange={(m) => { setLeft(m); setRight(addMonths(m, 1)); }}
@@ -85,7 +91,8 @@ export default function DateRangePicker({ label, helper, start, end, defaultStar
               />
               <Calendar
                 month={right}
-                value={eDate}
+                rangeStart={sDate}
+                rangeEnd={eDate}
                 min={parseISO(min)}
                 max={parseISO(max)}
                 onMonthChange={(m) => { setRight(m); setLeft(addMonths(m, -1)); }}

@@ -13,6 +13,7 @@ export default function Slider({ label, helper, className = '', showValue = true
   const id = useId();
   const { value, defaultValue, min = 0, max = 100 } = props as any;
   const val = typeof value !== 'undefined' ? Number(value) : typeof defaultValue !== 'undefined' ? Number(defaultValue) : undefined;
+  const pct = typeof val === 'number' ? ((val - Number(min)) / (Number(max) - Number(min))) * 100 : 0;
 
   return (
     <label className={`block ${disabled ? controlDisabled : ''}`} htmlFor={id}>
@@ -23,12 +24,15 @@ export default function Slider({ label, helper, className = '', showValue = true
           type="range"
           disabled={disabled}
           className={[
-            'w-full appearance-none h-2 rounded-full bg-gray-200 outline-none',
+            'w-full appearance-none h-2 rounded-full outline-none',
             'focus:outline-none focus:ring-2 focus:ring-primary/40',
             '[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary',
             '[&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary',
             className,
           ].join(' ')}
+          style={{
+            background: `linear-gradient(#1e80ff, #1e80ff) 0/ ${pct}% 100% no-repeat, #e5e7eb`,
+          }}
           {...props}
         />
         {showValue && typeof val !== 'undefined' && (
@@ -39,4 +43,3 @@ export default function Slider({ label, helper, className = '', showValue = true
     </label>
   );
 }
-

@@ -1,6 +1,6 @@
 "use client";
 
-import { addMonths, endOfMonth, formatISO, inRange, isSameDay, startOfMonth } from './utils';
+import { addMonths, endOfMonth, inRange, isSameDay, startOfMonth } from './utils';
 
 type Props = {
   month: Date; // any date in the month to render
@@ -10,9 +10,11 @@ type Props = {
   disabledDate?: (d: Date) => boolean;
   onSelect?: (d: Date) => void;
   onMonthChange?: (d: Date) => void;
+  rangeStart?: Date;
+  rangeEnd?: Date;
 };
 
-export default function Calendar({ month, value, min, max, disabledDate, onSelect, onMonthChange }: Props) {
+export default function Calendar({ month, value, min, max, disabledDate, onSelect, onMonthChange, rangeStart, rangeEnd }: Props) {
   const first = startOfMonth(month);
   const last = endOfMonth(month);
   const firstWeekday = (first.getDay() + 6) % 7; // make Monday=0
@@ -42,7 +44,10 @@ export default function Calendar({ month, value, min, max, disabledDate, onSelec
         {cells.map((d, i) => {
           if (!d) return <div key={i} className="h-8"/>;
           const disabled = !canPick(d);
-          const selected = isSameDay(d, value);
+          const selected = isSameDay(d, value) || isSameDay(d, rangeStart) || isSameDay(d, rangeEnd);
+          const inSelectedRange = !!(rangeStart && rangeEnd && d >= rangeStart && d <= rangeEnd);
+          const isStart = !!(rangeStart && isSameDay(d, rangeStart));
+          const isEnd = !!(rangeEnd && isSameDay(d, rangeEnd));
           return (
             <button
               type="button"
@@ -52,7 +57,11 @@ export default function Calendar({ month, value, min, max, disabledDate, onSelec
               className={[
                 'h-8 rounded text-sm',
                 disabled ? 'text-gray-300 cursor-not-allowed' : 'hover:bg-primary/10',
-                selected ? 'bg-primary text-white hover:bg-primary/90' : 'text-gray-700',
+                selected && (isStart || isEnd) ? 'bg-primary text-white hover:bg-primary/90' : '',
+                !selected && inSelectedRange ? 'bg-primary/10 text-primary' : '',
+                !selected && !inSelectedRange ? 'text-gray-700' : '',
+                isStart ? 'rounded-l' : '',
+                isEnd ? 'rounded-r' : '',
               ].join(' ')}
             >
               {d.getDate()}
@@ -63,4 +72,3 @@ export default function Calendar({ month, value, min, max, disabledDate, onSelec
     </div>
   );
 }
-

@@ -22,8 +22,8 @@ export function Checkbox({ label, description, className = '', disabled, ...prop
         type="checkbox"
         disabled={disabled}
         className={[
-          'mt-0.5 h-4 w-4 shrink-0 rounded border border-gray-300 text-primary',
-          'focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary/50',
+          'mt-0.5 h-4 w-4 shrink-0 rounded border border-gray-300 text-primary accent-primary',
+          'focus:outline-none focus:ring-0 focus-visible:ring-0 ring-0',
         ].join(' ')}
         {...props}
       />
@@ -95,4 +95,3 @@ export function CheckboxGroup({
     </div>
   );
 }
-
