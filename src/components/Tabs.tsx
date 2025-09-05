@@ -38,7 +38,7 @@ export default function Tabs({ items, defaultActiveKey, onChange, className = ''
               key={it.key}
               onClick={() => handleClick(it.key, it.disabled)}
               className={[
-                'relative -mb-px px-3 h-9 rounded-t-md text-sm',
+                'relative -mb-px px-3 h-9 rounded-t-md text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2',
                 'transition-colors select-none',
                 it.disabled
                   ? 'text-gray-300 cursor-not-allowed'
@@ -58,4 +58,3 @@ export default function Tabs({ items, defaultActiveKey, onChange, className = ''
     </div>
   );
 }
-

@@ -1,7 +1,7 @@
 'use client';
 
 import { useId } from 'react';
-import { fieldLabel, helperText, controlDisabled } from './formStyles';
+import { fieldLabel, helperText, controlDisabled, controlRing } from './formStyles';
 
 type Props = React.InputHTMLAttributes<HTMLInputElement> & {
   label?: string;
@@ -26,7 +26,7 @@ export default function Slider({ label, helper, className = '', showValue = true
           className={[
             'w-full appearance-none h-2 rounded-full outline-none',
             // Remove overall focus ring/border per UX, keep clean track
-            'focus:outline-none',
+            controlRing,
             '[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary',
             '[&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary',
             className,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { inputBase, fieldLabel, helperText } from "../formStyles";
+import { inputBase, fieldLabel, helperText, inputStatus, Status } from "../formStyles";
 import { X, Check, ChevronDown } from "lucide-react";
 
 export type Option = { value: string; label: string; disabled?: boolean };
@@ -17,9 +17,10 @@ type Props = {
   required?: boolean;
   onChange?: (value: string) => void;
   className?: string;
+  status?: Status;
 };
 
-export default function Select({ label, helper, options, placeholder, clearable, className = "", value, defaultValue, onChange, required }: Props) {
+export default function Select({ label, helper, options, placeholder, clearable, className = "", value, defaultValue, onChange, required, status }: Props) {
   const id = useId();
   const isControlled = typeof value !== "undefined";
   const [internal, setInternal] = useState<string | undefined>(defaultValue);
@@ -48,7 +49,7 @@ export default function Select({ label, helper, options, placeholder, clearable,
     <label className="block">
       {label && <span className={fieldLabel}>{label}</span>}
       <div ref={anchor} className={`relative ${className}`}>
-        <button type="button" id={id} onClick={() => setOpen(o => !o)} className={`${inputBase} text-left pr-10 h-10 flex items-center`}>{labelText || placeholder || ''}</button>
+        <button type="button" id={id} onClick={() => setOpen(o => !o)} className={[inputBase, status ? inputStatus[status] : '', 'text-left pr-10 h-10 flex items-center'].filter(Boolean).join(' ')} aria-haspopup="listbox" aria-expanded={open} aria-invalid={status === 'error' ? true : undefined}>{labelText || placeholder || ''}</button>
         {canClear && (
           <button type="button" onClick={handleClear} aria-label="清空" className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
             <X size={16} aria-hidden />

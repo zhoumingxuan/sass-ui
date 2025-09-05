@@ -1,7 +1,7 @@
 "use client";
 
 import { InputHTMLAttributes, useEffect, useId, useState } from "react";
-import { inputBase, fieldLabel, helperText } from "../formStyles";
+import { inputBase, fieldLabel, helperText, inputStatus, Status } from "../formStyles";
 import { ChevronUp, ChevronDown } from "lucide-react";
 
 type Props = Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "value" | "defaultValue"> & {
@@ -14,9 +14,10 @@ type Props = Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "value" | 
   max?: number;
   precision?: number; // decimal places
   onChange?: (value: number | null) => void;
+  status?: Status;
 };
 
-export default function Number({ label, helper, className = "", value, defaultValue, step = 1, min, max, precision, onChange, ...props }: Props) {
+export default function Number({ label, helper, className = "", value, defaultValue, step = 1, min, max, precision, onChange, status, ...props }: Props) {
   const id = useId();
   const isControlled = typeof value === "number" || value === null;
   const [internal, setInternal] = useState<number | null>(typeof defaultValue === "number" ? defaultValue : null);
@@ -93,7 +94,8 @@ export default function Number({ label, helper, className = "", value, defaultVa
           id={id}
           type="text"
           inputMode="decimal"
-          className={[inputBase, "pr-10"].join(" ")}
+          aria-invalid={status === 'error' ? true : undefined}
+          className={[inputBase, status ? inputStatus[status] : '', "pr-10"].filter(Boolean).join(" ")}
           value={text}
           onChange={handleInput}
           onBlur={handleBlur}

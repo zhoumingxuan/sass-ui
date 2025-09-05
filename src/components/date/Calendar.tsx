@@ -87,7 +87,7 @@ export default function Calendar({ month, value, min, max, disabledDate, onSelec
               if (!d) return <div key={i} className="h-8"/>;
               const disabled = !canPick(d);
               const selected = isSameDay(d, value) || isSameDay(d, rangeStart) || isSameDay(d, rangeEnd);
-              const inSelectedRange = !!(rangeStart && rangeEnd && d >= rangeStart && d <= rangeEnd);
+          const inSelectedRange = !!(rangeStart && rangeEnd && d >= rangeStart && d <= rangeEnd);
               const isStart = !!(rangeStart && isSameDay(d, rangeStart));
               const isEnd = !!(rangeEnd && isSameDay(d, rangeEnd));
               const inHoverRange = !!(showHoverRange && rangeStart && hoverDate && ((hoverDate > rangeStart && d >= rangeStart && d <= hoverDate) || (hoverDate < rangeStart && d >= hoverDate && d <= rangeStart)));
@@ -103,7 +103,7 @@ export default function Calendar({ month, value, min, max, disabledDate, onSelec
                     'h-8 rounded text-sm',
                     disabled ? 'text-gray-300 cursor-not-allowed' : 'hover:bg-primary/10',
                     selected && (isStart || isEnd) ? 'bg-primary text-white hover:bg-primary/90' : '',
-                    !selected && inSelectedRange ? 'bg-primary/5 text-gray-700' : '',
+                    !selected && inSelectedRange ? 'bg-primary/10 text-gray-700' : '',
                     !selected && !inSelectedRange ? 'text-gray-700' : '',
                     inHoverRange ? 'bg-primary/5 text-primary' : '',
                     isStart ? 'rounded-l' : '',

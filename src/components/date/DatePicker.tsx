@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
-import { fieldLabel, helperText, inputBase } from '../formStyles';
+import { fieldLabel, helperText, inputBase, inputStatus, Status } from '../formStyles';
 import { X, Calendar as CalendarIcon } from 'lucide-react';
 import Calendar from './Calendar';
 import { formatISO, parseISO } from './utils';
@@ -17,9 +17,10 @@ type Props = {
   clearable?: boolean;
   onChange?: (v?: string) => void;
   className?: string;
+  status?: Status;
 };
 
-export default function DatePicker({ label, helper, value, defaultValue, min, max, disabledDate, clearable = true, onChange, className = '' }: Props) {
+export default function DatePicker({ label, helper, value, defaultValue, min, max, disabledDate, clearable = true, onChange, className = '', status }: Props) {
   const isControlled = typeof value !== 'undefined';
   const [internal, setInternal] = useState<string | undefined>(defaultValue);
   const v = (isControlled ? value : internal) as string | undefined;
@@ -51,7 +52,23 @@ export default function DatePicker({ label, helper, value, defaultValue, min, ma
     <label className="block">
       {label && <span className={fieldLabel}>{label}</span>}
       <div ref={anchor} className={`relative ${className}`}>
-        <button type="button" onClick={() => setOpen((o) => !o)} className={`${inputBase} text-left pr-10 leading-none flex items-center h-10 ${!v ? 'text-gray-400' : ''}`}>{v ?? '请选择日期'}</button>
+        <input
+          type="text"
+          placeholder="请选择日期"
+          onFocus={() => setOpen(true)}
+          onClick={() => setOpen(true)}
+          value={v ?? ''}
+          onChange={(e) => {
+            const raw = e.target.value.trim();
+            if (raw === '') { commit(undefined); return; }
+            // accept yyyy-mm-dd
+            if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+              commit(raw);
+            }
+          }}
+          aria-invalid={status === 'error' ? true : undefined}
+          className={[inputBase, status ? inputStatus[status] : '', 'text-left pr-10 leading-none flex items-center h-10', !v ? 'text-gray-400' : 'text-gray-700'].filter(Boolean).join(' ')}
+        />
         {clearable && v && (
           <button type="button" onClick={clear} aria-label="清空" className="absolute right-10 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500">
             <X size={16} aria-hidden />

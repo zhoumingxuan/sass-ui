@@ -26,7 +26,7 @@ export default function Alert({
       <div className="flex-1">{children}</div>
       <button
         onClick={() => setOpen(false)}
-        className="ml-4 text-gray-400 hover:text-gray-600"
+        className="ml-4 text-gray-400 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2"
         aria-label="关闭"
       >
         ×

@@ -26,7 +26,8 @@ export default function Card({
             {closable && (
               <button
                 onClick={onClose}
-                className="p-2 rounded-lg text-gray-500 hover:bg-gray-100"
+                aria-label="关闭"
+                className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2"
               >
                 ×
               </button>

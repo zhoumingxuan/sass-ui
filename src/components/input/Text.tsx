@@ -1,7 +1,7 @@
 "use client";
 
 import { InputHTMLAttributes, ReactNode, useId, useState } from "react";
-import { inputBase, fieldLabel, helperText } from "../formStyles";
+import { inputBase, fieldLabel, helperText, inputStatus, Status } from "../formStyles";
 import { X } from "lucide-react";
 
 type Props = InputHTMLAttributes<HTMLInputElement> & {
@@ -10,9 +10,10 @@ type Props = InputHTMLAttributes<HTMLInputElement> & {
   prefix?: ReactNode;
   suffix?: ReactNode;
   clearable?: boolean;
+  status?: Status;
 };
 
-export default function Text({ label, helper, prefix, suffix, clearable = false, className = "", onChange, ...props }: Props) {
+export default function Text({ label, helper, prefix, suffix, clearable = false, status, className = "", onChange, ...props }: Props) {
   const id = useId();
   const isControlled = Object.prototype.hasOwnProperty.call(props, "value");
   const [internal, setInternal] = useState("");
@@ -37,7 +38,8 @@ export default function Text({ label, helper, prefix, suffix, clearable = false,
         <input
           id={id}
           type="text"
-          className={[inputBase, prefix ? "pl-8" : "", suffix || clearable ? "pr-8" : ""].join(" ")}
+          aria-invalid={status === 'error' ? true : undefined}
+          className={[inputBase, status ? inputStatus[status] : '', prefix ? "pl-8" : "", suffix || clearable ? "pr-8" : ""].filter(Boolean).join(" ")}
           value={(val as any) ?? ''}
           onChange={handleChange}
           {...props}

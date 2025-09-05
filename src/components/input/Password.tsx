@@ -1,15 +1,16 @@
 "use client";
 
 import { InputHTMLAttributes, useState } from "react";
-import { inputBase, fieldLabel, helperText } from "../formStyles";
+import { inputBase, fieldLabel, helperText, inputStatus, Status } from "../formStyles";
 import { Eye, EyeOff } from "lucide-react";
 
 type Props = InputHTMLAttributes<HTMLInputElement> & {
   label?: string;
   helper?: string;
+  status?: Status;
 };
 
-export default function Password({ label, helper, className = "", ...props }: Props) {
+export default function Password({ label, helper, status, className = "", ...props }: Props) {
   const [visible, setVisible] = useState(false);
   return (
     <label className="block">
@@ -17,7 +18,8 @@ export default function Password({ label, helper, className = "", ...props }: Pr
       <div className={`relative ${className}`}>
         <input
           type={visible ? "text" : "password"}
-          className={[inputBase, "pr-10"].join(" ")}
+          aria-invalid={status === 'error' ? true : undefined}
+          className={[inputBase, status ? inputStatus[status] : '', "pr-10"].filter(Boolean).join(" ")}
           {...props}
         />
         <button

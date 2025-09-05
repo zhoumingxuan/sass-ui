@@ -35,6 +35,7 @@ export default function DateRangePicker({ label, helper, start, end, defaultStar
   const [hoverDate, setHoverDate] = useState<Date | undefined>(undefined);
   const pop = useRef<HTMLDivElement>(null);
   const anchor = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState<'start'|'end'|'auto'>('auto');
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
@@ -52,9 +53,32 @@ export default function DateRangePicker({ label, helper, start, end, defaultStar
   };
 
   const select = (d: Date) => {
-    // first click sets start; second sets end
+    const pick = formatISO(d);
+    if (active === 'start') {
+      // picking start explicitly
+      if (ev && d > parseISO(ev)!) {
+        // start > end: keep start and clear end
+        commit(pick, undefined);
+      } else {
+        commit(pick, ev);
+      }
+      setActive('end'); // guide to pick end next
+      return;
+    }
+    if (active === 'end') {
+      // picking end explicitly
+      if (sv && d < parseISO(sv)!) {
+        // end < start: keep end only, clear start
+        commit(undefined, pick);
+      } else {
+        commit(sv, pick);
+        setOpen(false);
+      }
+      return;
+    }
+    // auto mode: first click sets start; second sets end
     if (!sv || (sv && ev)) {
-      commit(formatISO(d), undefined);
+      commit(pick, undefined);
     } else {
       const sD = parseISO(sv)!;
       if (d < sD) commit(formatISO(d), formatISO(sD));
@@ -69,12 +93,51 @@ export default function DateRangePicker({ label, helper, start, end, defaultStar
       <div ref={anchor} className={`relative ${className}`}>
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
           <div className="relative">
-            <button type="button" onClick={() => setOpen(o => !o)} className={`${inputBase} text-left pr-10 leading-none flex items-center h-10 ${!sv ? 'text-gray-400' : ''}`}>{sv ?? '开始日期'}</button>
+            <input
+              type="text"
+              placeholder="开始日期"
+              value={sv ?? ''}
+              onFocus={() => { setActive('start'); setOpen(true); }}
+              onClick={() => { setActive('start'); setOpen(true); }}
+              onChange={(e) => {
+                const raw = e.target.value.trim();
+                if (raw === '') { commit(undefined, ev); return; }
+                if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+                  const d = parseISO(raw)!;
+                  if (ev && d > parseISO(ev)!) {
+                    commit(raw, undefined);
+                  } else {
+                    commit(raw, ev);
+                  }
+                }
+              }}
+              className={`${inputBase} text-left pr-10 leading-none flex items-center h-10 ${!sv ? 'text-gray-400' : 'text-gray-700'}`}
+            />
             <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><CalendarIcon size={18} aria-hidden /></span>
           </div>
           <span className="text-xs text-gray-500">至</span>
           <div className="relative">
-            <button type="button" onClick={() => setOpen(o => !o)} className={`${inputBase} text-left pr-10 leading-none flex items-center h-10 ${!ev ? 'text-gray-400' : ''}`}>{ev ?? '结束日期'}</button>
+            <input
+              type="text"
+              placeholder="结束日期"
+              value={ev ?? ''}
+              onFocus={() => { setActive('end'); setOpen(true); }}
+              onClick={() => { setActive('end'); setOpen(true); }}
+              onChange={(e) => {
+                const raw = e.target.value.trim();
+                if (raw === '') { commit(sv, undefined); return; }
+                if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+                  const d = parseISO(raw)!;
+                  if (sv && d < parseISO(sv)!) {
+                    // keep end only, clear start
+                    commit(undefined, raw);
+                  } else {
+                    commit(sv, raw);
+                  }
+                }
+              }}
+              className={`${inputBase} text-left pr-10 leading-none flex items-center h-10 ${!ev ? 'text-gray-400' : 'text-gray-700'}`}
+            />
             <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><CalendarIcon size={18} aria-hidden /></span>
           </div>
         </div>
@@ -84,7 +147,7 @@ export default function DateRangePicker({ label, helper, start, end, defaultStar
               <Calendar
                 month={left}
                 rangeStart={sDate}
-                rangeEnd={eDate}
+                rangeEnd={active === 'start' ? undefined : eDate}
                 min={parseISO(min)}
                 max={parseISO(max)}
                 hoverDate={hoverDate}
@@ -95,7 +158,7 @@ export default function DateRangePicker({ label, helper, start, end, defaultStar
               <Calendar
                 month={right}
                 rangeStart={sDate}
-                rangeEnd={eDate}
+                rangeEnd={active === 'start' ? undefined : eDate}
                 min={parseISO(min)}
                 max={parseISO(max)}
                 hoverDate={hoverDate}
@@ -105,7 +168,7 @@ export default function DateRangePicker({ label, helper, start, end, defaultStar
               />
             </div>
             <div className="mt-2 flex items-center justify-between px-1">
-              <div className="text-[11px] text-gray-400">可选择年份、月份、日期；范围轻提示</div>
+              <div className="text-[11px] text-gray-400">可选择年份、月份、日期</div>
               <div className="flex gap-2">
                 <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => {
                   const d = new Date();
@@ -139,4 +202,3 @@ export default function DateRangePicker({ label, helper, start, end, defaultStar
     </label>
   );
 }
-

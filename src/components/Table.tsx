@@ -142,7 +142,7 @@ export default function Table<T extends Record<string, unknown>>({
                 {keyword && (
                   <button
                     aria-label="清除"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 h-5 w-5 rounded hover:bg-gray-100 active:bg-gray-200"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-5 w-5 rounded hover:bg-gray-100 active:bg-gray-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
                     onClick={() => setKeyword('')}
                   >
                     <svg viewBox="0 0 20 20" className="h-4 w-4 text-gray-400" fill="currentColor">
@@ -159,7 +159,7 @@ export default function Table<T extends Record<string, unknown>>({
                   <button
                     key={d}
                     type="button"
-                    className={`h-9 px-3 transition-colors ${
+                    className={`h-9 px-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
                       density === d ? 'bg-gray-100 text-gray-900' : 'bg-white text-gray-600 hover:bg-gray-50'
                     } ${i !== 0 ? 'border-l border-gray-300' : ''}`}
                     onClick={() => setDensity(d)}
@@ -207,7 +207,7 @@ export default function Table<T extends Record<string, unknown>>({
                   >
                     <button
                       type="button"
-                      className={`group flex w-full items-center gap-1 ${
+                      className={`group flex w-full items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
                         col.align === 'right' ? 'justify-end' : 'justify-start'
                       }`}
                       onClick={() => sortable && onSort?.(col.key)}
