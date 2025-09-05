@@ -86,10 +86,11 @@ export default function Calendar({ month, value, min, max, disabledDate, onSelec
             {cells.map((d, i) => {
               if (!d) return <div key={i} className="h-8"/>;
               const disabled = !canPick(d);
-              const selected = isSameDay(d, value) || isSameDay(d, rangeStart) || isSameDay(d, rangeEnd);
-          const inSelectedRange = !!(rangeStart && rangeEnd && d >= rangeStart && d <= rangeEnd);
+              const singleSelected = !!(value && isSameDay(d, value));
               const isStart = !!(rangeStart && isSameDay(d, rangeStart));
               const isEnd = !!(rangeEnd && isSameDay(d, rangeEnd));
+              const selectedEdge = isStart || isEnd;
+              const inSelectedRange = !!(rangeStart && rangeEnd && d >= rangeStart && d <= rangeEnd);
               const inHoverRange = !!(showHoverRange && rangeStart && hoverDate && ((hoverDate > rangeStart && d >= rangeStart && d <= hoverDate) || (hoverDate < rangeStart && d >= hoverDate && d <= rangeStart)));
               return (
                 <button
@@ -102,9 +103,14 @@ export default function Calendar({ month, value, min, max, disabledDate, onSelec
                   className={[
                     'h-8 rounded text-sm',
                     disabled ? 'text-gray-300 cursor-not-allowed' : 'hover:bg-primary/10',
-                    selected && (isStart || isEnd) ? 'bg-primary text-white hover:bg-primary/90' : '',
-                    !selected && inSelectedRange ? 'bg-primary/10 text-gray-700' : '',
-                    !selected && !inSelectedRange ? 'text-gray-700' : '',
+                    // single date selected styling
+                    singleSelected ? 'bg-primary text-white hover:bg-primary/90' : '',
+                    // range edges styling
+                    !singleSelected && selectedEdge ? 'bg-primary text-white hover:bg-primary/90' : '',
+                    // in-range (only for range selection)
+                    !singleSelected && !selectedEdge && inSelectedRange ? 'bg-primary/10 text-gray-700' : '',
+                    // default text color when not selected
+                    !singleSelected && !inSelectedRange && !selectedEdge ? 'text-gray-700' : '',
                     inHoverRange ? 'bg-primary/5 text-primary' : '',
                     isStart ? 'rounded-l' : '',
                     isEnd ? 'rounded-r' : '',

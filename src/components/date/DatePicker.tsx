@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { fieldLabel, helperText, inputBase, inputStatus, Status } from '../formStyles';
 import { X, Calendar as CalendarIcon } from 'lucide-react';
 import Calendar from './Calendar';
-import { formatISO, parseISO } from './utils';
+import { addMonths, formatISO, parseISO } from './utils';
 
 type Props = {
   label?: string;
@@ -24,7 +24,7 @@ export default function DatePicker({ label, helper, value, defaultValue, min, ma
   const isControlled = typeof value !== 'undefined';
   const [internal, setInternal] = useState<string | undefined>(defaultValue);
   const v = (isControlled ? value : internal) as string | undefined;
-  const date = parseISO(v);
+  const date = useMemo(() => parseISO(v), [v]);
 
   const [open, setOpen] = useState(false);
   const [month, setMonth] = useState<Date>(() => date ?? new Date());
@@ -57,6 +57,21 @@ export default function DatePicker({ label, helper, value, defaultValue, min, ma
           placeholder="请选择日期"
           onFocus={() => setOpen(true)}
           onClick={() => setOpen(true)}
+          onKeyDown={(e) => {
+            const applyMonth = (m: Date) => {
+              setMonth(m);
+              const y = m.getFullYear();
+              const mon = m.getMonth();
+              const baseDay = date?.getDate() ?? 1;
+              const lastDay = new Date(y, mon + 1, 0).getDate();
+              const nd = new Date(y, mon, Math.min(baseDay, lastDay));
+              commit(formatISO(nd));
+            };
+            if (e.key === 'ArrowDown') { setOpen(true); e.preventDefault(); }
+            if (e.key === 'Escape' && open) { setOpen(false); e.preventDefault(); }
+            if (e.key === 'PageUp') { applyMonth(addMonths(month, e.shiftKey ? -12 : -1)); setOpen(true); e.preventDefault(); }
+            if (e.key === 'PageDown') { applyMonth(addMonths(month, e.shiftKey ? 12 : 1)); setOpen(true); e.preventDefault(); }
+          }}
           value={v ?? ''}
           onChange={(e) => {
             const raw = e.target.value.trim();
@@ -84,7 +99,15 @@ export default function DatePicker({ label, helper, value, defaultValue, min, ma
               max={parseISO(max)}
               disabledDate={disabledDate}
               onSelect={(d) => { commit(formatISO(d)); setOpen(false); }}
-              onMonthChange={(m) => setMonth(m)}
+              onMonthChange={(m) => {
+                setMonth(m);
+                const y = m.getFullYear();
+                const mon = m.getMonth();
+                const baseDay = date?.getDate() ?? 1;
+                const lastDay = new Date(y, mon + 1, 0).getDate();
+                const nd = new Date(y, mon, Math.min(baseDay, lastDay));
+                commit(formatISO(nd));
+              }}
             />
             <div className="mt-2 flex items-center justify-between px-1">
               <div className="text-[11px] text-gray-400">可选择年份、月份、日期</div>
