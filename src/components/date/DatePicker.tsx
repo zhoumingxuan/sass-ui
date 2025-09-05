@@ -41,7 +41,27 @@ export default function DatePicker({ label, helper, value, defaultValue, min, ma
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
 
-  const commit = (val?: string) => { if (!isControlled) setInternal(val); onChange?.(val); };
+  const commit = (val?: string) => {
+    let next = val;
+    if (val) {
+      const d = parseISO(val)!;
+      const minD = parseISO(min);
+      const maxD = parseISO(max);
+      const isInvalid = (x: Date) => (minD && x < minD) || (maxD && x > maxD) || !!disabledDate?.(x);
+      if (isInvalid(d)) {
+        let found: Date | undefined;
+        for (let i = 1; i <= 366; i++) {
+          const down = new Date(d); down.setDate(d.getDate() - i);
+          if (!isInvalid(down)) { found = down; break; }
+          const up = new Date(d); up.setDate(d.getDate() + i);
+          if (!isInvalid(up)) { found = up; break; }
+        }
+        next = found ? formatISO(found) : undefined;
+      }
+    }
+    if (!isControlled) setInternal(next);
+    onChange?.(next);
+  };
   const clear = () => commit(undefined);
 
   useEffect(() => {
@@ -78,7 +98,11 @@ export default function DatePicker({ label, helper, value, defaultValue, min, ma
             if (raw === '') { commit(undefined); return; }
             // accept yyyy-mm-dd
             if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-              commit(raw);
+              const d = parseISO(raw)!;
+              const minD = parseISO(min);
+              const maxD = parseISO(max);
+              const invalid = (minD && d < minD) || (maxD && d > maxD) || !!disabledDate?.(d);
+              if (!invalid) commit(raw);
             }
           }}
           aria-invalid={status === 'error' ? true : undefined}
@@ -105,8 +129,27 @@ export default function DatePicker({ label, helper, value, defaultValue, min, ma
                 const mon = m.getMonth();
                 const baseDay = date?.getDate() ?? 1;
                 const lastDay = new Date(y, mon + 1, 0).getDate();
-                const nd = new Date(y, mon, Math.min(baseDay, lastDay));
-                commit(formatISO(nd));
+                const tryDay = (day: number) => new Date(y, mon, day);
+                const minD = parseISO(min);
+                const maxD = parseISO(max);
+                const isInvalid = (d: Date) => (minD && d < minD) || (maxD && d > maxD) || !!disabledDate?.(d);
+                let nd: Date | undefined = tryDay(Math.min(baseDay, lastDay));
+                if (nd && isInvalid(nd)) {
+                  nd = undefined;
+                  for (let offset = 1; offset <= lastDay; offset++) {
+                    const down = baseDay - offset;
+                    const up = baseDay + offset;
+                    if (down >= 1) {
+                      const cand = tryDay(down);
+                      if (!isInvalid(cand)) { nd = cand; break; }
+                    }
+                    if (up <= lastDay) {
+                      const cand = tryDay(up);
+                      if (!isInvalid(cand)) { nd = cand; break; }
+                    }
+                  }
+                }
+                if (nd) commit(formatISO(nd));
               }}
             />
             <div className="mt-2 flex items-center justify-between px-1">

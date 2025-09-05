@@ -125,6 +125,8 @@ export default function Home() {
             <Button variant="primary" aria-label="新增" icon={<Plus />} />
             <Button variant="primary" icon={<Plus />} disabled>禁用</Button>
           </div>
+          <div className="col-span-12 md:col-span-6"><DateInput label="��������" disabledDate={(d) => d.getDay() === 0 || d.getDay() === 6} /></div>
+          <div className="col-span-12 md:col-span-6"><DateRangeInput label="���ڷ�Χ" disabledDate={(d) => d.getDay() === 0 || d.getDay() === 6} /></div>
         </div>
       </Card>
 

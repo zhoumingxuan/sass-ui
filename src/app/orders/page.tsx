@@ -29,8 +29,8 @@ export default function Orders() {
           <Grid cols={4} gap={2} className="max-md:grid-cols-2">
             <TextInput placeholder="订单号" />
             <TextInput placeholder="客户名" />
-            <DateInput />
-            <DateInput />
+            <DateInput disabledDate={(d) => d.getDay() === 0 || d.getDay() === 6} />
+            <DateInput disabledDate={(d) => d.getDay() === 0 || d.getDay() === 6} />
           </Grid>
           {showMore && (
             <>
