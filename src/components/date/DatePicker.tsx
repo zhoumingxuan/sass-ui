@@ -43,13 +43,17 @@ export default function DatePicker({ label, helper, value, defaultValue, min, ma
   const commit = (val?: string) => { if (!isControlled) setInternal(val); onChange?.(val); };
   const clear = () => commit(undefined);
 
+  useEffect(() => {
+    if (date) setMonth(date);
+  }, [date]);
+
   return (
     <label className="block">
       {label && <span className={fieldLabel}>{label}</span>}
       <div ref={anchor} className={`relative ${className}`}>
         <button type="button" onClick={() => setOpen((o) => !o)} className={`${inputBase} text-left pr-10 leading-none flex items-center h-10 ${!v ? 'text-gray-400' : ''}`}>{v ?? '请选择日期'}</button>
         {clearable && v && (
-          <button type="button" onClick={clear} aria-label="清空" className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+          <button type="button" onClick={clear} aria-label="清空" className="absolute right-10 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500">
             <X size={16} aria-hidden />
           </button>
         )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { addMonths, endOfMonth, inRange, isSameDay, startOfMonth } from './utils';
 
@@ -20,6 +20,7 @@ type Props = {
 };
 
 export default function Calendar({ month, value, min, max, disabledDate, onSelect, onMonthChange, rangeStart, rangeEnd, hoverDate, onHoverDate }: Props) {
+  const [view, setView] = useState<'date'|'year'|'month'>('date');
   const first = startOfMonth(month);
   const last = endOfMonth(month);
   const firstWeekday = (first.getDay() + 6) % 7; // make Monday=0
@@ -33,77 +34,89 @@ export default function Calendar({ month, value, min, max, disabledDate, onSelec
 
   const years = useMemo(() => {
     const y = month.getFullYear();
-    const arr: number[] = [];
-    for (let i = y - 50; i <= y + 50; i++) arr.push(i);
-    return arr;
+    const start = y - 9;
+    return Array.from({ length: 20 }, (_, i) => start + i);
   }, [month]);
 
-  const onChangeYear = (y: number) => onMonthChange?.(new Date(y, month.getMonth(), 1));
-  const onChangeMonth = (m: number) => onMonthChange?.(new Date(month.getFullYear(), m, 1));
+  const onChangeYear = (y: number) => { onMonthChange?.(new Date(y, month.getMonth(), 1)); setView('date'); };
+  const onChangeMonth = (m: number) => { onMonthChange?.(new Date(month.getFullYear(), m, 1)); setView('date'); };
 
   const showHoverRange = !!(rangeStart && !rangeEnd && hoverDate);
 
   return (
     <div className="w-64 select-none">
       <div className="flex items-center justify-between gap-2 px-2 py-2">
-        <button type="button" aria-label="上个月" className="h-7 w-7 rounded hover:bg-gray-100" onClick={() => onMonthChange?.(addMonths(month, -1))}>
+        <button type="button" aria-label="上一页" className="h-7 w-7 rounded hover:bg-gray-100" onClick={() => onMonthChange?.(addMonths(month, view === 'date' ? -1 : -12))}>
           <ChevronLeft size={16} />
         </button>
         <div className="flex items-center gap-2 text-sm text-gray-700">
-          <select aria-label="年份" className="h-7 rounded-md border border-gray-200 bg-white px-2 text-sm" value={month.getFullYear()} onChange={(e) => onChangeYear(Number(e.target.value))}>
-            {years.map((y) => (
-              <option key={y} value={y}>{y}年</option>
-            ))}
-          </select>
-          <select aria-label="月份" className="h-7 rounded-md border border-gray-200 bg-white px-2 text-sm" value={month.getMonth()} onChange={(e) => onChangeMonth(Number(e.target.value))}>
-            {Array.from({ length: 12 }, (_, i) => i).map((m) => (
-              <option key={m} value={m}>{m + 1}月</option>
-            ))}
-          </select>
+          <button type="button" className="h-7 rounded px-2 hover:bg-gray-100" onClick={() => setView('year')}>{month.getFullYear()}年</button>
+          <button type="button" className="h-7 rounded px-2 hover:bg-gray-100" onClick={() => setView('month')}>{month.getMonth() + 1}月</button>
         </div>
-        <button type="button" aria-label="下个月" className="h-7 w-7 rounded hover:bg-gray-100" onClick={() => onMonthChange?.(addMonths(month, 1))}>
+        <button type="button" aria-label="下一页" className="h-7 w-7 rounded hover:bg-gray-100" onClick={() => onMonthChange?.(addMonths(month, view === 'date' ? 1 : 12))}>
           <ChevronRight size={16} />
         </button>
       </div>
-      <div className="grid grid-cols-7 gap-1 px-2 pb-2 text-center text-[11px] text-gray-500">
-        {['一','二','三','四','五','六','日'].map((w) => (
-          <div key={w}>{w}</div>
-        ))}
-      </div>
-      <div className="grid grid-cols-7 gap-1 px-2 pb-2">
-        {cells.map((d, i) => {
-          if (!d) return <div key={i} className="h-8"/>;
-          const disabled = !canPick(d);
-          const selected = isSameDay(d, value) || isSameDay(d, rangeStart) || isSameDay(d, rangeEnd);
-          const inSelectedRange = !!(rangeStart && rangeEnd && d >= rangeStart && d <= rangeEnd);
-          const isStart = !!(rangeStart && isSameDay(d, rangeStart));
-          const isEnd = !!(rangeEnd && isSameDay(d, rangeEnd));
-          const inHoverRange = !!(showHoverRange && rangeStart && hoverDate && ((hoverDate > rangeStart && d >= rangeStart && d <= hoverDate) || (hoverDate < rangeStart && d >= hoverDate && d <= rangeStart)));
-          return (
-            <button
-              type="button"
-              key={i}
-              disabled={disabled}
-              onMouseEnter={() => onHoverDate?.(d)}
-              onMouseLeave={() => onHoverDate?.(undefined)}
-              onClick={() => !disabled && onSelect?.(d)}
-              className={[
-                'h-8 rounded text-sm',
-                disabled ? 'text-gray-300 cursor-not-allowed' : 'hover:bg-primary/10',
-                selected && (isStart || isEnd) ? 'bg-primary text-white hover:bg-primary/90' : '',
-                !selected && inSelectedRange ? 'bg-primary/10 text-primary' : '',
-                !selected && !inSelectedRange ? 'text-gray-700' : '',
-                inHoverRange ? 'bg-primary/5 text-primary' : '',
-                isStart ? 'rounded-l' : '',
-                isEnd ? 'rounded-r' : '',
-              ].join(' ')}
-            >
-              {d.getDate()}
+      {view === 'year' && (
+        <div className="grid grid-cols-4 gap-2 px-2 pb-2">
+          {years.map((y) => (
+            <button key={y} type="button" className={`h-8 rounded text-sm hover:bg-gray-100 ${y === month.getFullYear() ? 'bg-primary/10 text-primary' : 'text-gray-700'}`} onClick={() => onChangeYear(y)}>
+              {y}
             </button>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
+      {view === 'month' && (
+        <div className="grid grid-cols-3 gap-2 px-2 pb-2">
+          {Array.from({ length: 12 }, (_, m) => (
+            <button key={m} type="button" className={`h-8 rounded text-sm hover:bg-gray-100 ${m === month.getMonth() ? 'bg-primary/10 text-primary' : 'text-gray-700'}`} onClick={() => onChangeMonth(m)}>
+              {m + 1}月
+            </button>
+          ))}
+        </div>
+      )}
+      {view === 'date' && (
+        <>
+          <div className="grid grid-cols-7 gap-1 px-2 pb-2 text-center text-[11px] text-gray-500">
+            {['一','二','三','四','五','六','日'].map((w) => (
+              <div key={w}>{w}</div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-1 px-2 pb-2">
+            {cells.map((d, i) => {
+              if (!d) return <div key={i} className="h-8"/>;
+              const disabled = !canPick(d);
+              const selected = isSameDay(d, value) || isSameDay(d, rangeStart) || isSameDay(d, rangeEnd);
+              const inSelectedRange = !!(rangeStart && rangeEnd && d >= rangeStart && d <= rangeEnd);
+              const isStart = !!(rangeStart && isSameDay(d, rangeStart));
+              const isEnd = !!(rangeEnd && isSameDay(d, rangeEnd));
+              const inHoverRange = !!(showHoverRange && rangeStart && hoverDate && ((hoverDate > rangeStart && d >= rangeStart && d <= hoverDate) || (hoverDate < rangeStart && d >= hoverDate && d <= rangeStart)));
+              return (
+                <button
+                  type="button"
+                  key={i}
+                  disabled={disabled}
+                  onMouseEnter={() => onHoverDate?.(d)}
+                  onMouseLeave={() => onHoverDate?.(undefined)}
+                  onClick={() => !disabled && onSelect?.(d)}
+                  className={[
+                    'h-8 rounded text-sm',
+                    disabled ? 'text-gray-300 cursor-not-allowed' : 'hover:bg-primary/10',
+                    selected && (isStart || isEnd) ? 'bg-primary text-white hover:bg-primary/90' : '',
+                    !selected && inSelectedRange ? 'bg-primary/5 text-gray-700' : '',
+                    !selected && !inSelectedRange ? 'text-gray-700' : '',
+                    inHoverRange ? 'bg-primary/5 text-primary' : '',
+                    isStart ? 'rounded-l' : '',
+                    isEnd ? 'rounded-r' : '',
+                  ].join(' ')}
+                >
+                  {d.getDate()}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 }
-

@@ -1,6 +1,6 @@
 "use client";
 
-import { InputHTMLAttributes, useId, useState } from "react";
+import { InputHTMLAttributes, useEffect, useId, useState } from "react";
 import { inputBase, fieldLabel, helperText } from "../formStyles";
 import { ChevronUp, ChevronDown } from "lucide-react";
 
@@ -21,6 +21,10 @@ export default function Number({ label, helper, className = "", value, defaultVa
   const isControlled = typeof value === "number" || value === null;
   const [internal, setInternal] = useState<number | null>(typeof defaultValue === "number" ? defaultValue : null);
   const val = isControlled ? value : internal;
+  const [text, setText] = useState<string>(val !== null && typeof val === 'number' ? String(val) : "");
+  useEffect(() => {
+    setText(val === null || typeof val === 'undefined' ? "" : String(val));
+  }, [val]);
 
   const fmt = (v: number) => (typeof precision === "number" ? Number(v.toFixed(precision)) : v);
   const clamp = (v: number) => {
@@ -45,15 +49,29 @@ export default function Number({ label, helper, className = "", value, defaultVa
   };
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value.trim();
-    if (raw === "") return commit(null);
-    const n = Number(raw);
-    if (Number.isFinite(n)) commit(clamp(n));
+    const raw = e.target.value;
+    setText(raw);
+    if (raw.trim() === "") { commit(null); return; }
+    // allow intermediate states like '-' or '1.' without committing invalid number
+    const maybe = Number(raw);
+    if (Number.isFinite(maybe)) {
+      // do not clamp while typing; clamp on blur/controls
+      if (!isControlled) setInternal(maybe);
+      onChange?.(maybe);
+    }
   };
 
   const handleBlur = () => {
-    if (val === null || typeof val === 'undefined') return;
-    commit(clamp(val));
+    if (text.trim() === "") { commit(null); return; }
+    const maybe = Number(text);
+    if (Number.isFinite(maybe)) {
+      const c = clamp(maybe);
+      setText(String(c));
+      commit(c);
+    } else {
+      // restore last valid
+      setText(val !== null && typeof val === 'number' ? String(val) : "");
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -75,16 +93,15 @@ export default function Number({ label, helper, className = "", value, defaultVa
           id={id}
           type="text"
           inputMode="decimal"
-          pattern="[0-9]*[.,]?[0-9]*"
           className={[inputBase, "pr-10"].join(" ")}
-          value={val ?? ""}
+          value={text}
           onChange={handleInput}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           onWheel={handleWheel}
           {...props}
         />
-        <div className="absolute right-1.5 flex flex-col items-center">
+        <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex flex-col items-center">
           <button type="button" aria-label="增加" className="h-5 w-7 rounded-md text-gray-600 hover:bg-gray-100 flex items-center justify-center" onClick={inc}>
             <ChevronUp size={14} />
           </button>
