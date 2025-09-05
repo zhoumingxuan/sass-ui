@@ -6,7 +6,7 @@ import Button from '@/components/Button';
 import { Input } from '@/components/Input';
 import Switch from '@/components/Switch';
 import { RadioGroup } from '@/components/Radio';
-import { CheckboxGroup } from '@/components/Checkbox';
+import { Checkbox, CheckboxGroup } from '@/components/Checkbox';
 import Slider from '@/components/Slider';
 import { useState } from 'react';
 import { menuItems, footerItems } from '@/components/menuItems';
@@ -16,6 +16,9 @@ export default function FormDemo() {
   const [agree, setAgree] = useState(true);
   const [gender, setGender] = useState('male');
   const [hobbies, setHobbies] = useState<string[]>(['read']);
+  const allHobbyOptions = ['read', 'sport', 'music'];
+  const allSelected = hobbies.length === allHobbyOptions.length;
+  const someSelected = hobbies.length > 0 && !allSelected;
   const [volume, setVolume] = useState(30);
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,6 +83,53 @@ export default function FormDemo() {
             />
           </div>
 
+          <div className="col-span-12 md:col-span-6">
+            <div className="mb-2 text-xs text-gray-500">三态选择示例（全选 / 部分 / 全不选）</div>
+            <div className="space-y-2">
+              <Checkbox
+                label="全选爱好"
+                checked={allSelected}
+                indeterminate={someSelected}
+                onChange={(e) => {
+                  const checked = (e.target as HTMLInputElement).checked;
+                  setHobbies(checked ? allHobbyOptions : []);
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="col-span-12 md:col-span-6">
+            <RadioGroup
+              name="gender-disabled"
+              label="单选（禁用示例）"
+              value={gender}
+              onChange={setGender}
+              options={[
+                { value: 'male', label: '男' },
+                { value: 'female', label: '女' },
+                { value: 'other', label: '其他' },
+              ]}
+              disabled
+              inline
+            />
+          </div>
+
+          <div className="col-span-12 md:col-span-6">
+            <CheckboxGroup
+              name="hobbies-disabled"
+              label="多选（禁用示例）"
+              values={hobbies}
+              onChange={setHobbies}
+              options={[
+                { value: 'read', label: '阅读' },
+                { value: 'sport', label: '运动' },
+                { value: 'music', label: '音乐' },
+              ]}
+              disabled
+              inline
+            />
+          </div>
+
           <div className="col-span-12">
             <Input.TextArea label="文本域" placeholder="请输入更多内容…" helper="支持自动高度" autoGrow />
           </div>
@@ -102,4 +152,3 @@ export default function FormDemo() {
     </Layout>
   );
 }
-

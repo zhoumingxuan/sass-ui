@@ -22,13 +22,17 @@ export function Radio({ label, description, className = '', disabled, ...props }
         type="radio"
         disabled={disabled}
         className={[
-          'mt-0.5 h-4 w-4 shrink-0 rounded-full border border-gray-300 text-primary accent-primary',
+          'mt-0.5 h-4 w-4 shrink-0 rounded-full border bg-white',
+          'border-gray-200 hover:border-gray-300 checked:border-primary/60',
+          'accent-primary disabled:accent-gray-300',
+          'disabled:hover:border-gray-200',
           controlRing,
+          'transition-colors',
         ].join(' ')}
         {...props}
       />
       <span className="select-none">
-        <span className="block text-sm text-gray-800">{label}</span>
+        <span className="block text-sm text-gray-700">{label}</span>
         {description && (
           <span className="mt-0.5 block text-xs text-gray-500">{description}</span>
         )}

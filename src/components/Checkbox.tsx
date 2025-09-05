@@ -1,6 +1,6 @@
 'use client';
 
-import { ChangeEvent } from 'react';
+import { ChangeEvent, useEffect, useRef } from 'react';
 import { controlRing, controlDisabled, fieldLabel, helperText } from './formStyles';
 
 export type CheckboxOption = {
@@ -13,22 +13,45 @@ export type CheckboxOption = {
 type CheckboxProps = React.InputHTMLAttributes<HTMLInputElement> & {
   label?: string;
   description?: string;
+  // 三态：indeterminate 表示部分选中（父级半选）
+  indeterminate?: boolean;
 };
 
-export function Checkbox({ label, description, className = '', disabled, ...props }: CheckboxProps) {
+export function Checkbox({ label, description, indeterminate, className = '', disabled, ...props }: CheckboxProps) {
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.indeterminate = !!indeterminate && !props.checked;
+    }
+  }, [indeterminate, props.checked]);
   return (
     <label className={`inline-flex items-start gap-2 ${disabled ? controlDisabled : ''} ${className}`}>
       <input
         type="checkbox"
         disabled={disabled}
+        ref={ref}
+        aria-checked={indeterminate ? 'mixed' : undefined}
         className={[
-          'mt-0.5 h-4 w-4 shrink-0 rounded border border-gray-300 text-primary accent-primary',
+          'mt-0.5 h-4 w-4 shrink-0 rounded border bg-white',
+          // base/hover/disabled border tones
+          'border-gray-200 hover:border-gray-300 disabled:hover:border-gray-200',
+          // checked style via native accent; lighter border to reduce heaviness
+          !indeterminate || props.checked ? 'accent-primary disabled:accent-gray-300 checked:border-primary/60' : '',
+          // custom indeterminate visuals: tint background + centered dash
+          indeterminate && !props.checked
+            ? [
+                'relative appearance-none border-primary/60 bg-primary/10',
+                'after:content-[""] after:absolute after:left-1/2 after:top-1/2 after:h-0.5 after:w-2.5 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded after:bg-primary',
+                'disabled:after:bg-gray-400',
+              ].join(' ')
+            : '',
           controlRing,
-        ].join(' ')}
+          'transition-colors',
+        ].filter(Boolean).join(' ')}
         {...props}
       />
       <span className="select-none">
-        <span className="block text-sm text-gray-800">{label}</span>
+        <span className="block text-sm text-gray-700">{label}</span>
         {description && (
           <span className="mt-0.5 block text-xs text-gray-500">{description}</span>
         )}
