@@ -47,7 +47,7 @@ export default function DatePicker({ label, helper, value, defaultValue, min, ma
     <label className="block">
       {label && <span className={fieldLabel}>{label}</span>}
       <div ref={anchor} className={`relative ${className}`}>
-        <button type="button" onClick={() => setOpen((o) => !o)} className={`${inputBase} text-left pr-10 leading-none flex items-center h-10`}>{v ?? ''}</button>
+        <button type="button" onClick={() => setOpen((o) => !o)} className={`${inputBase} text-left pr-10 leading-none flex items-center h-10 ${!v ? 'text-gray-400' : ''}`}>{v ?? '请选择日期'}</button>
         {clearable && v && (
           <button type="button" onClick={clear} aria-label="清空" className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
             <X size={16} aria-hidden />
@@ -65,6 +65,13 @@ export default function DatePicker({ label, helper, value, defaultValue, min, ma
               onSelect={(d) => { commit(formatISO(d)); setOpen(false); }}
               onMonthChange={(m) => setMonth(m)}
             />
+            <div className="mt-2 flex items-center justify-between px-1">
+              <div className="text-[11px] text-gray-400">可选择年份、月份、日期</div>
+              <div className="flex gap-2">
+                <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => { const d = new Date(); setMonth(d); commit(formatISO(d)); setOpen(false); }}>今天</button>
+                {clearable && <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => { clear(); }}>清空</button>}
+              </div>
+            </div>
           </div>
         )}
       </div>

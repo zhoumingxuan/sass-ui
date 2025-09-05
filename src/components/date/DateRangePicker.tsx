@@ -32,6 +32,7 @@ export default function DateRangePicker({ label, helper, start, end, defaultStar
   const [open, setOpen] = useState(false);
   const [left, setLeft] = useState<Date>(() => sDate ?? new Date());
   const [right, setRight] = useState<Date>(() => addMonths(sDate ?? new Date(), 1));
+  const [hoverDate, setHoverDate] = useState<Date | undefined>(undefined);
   const pop = useRef<HTMLDivElement>(null);
   const anchor = useRef<HTMLDivElement>(null);
 
@@ -68,12 +69,12 @@ export default function DateRangePicker({ label, helper, start, end, defaultStar
       <div ref={anchor} className={`relative ${className}`}>
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
           <div className="relative">
-            <button type="button" onClick={() => setOpen(o => !o)} className={`${inputBase} text-left pr-10 leading-none flex items-center h-10`}>{sv ?? ''}</button>
+            <button type="button" onClick={() => setOpen(o => !o)} className={`${inputBase} text-left pr-10 leading-none flex items-center h-10 ${!sv ? 'text-gray-400' : ''}`}>{sv ?? '开始日期'}</button>
             <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><CalendarIcon size={18} aria-hidden /></span>
           </div>
-          <span className="text-xs text-gray-500">—</span>
+          <span className="text-xs text-gray-500">至</span>
           <div className="relative">
-            <button type="button" onClick={() => setOpen(o => !o)} className={`${inputBase} text-left pr-10 leading-none flex items-center h-10`}>{ev ?? ''}</button>
+            <button type="button" onClick={() => setOpen(o => !o)} className={`${inputBase} text-left pr-10 leading-none flex items-center h-10 ${!ev ? 'text-gray-400' : ''}`}>{ev ?? '结束日期'}</button>
             <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><CalendarIcon size={18} aria-hidden /></span>
           </div>
         </div>
@@ -86,6 +87,8 @@ export default function DateRangePicker({ label, helper, start, end, defaultStar
                 rangeEnd={eDate}
                 min={parseISO(min)}
                 max={parseISO(max)}
+                hoverDate={hoverDate}
+                onHoverDate={setHoverDate}
                 onMonthChange={(m) => { setLeft(m); setRight(addMonths(m, 1)); }}
                 onSelect={select}
               />
@@ -95,9 +98,39 @@ export default function DateRangePicker({ label, helper, start, end, defaultStar
                 rangeEnd={eDate}
                 min={parseISO(min)}
                 max={parseISO(max)}
+                hoverDate={hoverDate}
+                onHoverDate={setHoverDate}
                 onMonthChange={(m) => { setRight(m); setLeft(addMonths(m, -1)); }}
                 onSelect={select}
               />
+            </div>
+            <div className="mt-2 flex items-center justify-between px-1">
+              <div className="text-[11px] text-gray-400">可选择年份、月份、日期；范围轻提示</div>
+              <div className="flex gap-2">
+                <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => {
+                  const d = new Date();
+                  commit(formatISO(d), formatISO(d));
+                  setLeft(d); setRight(addMonths(d, 1));
+                  setOpen(false);
+                }}>今天</button>
+                <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => {
+                  const endD = new Date();
+                  const startD = new Date();
+                  startD.setDate(endD.getDate() - 6);
+                  commit(formatISO(startD), formatISO(endD));
+                  setLeft(startD); setRight(addMonths(startD, 1));
+                  setOpen(false);
+                }}>近7天</button>
+                <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => {
+                  const now = new Date();
+                  const startD = new Date(now.getFullYear(), now.getMonth(), 1);
+                  const endD = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                  commit(formatISO(startD), formatISO(endD));
+                  setLeft(startD); setRight(addMonths(startD, 1));
+                  setOpen(false);
+                }}>本月</button>
+                <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => { commit(undefined, undefined); }}>清空</button>
+              </div>
             </div>
           </div>
         )}
@@ -106,3 +139,4 @@ export default function DateRangePicker({ label, helper, start, end, defaultStar
     </label>
   );
 }
+

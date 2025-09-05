@@ -1,7 +1,8 @@
 "use client";
 
-import { InputHTMLAttributes, useId, useMemo, useState } from "react";
+import { InputHTMLAttributes, useId, useState } from "react";
 import { inputBase, fieldLabel, helperText } from "../formStyles";
+import { ChevronUp, ChevronDown } from "lucide-react";
 
 type Props = Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "value" | "defaultValue"> & {
   label?: string;
@@ -50,6 +51,22 @@ export default function Number({ label, helper, className = "", value, defaultVa
     if (Number.isFinite(n)) commit(clamp(n));
   };
 
+  const handleBlur = () => {
+    if (val === null || typeof val === 'undefined') return;
+    commit(clamp(val));
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowUp') { e.preventDefault(); inc(); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); dec(); }
+  };
+
+  const handleWheel = (e: React.WheelEvent<HTMLInputElement>) => {
+    if (document.activeElement !== e.currentTarget) return;
+    e.preventDefault();
+    if (e.deltaY < 0) inc(); else if (e.deltaY > 0) dec();
+  };
+
   return (
     <label className="block">
       {label && <span className={fieldLabel}>{label}</span>}
@@ -59,14 +76,21 @@ export default function Number({ label, helper, className = "", value, defaultVa
           type="text"
           inputMode="decimal"
           pattern="[0-9]*[.,]?[0-9]*"
-          className={[inputBase, "pr-16"].join(" ")}
+          className={[inputBase, "pr-10"].join(" ")}
           value={val ?? ""}
           onChange={handleInput}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
+          onWheel={handleWheel}
           {...props}
         />
-        <div className="absolute right-1.5 flex items-center gap-1">
-          <button type="button" className="h-7 px-2 rounded-md text-xs text-gray-600 hover:bg-gray-100" onClick={dec}>-</button>
-          <button type="button" className="h-7 px-2 rounded-md text-xs text-gray-600 hover:bg-gray-100" onClick={inc}>+</button>
+        <div className="absolute right-1.5 flex flex-col items-center">
+          <button type="button" aria-label="增加" className="h-5 w-7 rounded-md text-gray-600 hover:bg-gray-100 flex items-center justify-center" onClick={inc}>
+            <ChevronUp size={14} />
+          </button>
+          <button type="button" aria-label="减少" className="mt-0.5 h-5 w-7 rounded-md text-gray-600 hover:bg-gray-100 flex items-center justify-center" onClick={dec}>
+            <ChevronDown size={14} />
+          </button>
         </div>
       </div>
       {helper && <span className={helperText}>{helper}</span>}

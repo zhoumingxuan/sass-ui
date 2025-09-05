@@ -63,10 +63,11 @@ export function DateRange({ label, helper, start, end, defaultStart, defaultEnd,
       {label && <span className={fieldLabel}>{label}</span>}
       <div className="inline-flex items-center gap-2">
         <input type="date" className={`${inputBase} w-date-input text-gray-700`} value={sv || ''} min={min} max={ev ?? max} onChange={(e) => setStart(e.target.value || undefined)} />
-        <span className="px-2 text-xs text-gray-500">—</span>
+        <span className="px-2 text-xs text-gray-500">至</span>
         <input type="date" className={`${inputBase} w-date-input text-gray-700`} value={ev || ''} min={sv ?? min} max={max} onChange={(e) => setEnd(e.target.value || undefined)} />
       </div>
       {helper && <span className={helperText}>{helper}</span>}
     </label>
   );
 }
+
