@@ -1,10 +1,30 @@
 "use client";
 
+/**
+ * 日期区间选择器（DateRangePicker）
+ * - 支持受控与非受控两种用法
+ * - 通过 `min`/`max` 与 `disabledDate` 控制可选范围
+ * - 提供键盘导航（方向键、PageUp/PageDown、Enter、Esc）
+ * - 支持手动输入 `YYYY-MM-DD` 并自动纠正到最近的可选日期
+ */
+
 import { useEffect, useRef, useState } from 'react';
 import { fieldLabel, helperText, inputBase } from '../formStyles';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import Calendar from './Calendar';
 import { addMonths, formatISO, parseISO, startOfMonth, endOfMonth } from './utils';
+
+/**
+ * 组件 Props
+ * - label: 输入框上方的标签文本
+ * - helper: 输入框下方的辅助说明
+ * - start/end: 受控模式下的开始/结束日期（YYYY-MM-DD）
+ * - defaultStart/defaultEnd: 非受控模式的默认开始/结束值
+ * - min/max: 允许选择的最小/最大日期（YYYY-MM-DD）
+ * - disabledDate: 返回 true 表示该日期不可选
+ * - onChange: 日期变更回调；可能传入 undefined 表示清空某端
+ * - className: 外层容器附加样式
+ */
 
 type Props = {
   label?: string;
@@ -21,6 +41,7 @@ type Props = {
 };
 
 export default function DateRangePicker({ label, helper, start, end, defaultStart, defaultEnd, min, max, disabledDate, onChange, className = '' }: Props) {
+  // 受控/非受控模式判断：传入 start 或 end 任一即视为受控
   const isControlled = typeof start !== 'undefined' || typeof end !== 'undefined';
   const [s, setS] = useState<string | undefined>(defaultStart);
   const [e, setE] = useState<string | undefined>(defaultEnd);
@@ -30,14 +51,17 @@ export default function DateRangePicker({ label, helper, start, end, defaultStar
   const sDate = parseISO(sv);
   const eDate = parseISO(ev);
 
+  // 弹层开关、面板左右月份、悬浮日期与锚点引用
   const [open, setOpen] = useState(false);
   const [left, setLeft] = useState<Date>(() => sDate ?? new Date());
   const [right, setRight] = useState<Date>(() => addMonths(sDate ?? new Date(), 1));
   const [hoverDate, setHoverDate] = useState<Date | undefined>(undefined);
   const pop = useRef<HTMLDivElement>(null);
   const anchor = useRef<HTMLDivElement>(null);
+  // 当前激活输入端：'start' | 'end' | 'auto'（自动：第一次选开始，第二次选结束）
   const [active, setActive] = useState<'start'|'end'|'auto'>('auto');
 
+  // 监听文档点击，若点击发生在弹层与锚点之外则关闭弹层
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
       if (!pop.current || !anchor.current) return;
@@ -48,10 +72,18 @@ export default function DateRangePicker({ label, helper, start, end, defaultStar
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
 
+  /**
+   * 统一提交入口：
+   * - 对传入的开始/结束值做边界与禁用校验
+   * - 若超出范围或禁用，则向两侧搜索最近的可选日期
+   * - 确保开始不大于结束（若反序则自动互换）
+   * - 根据受控/非受控更新本地状态并触发 onChange
+   */
   const commit = (ns?: string, ne?: string) => {
     const minD = parseISO(min);
     const maxD = parseISO(max);
     const isInvalid = (d: Date) => (minD && d < minD) || (maxD && d > maxD) || !!disabledDate?.(d);
+    // 将给定日期调整到最近的可选日期；若找不到则返回 undefined
     const adjust = (v?: string): string | undefined => {
       if (!v) return undefined;
       const d0 = parseISO(v)!;
@@ -76,6 +108,12 @@ export default function DateRangePicker({ label, helper, start, end, defaultStar
     onChange?.(s1, e1);
   };
 
+  /**
+   * 面板选中日期：
+   * - active === 'start'：显式选择开始；若大于结束则清空结束
+   * - active === 'end'：显式选择结束；若小于开始则清空开始
+   * - active === 'auto'：第一次设开始，第二次设结束（自动排序）
+   */
   const select = (d: Date) => {
     if (disabledDate?.(d)) return;
     const pick = formatISO(d);
@@ -114,9 +152,11 @@ export default function DateRangePicker({ label, helper, start, end, defaultStar
 
   return (
     <label className="block">
+      {/* 外层 label 用于对齐表单结构 */}
       {label && <span className={fieldLabel}>{label}</span>}
       <div ref={anchor} className={`relative ${className}`}>
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+          {/* 输入区：左（开始）- 中（分隔）- 右（结束） */}
           <div className="relative">
             <input
               type="text"
@@ -170,6 +210,7 @@ export default function DateRangePicker({ label, helper, start, end, defaultStar
         </div>
         {open && (
           <div ref={pop} className="absolute z-20 mt-1 rounded-lg border border-gray-200 bg-white p-2 shadow-elevation-1">
+            {/* 键盘导航：方向键移动、PageUp/PageDown 切月/切年、Enter 选中、Esc 关闭 */}
             <div className="flex gap-2" tabIndex={0} onKeyDown={(e) => {
               const minD = parseISO(min);
               const maxD = parseISO(max);
@@ -201,6 +242,8 @@ export default function DateRangePicker({ label, helper, start, end, defaultStar
               if (e.key === 'Enter') { e.preventDefault(); select(base); }
               if (e.key === 'Escape') { e.preventDefault(); setOpen(false); }
             }}>
+              {/* 左侧月份日历 */}
+              {/* 右侧月份日历 */}
               <Calendar
                 month={left}
                 rangeStart={sDate}
@@ -213,6 +256,7 @@ export default function DateRangePicker({ label, helper, start, end, defaultStar
                 onMonthChange={(m) => {
                   setLeft(m); setRight(addMonths(m, 1));
                   if (active === 'start') {
+                    // 切换开始月时，尽量保持同一天；若不可选则向近处搜索可选日
                     const y = m.getFullYear();
                     const mon = m.getMonth();
                     const baseDay = sDate?.getDate() ?? 1;
@@ -248,6 +292,7 @@ export default function DateRangePicker({ label, helper, start, end, defaultStar
                 }}
                 onSelect={select}
               />
+              {/* 右侧月份日历 */}
               <Calendar
                 month={right}
                 rangeStart={sDate}
@@ -260,6 +305,7 @@ export default function DateRangePicker({ label, helper, start, end, defaultStar
                 onMonthChange={(m) => {
                   setRight(m); setLeft(addMonths(m, -1));
                   if (active === 'end') {
+                    // 切换结束月时同理处理
                     const y = m.getFullYear();
                     const mon = m.getMonth();
                     const baseDay = eDate?.getDate() ?? 1;
@@ -298,9 +344,11 @@ export default function DateRangePicker({ label, helper, start, end, defaultStar
               />
             </div>
             <div className="mt-2 flex items-center justify-between px-1">
+              {/* 简要提示文案与快捷按钮 */}
               <div className="text-[11px] text-gray-400">可选择年份、月份、日期</div>
               <div className="flex gap-2">
                 <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => {
+                  // 快捷按钮：今天
                   const base = new Date();
                   const minD = parseISO(min);
                   const maxD = parseISO(max);
@@ -322,6 +370,7 @@ export default function DateRangePicker({ label, helper, start, end, defaultStar
                   }
                 }}>今天</button>
                 <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => {
+                  // 快捷按钮：近7天
                   const minD = parseISO(min);
                   const maxD = parseISO(max);
                   const isInvalid = (d: Date) => (minD && d < minD) || (maxD && d > maxD) || !!disabledDate?.(d);
@@ -353,6 +402,7 @@ export default function DateRangePicker({ label, helper, start, end, defaultStar
                   }
                 }}>近7天</button>
                 <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => {
+                  // 快捷按钮：本月
                   const now = new Date();
                   const mStart = startOfMonth(now);
                   const mEnd = endOfMonth(now);
@@ -375,12 +425,16 @@ export default function DateRangePicker({ label, helper, start, end, defaultStar
                     setOpen(false);
                   }
                 }}>本月</button>
-                <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => { commit(undefined, undefined); }}>清空</button>
+                <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => {
+                  // 快捷按钮：清空
+                  commit(undefined, undefined);
+                }}>清空</button>
               </div>
             </div>
           </div>
         )}
       </div>
+      {/* 助手提示文本 */}
       {helper && <span className={helperText}>{helper}</span>}
     </label>
   );
