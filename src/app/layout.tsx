@@ -12,6 +12,9 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="zh">
+      <head>
+        <meta charSet="utf-8" />
+      </head>
       <body className={`antialiased font-sans`}>
         <main>{children}</main>
       </body>

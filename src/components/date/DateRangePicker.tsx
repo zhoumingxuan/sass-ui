@@ -97,15 +97,27 @@ export default function DateRangePicker({ label, helper, start, end, defaultStar
       }
       return found ? formatISO(found) : undefined;
     };
-    let s1 = adjust(ns);
-    let e1 = adjust(ne);
-    if (s1 && e1) {
-      const sd = parseISO(s1)!;
-      const ed = parseISO(e1)!;
-      if (sd > ed) { const tmp = s1; s1 = e1; e1 = tmp; }
+    // Proposed next values after constraint adjustment
+    let nextS = adjust(ns);
+    let nextE = adjust(ne);
+    const curS = sv; const curE = ev;
+    const sChanged = nextS !== curS;
+    const eChanged = nextE !== curE;
+    // Enforce start <= end without swapping sides (prevents focus jump)
+    if (sChanged && !eChanged && nextS && curE && parseISO(nextS)! > parseISO(curE)!) {
+      nextE = undefined; // user changed start beyond end → clear end
     }
-    if (!isControlled) { setS(s1); setE(e1); }
-    onChange?.(s1, e1);
+    if (eChanged && !sChanged && nextE && curS && parseISO(nextE)! < parseISO(curS)!) {
+      nextS = undefined; // user changed end before start → clear start
+    }
+    const finalS = sChanged ? nextS : curS;
+    const finalE = eChanged ? nextE : curE;
+    // 非受控：仅更新发生改变的一侧，避免一次性双 set 造成闪烁
+    if (!isControlled) {
+      if (sChanged && finalS !== s) setS(finalS);
+      if (eChanged && finalE !== e) setE(finalE);
+    }
+    onChange?.(finalS, finalE);
   };
 
   /**
@@ -247,7 +259,7 @@ export default function DateRangePicker({ label, helper, start, end, defaultStar
               <Calendar
                 month={left}
                 rangeStart={sDate}
-                rangeEnd={active === 'start' ? undefined : eDate}
+                rangeEnd={eDate}
                 min={parseISO(min)}
                 max={parseISO(max)}
                 disabledDate={disabledDate}
@@ -296,7 +308,7 @@ export default function DateRangePicker({ label, helper, start, end, defaultStar
               <Calendar
                 month={right}
                 rangeStart={sDate}
-                rangeEnd={active === 'start' ? undefined : eDate}
+                rangeEnd={eDate}
                 min={parseISO(min)}
                 max={parseISO(max)}
                 disabledDate={disabledDate}

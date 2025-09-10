@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useMemo, useState } from 'react';
-import Layout from '@/components/Layout';
-import { menuItems, footerItems } from '@/components/menuItems';
-import Button from '@/components/Button';
-import Card from '@/components/Card';
+import { useMemo, useState } from "react";
+import Layout from "@/components/Layout";
+import { menuItems, footerItems } from "@/components/menuItems";
+import Button from "@/components/Button";
+import Card from "@/components/Card";
 import {
   TextInput,
   NumberInput,
@@ -12,30 +12,30 @@ import {
   SelectInput,
   DateInput,
   DateRangeInput,
-} from '@/components/Input';
-import Table, { Column } from '@/components/Table';
-import Alert from '@/components/Alert';
-import { Plus, Search, Check, AlertTriangle, Info, ArrowRight } from 'lucide-react';
+} from "@/components/Input";
+import Table, { Column } from "@/components/Table";
+import Alert from "@/components/Alert";
+import { Plus, Search, Check, AlertTriangle, Info, ArrowRight } from "lucide-react";
 
 type Row = { name: string; age: number };
 
 export default function Home() {
   const columns: Column<Row>[] = [
-    { key: 'name', title: '姓名', minWidth: 160, sortable: true },
-    { key: 'age', title: '年龄', align: 'right', minWidth: 80, sortable: true },
+    { key: "name", title: "姓名", minWidth: 160, sortable: true },
+    { key: "age", title: "年龄", align: "right", minWidth: 80, sortable: true },
   ];
 
   const rawData: Row[] = [
-    { name: '张三', age: 28 },
-    { name: '李四', age: 32 },
-    { name: '王五', age: 26 },
-    { name: '赵六', age: 30 },
+    { name: "张三", age: 28 },
+    { name: "李四", age: 32 },
+    { name: "王五", age: 26 },
+    { name: "赵六", age: 30 },
   ];
 
   // 搜索 / 排序 / 分页
-  const [query, setQuery] = useState('');
-  const [sortKey, setSortKey] = useState<keyof Row>('age');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [query, setQuery] = useState("");
+  const [sortKey, setSortKey] = useState<keyof Row>("age");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(2);
 
@@ -49,10 +49,10 @@ export default function Home() {
     base.sort((a, b) => {
       const av = a[sortKey];
       const bv = b[sortKey];
-      if (typeof av === 'number' && typeof bv === 'number') {
-        return sortDirection === 'asc' ? av - bv : bv - av;
+      if (typeof av === "number" && typeof bv === "number") {
+        return sortDirection === "asc" ? av - bv : bv - av;
       }
-      return (String(av)).localeCompare(String(bv), 'zh', { numeric: true }) * (sortDirection === 'asc' ? 1 : -1);
+      return String(av).localeCompare(String(bv), "zh", { numeric: true }) * (sortDirection === "asc" ? 1 : -1);
     });
     return base;
   }, [rawData, query, sortKey, sortDirection]);
@@ -63,14 +63,14 @@ export default function Home() {
   // 排序点击逻辑
   const handleSort = (key: keyof Row) => {
     if (key === sortKey) {
-      setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'));
+      setSortDirection((d) => (d === "asc" ? "desc" : "asc"));
     } else {
       setSortKey(key);
-      setSortDirection('asc');
+      setSortDirection("asc");
     }
   };
 
-  // 搜索 / 页容量变更时回到第 1 页
+  // 搜索 / 页容量变更时回到第1页
   const handleSearch = (v: string) => {
     setQuery(v);
     setPage(1);
@@ -125,8 +125,6 @@ export default function Home() {
             <Button variant="primary" aria-label="新增" icon={<Plus />} />
             <Button variant="primary" icon={<Plus />} disabled>禁用</Button>
           </div>
-          <div className="col-span-12 md:col-span-6"><DateInput label="��������" disabledDate={(d) => d.getDay() === 0 || d.getDay() === 6} /></div>
-          <div className="col-span-12 md:col-span-6"><DateRangeInput label="���ڷ�Χ" disabledDate={(d) => d.getDay() === 0 || d.getDay() === 6} /></div>
         </div>
       </Card>
 
@@ -136,7 +134,7 @@ export default function Home() {
           <div className="col-span-12 md:col-span-6"><NumberInput label="数字输入" placeholder="请输入数字" /></div>
           <div className="col-span-12 md:col-span-6"><PasswordInput label="密码输入" placeholder="请输入密码" /></div>
           <div className="col-span-12 md:col-span-6">
-            <SelectInput label="选择输入" options={[{ value: '', label: '请选择' }, { value: '1', label: '选项1' }]} />
+            <SelectInput label="选择输入" options={[{ value: "", label: "请选择" }, { value: "1", label: "选项1" }]} />
           </div>
           <div className="col-span-12 md:col-span-6"><DateInput label="日期输入" /></div>
           <div className="col-span-12 md:col-span-6"><DateRangeInput label="日期范围" /></div>
@@ -171,3 +169,4 @@ export default function Home() {
     </Layout>
   );
 }
+
