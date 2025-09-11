@@ -18,9 +18,10 @@ type Props = {
   // For range selecting: when only start is chosen, highlight hover-to day
   hoverDate?: Date;
   onHoverDate?: (d?: Date) => void;
+  panel?: 'start' | 'end';
 };
 
-export default function Calendar({ month, value, min, max, disabledDate, disabledReason, onSelect, onMonthChange, rangeStart, rangeEnd, hoverDate, onHoverDate }: Props) {
+export default function Calendar({ month, value, min, max, disabledDate, disabledReason, onSelect, onMonthChange, rangeStart, rangeEnd, hoverDate, onHoverDate, panel }: Props) {
   const [view, setView] = useState<'date'|'year'|'month'>('date');
   const first = startOfMonth(month);
   const last = endOfMonth(month);
@@ -93,6 +94,7 @@ export default function Calendar({ month, value, min, max, disabledDate, disable
               const selectedEdge = isStart || isEnd;
               const inSelectedRange = !!(rangeStart && rangeEnd && d >= rangeStart && d <= rangeEnd);
               const inHoverRange = !!(showHoverRange && rangeStart && hoverDate && ((hoverDate > rangeStart && d >= rangeStart && d <= hoverDate) || (hoverDate < rangeStart && d >= hoverDate && d <= rangeStart)));
+              const sameDayEdge = !!(rangeStart && rangeEnd && isSameDay(rangeStart, rangeEnd) && isStart && isEnd);
               const title = disabled ? (disabledReason?.(d) || undefined) : undefined;
               return (
                 <button
@@ -109,8 +111,10 @@ export default function Calendar({ month, value, min, max, disabledDate, disable
                     disabled ? 'text-gray-400 bg-gray-50 opacity-60 cursor-not-allowed' : 'hover:bg-gray-100',
                     // single date selected styling（禁用时不渲染选中态）
                     !disabled && singleSelected ? 'bg-primary text-white hover:bg-primary/90' : '',
-                    // range edges styling
-                    !disabled && !singleSelected && selectedEdge ? 'bg-primary text-white hover:bg-primary/90' : '',
+                    // range edges styling: primary for this panel's edge; also force primary when start=end
+                    !disabled && !singleSelected && (sameDayEdge || (panel === 'start' && isStart) || (panel === 'end' && isEnd)) ? 'bg-primary text-white hover:bg-primary/90' : '',
+                    // mirror edge (other panel's edge) glass-like style when both ends exist (and not same-day)
+                    !disabled && !singleSelected && !sameDayEdge && rangeStart && rangeEnd && ((panel === 'start' && isEnd) || (panel === 'end' && isStart)) ? 'bg-primary/20 text-primary/60 ring-1 ring-primary/60' : '',
                     // in-range (only for range selection) deepen a bit for readability
                     !disabled && !singleSelected && !selectedEdge && inSelectedRange ? 'bg-gray-100 text-gray-700' : '',
                     // default text color when not selected

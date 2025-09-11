@@ -247,38 +247,6 @@ export default function DateRangePicker({
 
         {open && (
           <div ref={pop} className="absolute z-20 mt-1 w-[560px] rounded-lg border border-gray-200 bg-white p-2 shadow-elevation-1">
-            <div className="flex items-center justify-between px-1 pb-2">
-              <div className="flex gap-2">
-                <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => {
-                  const d = new Date(); const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-                  setDraftStart(day); setDraftEnd(day); setDraftStartInput(formatISO(day)); setDraftEndInput(formatISO(day));
-                  if (!shortcutsNeedConfirm) { doConfirm(); }
-                }}>今天</button>
-                <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => {
-                  const d = new Date(); d.setDate(d.getDate() - 1); const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-                  setDraftStart(day); setDraftEnd(day); setDraftStartInput(formatISO(day)); setDraftEndInput(formatISO(day));
-                  if (!shortcutsNeedConfirm) { doConfirm(); }
-                }}>昨天</button>
-                <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => {
-                  const endD = new Date(); const e0 = new Date(endD.getFullYear(), endD.getMonth(), endD.getDate());
-                  const s0 = new Date(e0); s0.setDate(e0.getDate() - 6);
-                  setDraftStart(s0); setDraftEnd(e0); setDraftStartInput(formatISO(s0)); setDraftEndInput(formatISO(e0));
-                  if (!shortcutsNeedConfirm) { doConfirm(); }
-                }}>最近7天</button>
-                {showThisMonthShortcut && (
-                  <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => {
-                    const now = new Date(); const ms = new Date(now.getFullYear(), now.getMonth(), 1); const me = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-                    setDraftStart(ms); setDraftEnd(me); setDraftStartInput(formatISO(ms)); setDraftEndInput(formatISO(me));
-                    if (!shortcutsNeedConfirm) { doConfirm(); }
-                  }}>本月</button>
-                )}
-              </div>
-              {enableTime && (
-                <label className="flex items-center gap-2 text-xs text-gray-700">
-                  <input type="checkbox" checked={timeOn} onChange={(e) => { setTimeOn(e.target.checked); }} /> 含时间
-                </label>
-              )}
-            </div>
 
             <div className="flex gap-2" tabIndex={0} onKeyDown={(e) => {
               const base = hoverDate || (active === 'start' ? (draftStart || left) : (draftEnd || right));
@@ -313,6 +281,7 @@ export default function DateRangePicker({
                 onHoverDate={setHoverDate}
                 onMonthChange={(m) => { setLeft(m); setActive('start'); }}
                 onSelect={selectStart}
+                panel={'start'}
               />
               <Calendar
                 month={right}
@@ -325,6 +294,7 @@ export default function DateRangePicker({
                 onHoverDate={setHoverDate}
                 onMonthChange={(m) => { setRight(m); setActive('end'); }}
                 onSelect={selectEnd}
+                panel={'end'}
               />
             </div>
 
@@ -357,13 +327,41 @@ export default function DateRangePicker({
               </div>
             )}
 
-            {requireConfirm && (
-              <div className="flex items-center justify-end gap-2 px-1 pt-1">
-                <button type="button" className="h-8 rounded-md border border-gray-200 px-3 text-sm text-gray-700 hover:bg-gray-50" onClick={doClear}>清除</button>
-                <button type="button" className="h-8 rounded-md border border-gray-200 px-3 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setOpen(false)}>取消</button>
-                <button type="button" className={`h-8 rounded-md px-3 text-sm text-white bg-primary hover:bg-primary/90`} onClick={doConfirm}>确定</button>
+            <div className="flex items-center justify-between px-1 pt-1">
+              <div className="flex gap-2">
+                <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => {
+                  const d = new Date(); const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                  if (active === 'end') {
+                    setDraftEnd(day); setDraftEndInput(formatISO(day));
+                    const rightM = startOfMonth(day); setRight(rightM);
+                  } else {
+                    setDraftStart(day); setDraftStartInput(formatISO(day));
+                    const leftM = startOfMonth(day); setLeft(leftM);
+                  }
+                  if (!shortcutsNeedConfirm) { doConfirm(); }
+                }}>今天</button>
+                <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => {
+                  const d = new Date(); d.setDate(d.getDate() - 1); const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                  if (active === 'end') {
+                    setDraftEnd(day); setDraftEndInput(formatISO(day));
+                    const rightM = startOfMonth(day); setRight(rightM);
+                  } else {
+                    setDraftStart(day); setDraftStartInput(formatISO(day));
+                    const leftM = startOfMonth(day); setLeft(leftM);
+                  }
+                  if (!shortcutsNeedConfirm) { doConfirm(); }
+                }}>昨天</button>
               </div>
-            )}
+              <div className="flex items-center gap-2">
+                {requireConfirm && (
+                  <>
+                    <button type="button" className="h-8 rounded-md border border-gray-200 px-3 text-sm text-gray-700 hover:bg-gray-50" onClick={doClear}>清除</button>
+                    <button type="button" className="h-8 rounded-md border border-gray-200 px-3 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setOpen(false)}>取消</button>
+                    <button type="button" className={`h-8 rounded-md px-3 text-sm text-white bg-primary hover:bg-primary/90`} onClick={doConfirm}>确定</button>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>
