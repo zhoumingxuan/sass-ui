@@ -106,17 +106,17 @@ export default function Calendar({ month, value, min, max, disabledDate, disable
                   onClick={() => !disabled && onSelect?.(d)}
                   className={[
                     'h-8 rounded text-sm',
-                    disabled ? 'text-gray-300 bg-gray-50 cursor-not-allowed' : 'hover:bg-primary/10',
-                    // single date selected styling
-                    singleSelected ? 'bg-primary text-white hover:bg-primary/90' : '',
+                    disabled ? 'text-gray-400 bg-gray-50 opacity-60 cursor-not-allowed' : 'hover:bg-gray-100',
+                    // single date selected styling（禁用时不渲染选中态）
+                    !disabled && singleSelected ? 'bg-primary text-white hover:bg-primary/90' : '',
                     // range edges styling
-                    !singleSelected && selectedEdge ? 'bg-primary text-white hover:bg-primary/90' : '',
+                    !disabled && !singleSelected && selectedEdge ? 'bg-primary text-white hover:bg-primary/90' : '',
                     // in-range (only for range selection) use default tone, not primary
-                    !singleSelected && !selectedEdge && inSelectedRange ? 'bg-gray-100 text-gray-700' : '',
+                    !disabled && !singleSelected && !selectedEdge && inSelectedRange ? 'bg-gray-100 text-gray-700' : '',
                     // default text color when not selected
-                    !singleSelected && !inSelectedRange && !selectedEdge ? 'text-gray-700' : '',
+                    !disabled && !singleSelected && !inSelectedRange && !selectedEdge ? 'text-gray-700' : '',
                     // hover-range preview uses default tone as well
-                    inHoverRange ? 'bg-gray-100 text-gray-700' : '',
+                    !disabled && inHoverRange ? 'bg-gray-50 text-gray-700' : '',
                     isStart ? 'rounded-l' : '',
                     isEnd ? 'rounded-r' : '',
                   ].join(' ')}
