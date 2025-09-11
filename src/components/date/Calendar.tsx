@@ -10,6 +10,7 @@ type Props = {
   min?: Date;
   max?: Date;
   disabledDate?: (d: Date) => boolean;
+  disabledReason?: (d: Date) => string | undefined;
   onSelect?: (d: Date) => void;
   onMonthChange?: (d: Date) => void;
   rangeStart?: Date;
@@ -19,7 +20,7 @@ type Props = {
   onHoverDate?: (d?: Date) => void;
 };
 
-export default function Calendar({ month, value, min, max, disabledDate, onSelect, onMonthChange, rangeStart, rangeEnd, hoverDate, onHoverDate }: Props) {
+export default function Calendar({ month, value, min, max, disabledDate, disabledReason, onSelect, onMonthChange, rangeStart, rangeEnd, hoverDate, onHoverDate }: Props) {
   const [view, setView] = useState<'date'|'year'|'month'>('date');
   const first = startOfMonth(month);
   const last = endOfMonth(month);
@@ -92,11 +93,13 @@ export default function Calendar({ month, value, min, max, disabledDate, onSelec
               const selectedEdge = isStart || isEnd;
               const inSelectedRange = !!(rangeStart && rangeEnd && d >= rangeStart && d <= rangeEnd);
               const inHoverRange = !!(showHoverRange && rangeStart && hoverDate && ((hoverDate > rangeStart && d >= rangeStart && d <= hoverDate) || (hoverDate < rangeStart && d >= hoverDate && d <= rangeStart)));
+              const title = disabled ? (disabledReason?.(d) || undefined) : undefined;
               return (
                 <button
                   type="button"
                   key={i}
                   disabled={disabled}
+                  title={title}
                   onMouseEnter={() => onHoverDate?.(d)}
                   onMouseLeave={() => onHoverDate?.(undefined)}
                   onClick={() => !disabled && onSelect?.(d)}

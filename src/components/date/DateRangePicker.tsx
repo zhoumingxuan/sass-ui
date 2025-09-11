@@ -2,66 +2,116 @@
 
 /**
  * 日期区间选择器（DateRangePicker）
- * - 支持受控与非受控两种用法
- * - 通过 `min`/`max` 与 `disabledDate` 控制可选范围
- * - 提供键盘导航（方向键、PageUp/PageDown、Enter、Esc）
- * - 支持手动输入 `YYYY-MM-DD` 并自动纠正到最近的可选日期
+ * - 周一起始；中文文案；本地解析（不做自动更正）
+ * - 顶部快捷：今天｜昨天｜最近7天｜（可选）本月
+ * - 中部：双月日历（左当月、右次月），禁用置灰并提示原因
+ * - 可选：含时间开关（默认关），开启后提供开始/结束的 时:分 选择
+ * - 底部：清除｜取消｜确定（需确认时显示）
+ * - 校验：格式、顺序、跨度≤365天（默认）、边界、禁用、闰年
+ * - 键盘：方向键移动；Enter 选中/确定；Esc 关闭；Tab 切换
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { fieldLabel, helperText, inputBase } from '../formStyles';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import Calendar from './Calendar';
-import { addMonths, formatISO, parseISO, startOfMonth, endOfMonth } from './utils';
+import {
+  addMonths,
+  endOfMonth,
+  formatDateTime,
+  formatISO,
+  parseDateStrict,
+  parseDateTimeStrict,
+  startOfMonth,
+  spanDaysInclusive,
+} from './utils';
 
-/**
- * 组件 Props
- * - label: 输入框上方的标签文本
- * - helper: 输入框下方的辅助说明
- * - start/end: 受控模式下的开始/结束日期（YYYY-MM-DD）
- * - defaultStart/defaultEnd: 非受控模式的默认开始/结束值
- * - min/max: 允许选择的最小/最大日期（YYYY-MM-DD）
- * - disabledDate: 返回 true 表示该日期不可选
- * - onChange: 日期变更回调；可能传入 undefined 表示清空某端
- * - className: 外层容器附加样式
- */
+type DisabledRange = { start: string | Date; end: string | Date; reason?: string };
 
 type Props = {
   label?: string;
   helper?: string;
-  start?: string;
-  end?: string;
+  start?: string; // YYYY-MM-DD 或 YYYY-MM-DD HH:mm
+  end?: string;   // YYYY-MM-DD 或 YYYY-MM-DD HH:mm
   defaultStart?: string;
   defaultEnd?: string;
-  min?: string;
-  max?: string;
+  min?: string; // YYYY-MM-DD
+  max?: string; // YYYY-MM-DD
+  // 旧：回调禁用（保留）
   disabledDate?: (d: Date) => boolean;
+  // 新：黑名单能力
+  disabledDates?: Array<string | Date>;
+  disabledRanges?: DisabledRange[];
+  disabledWeekdays?: number[]; // 0..6，周日=0
+  disabledBefore?: string | Date;
+  disabledAfter?: string | Date;
+  // 交互 & 校验
+  requireConfirm?: boolean; // 默认 true：显示底部操作
+  shortcutRequireConfirm?: boolean; // 默认跟随 requireConfirm
+  showThisMonthShortcut?: boolean; // 默认 true
+  maxSpanDays?: number; // 默认 365（日期模式）
+  // 含时间
+  enableTime?: boolean; // 显示“含时间”开关
+  defaultTimeOn?: boolean; // 默认 false
   onChange?: (start?: string, end?: string) => void;
   className?: string;
 };
 
-export default function DateRangePicker({ label, helper, start, end, defaultStart, defaultEnd, min, max, disabledDate, onChange, className = '' }: Props) {
-  // 受控/非受控模式判断：传入 start 或 end 任一即视为受控
+export default function DateRangePicker({
+  label,
+  helper,
+  start,
+  end,
+  defaultStart,
+  defaultEnd,
+  min,
+  max,
+  disabledDate,
+  disabledDates = [],
+  disabledRanges = [],
+  disabledWeekdays = [],
+  disabledBefore,
+  disabledAfter,
+  requireConfirm = true,
+  shortcutRequireConfirm,
+  showThisMonthShortcut = true,
+  maxSpanDays = 365,
+  enableTime = false,
+  defaultTimeOn = false,
+  onChange,
+  className = '',
+}: Props) {
+  // 受控/非受控
   const isControlled = typeof start !== 'undefined' || typeof end !== 'undefined';
   const [s, setS] = useState<string | undefined>(defaultStart);
   const [e, setE] = useState<string | undefined>(defaultEnd);
   const sv = isControlled ? start : s;
   const ev = isControlled ? end : e;
 
-  const sDate = parseISO(sv);
-  const eDate = parseISO(ev);
-
-  // 弹层开关、面板左右月份、悬浮日期与锚点引用
+  const today = useMemo(() => new Date(), []);
   const [open, setOpen] = useState(false);
-  const [left, setLeft] = useState<Date>(() => sDate ?? new Date());
-  const [right, setRight] = useState<Date>(() => addMonths(sDate ?? new Date(), 1));
+  const [left, setLeft] = useState<Date>(() => startOfMonth(today));
+  const [right, setRight] = useState<Date>(() => addMonths(startOfMonth(today), 1));
   const [hoverDate, setHoverDate] = useState<Date | undefined>(undefined);
   const pop = useRef<HTMLDivElement>(null);
   const anchor = useRef<HTMLDivElement>(null);
-  // 当前激活输入端：'start' | 'end' | 'auto'（自动：第一次选开始，第二次选结束）
   const [active, setActive] = useState<'start'|'end'|'auto'>('auto');
 
-  // 监听文档点击，若点击发生在弹层与锚点之外则关闭弹层
+  // 含时间
+  const [timeOn, setTimeOn] = useState<boolean>(!!defaultTimeOn);
+  const [startTime, setStartTime] = useState<string | undefined>(undefined); // HH:mm
+  const [endTime, setEndTime] = useState<string | undefined>(undefined); // HH:mm
+
+  // 草稿（不影响已提交值）
+  const [draftStart, setDraftStart] = useState<Date | undefined>(undefined);
+  const [draftEnd, setDraftEnd] = useState<Date | undefined>(undefined);
+  const [draftStartInput, setDraftStartInput] = useState<string>('');
+  const [draftEndInput, setDraftEndInput] = useState<string>('');
+  const [error, setError] = useState<string | undefined>(undefined);
+
+  const shortcutsNeedConfirm = typeof shortcutRequireConfirm === 'boolean' ? shortcutRequireConfirm : requireConfirm;
+
+  // 点击外部关闭（不改当前值）
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
       if (!pop.current || !anchor.current) return;
@@ -72,381 +122,355 @@ export default function DateRangePicker({ label, helper, start, end, defaultStar
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
 
-  /**
-   * 统一提交入口：
-   * - 对传入的开始/结束值做边界与禁用校验
-   * - 若超出范围或禁用，则向两侧搜索最近的可选日期
-   * - 确保开始不大于结束（若反序则自动互换）
-   * - 根据受控/非受控更新本地状态并触发 onChange
-   */
-  const commit = (ns?: string, ne?: string) => {
-    const minD = parseISO(min);
-    const maxD = parseISO(max);
-    const isInvalid = (d: Date) => (minD && d < minD) || (maxD && d > maxD) || !!disabledDate?.(d);
-    // 将给定日期调整到最近的可选日期；若找不到则返回 undefined
-    const adjust = (v?: string): string | undefined => {
-      if (!v) return undefined;
-      const d0 = parseISO(v)!;
-      if (!isInvalid(d0)) return v;
-      let found: Date | undefined;
-      for (let i = 1; i <= 366; i++) {
-        const down = new Date(d0); down.setDate(d0.getDate() - i);
-        if (!isInvalid(down)) { found = down; break; }
-        const up = new Date(d0); up.setDate(d0.getDate() + i);
-        if (!isInvalid(up)) { found = up; break; }
-      }
-      return found ? formatISO(found) : undefined;
-    };
-    // Proposed next values after constraint adjustment
-    let nextS = adjust(ns);
-    let nextE = adjust(ne);
-    const curS = sv; const curE = ev;
-    const sChanged = nextS !== curS;
-    const eChanged = nextE !== curE;
-    // Enforce start <= end without swapping sides (prevents focus jump)
-    if (sChanged && !eChanged && nextS && curE && parseISO(nextS)! > parseISO(curE)!) {
-      nextE = undefined; // user changed start beyond end → clear end
-    }
-    if (eChanged && !sChanged && nextE && curS && parseISO(nextE)! < parseISO(curS)!) {
-      nextS = undefined; // user changed end before start → clear start
-    }
-    const finalS = sChanged ? nextS : curS;
-    const finalE = eChanged ? nextE : curE;
-    // 非受控：仅更新发生改变的一侧，避免一次性双 set 造成闪烁
-    if (!isControlled) {
-      if (sChanged && finalS !== s) setS(finalS);
-      if (eChanged && finalE !== e) setE(finalE);
-    }
-    onChange?.(finalS, finalE);
+  const toHHmm = (d?: Date) => {
+    if (!d) return '';
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    return `${hh}:${mm}`;
   };
 
-  /**
-   * 面板选中日期：
-   * - active === 'start'：显式选择开始；若大于结束则清空结束
-   * - active === 'end'：显式选择结束；若小于开始则清空开始
-   * - active === 'auto'：第一次设开始，第二次设结束（自动排序）
-   */
+  // 打开面板，初始化草稿
+  const openPanel = (focus: 'start'|'end') => {
+    setActive(focus);
+    const ps = sv ? parseDateTimeStrict(sv) : undefined;
+    const pe = ev ? parseDateTimeStrict(ev) : undefined;
+    const hasAnyTime = !!(ps?.hasTime || pe?.hasTime);
+    setTimeOn(enableTime ? (hasAnyTime || defaultTimeOn) : false);
+    setDraftStart(ps?.date || (sv ? parseDateStrict(sv) : undefined));
+    setDraftEnd(pe?.date || (ev ? parseDateStrict(ev) : undefined));
+    setDraftStartInput(sv || '');
+    setDraftEndInput(ev || '');
+    setStartTime(ps && ps.hasTime ? toHHmm(ps.date) : undefined);
+    setEndTime(pe && pe.hasTime ? toHHmm(pe.date) : undefined);
+    setLeft(startOfMonth(today));
+    setRight(addMonths(startOfMonth(today), 1));
+    setHoverDate(undefined);
+    setError(undefined);
+    setOpen(true);
+  };
+
+  // 黑名单/禁用合成
+  function toDate(v?: string | Date): Date | undefined {
+    if (!v) return undefined;
+    if (v instanceof Date) return v;
+    const p1 = parseDateTimeStrict(v);
+    if (p1) return p1.date;
+    return parseDateStrict(v);
+  }
+  const disabledBeforeDate = useMemo(() => toDate(disabledBefore), [disabledBefore]);
+  const disabledAfterDate = useMemo(() => toDate(disabledAfter), [disabledAfter]);
+  const minD = useMemo(() => parseDateStrict(min || ''), [min]);
+  const maxD = useMemo(() => parseDateStrict(max || ''), [max]);
+  const disabledDatesSet = useMemo(() => new Set((disabledDates || []).map(d => formatISO(toDate(d)!) ).filter(Boolean)), [disabledDates]);
+  const ranges = useMemo(() => (disabledRanges || []).map(r => ({ start: toDate(r.start)!, end: toDate(r.end)!, reason: r.reason })), [disabledRanges]);
+  const weekdayDisabled = (d: Date) => (disabledWeekdays || []).includes(d.getDay());
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const endOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+  const inDisabledRanges = (d: Date) => ranges.find(r => d >= startOfDay(r.start) && d <= endOfDay(r.end));
+  const isOutOfBound = (d: Date) => {
+    if (minD && d < minD) return true;
+    if (maxD && d > maxD) return true;
+    if (disabledBeforeDate && d < disabledBeforeDate) return true;
+    if (disabledAfterDate && d > disabledAfterDate) return true;
+    return false;
+  };
+  const isDisabledDate = (d: Date) => {
+    if (disabledDate?.(d)) return true;
+    if (isOutOfBound(d)) return true;
+    if (weekdayDisabled(d)) return true;
+    if (disabledDatesSet.has(formatISO(d))) return true;
+    if (inDisabledRanges(d)) return true;
+    return false;
+  };
+  const disabledReason = (d: Date): string | undefined => {
+    if (disabledDate?.(d)) return '该日期不可选';
+    if (isOutOfBound(d)) {
+      if (minD && d < minD) return '早于最小日期';
+      if (maxD && d > maxD) return '晚于最大日期';
+      if (disabledBeforeDate && d < disabledBeforeDate) return '不可选';
+      if (disabledAfterDate && d > disabledAfterDate) return '不可选';
+    }
+    if (weekdayDisabled(d)) return '不可选';
+    if (disabledDatesSet.has(formatISO(d))) return '不可选';
+    const r = inDisabledRanges(d); if (r) return r.reason || '不可选';
+    return undefined;
+  };
+
+  // 严格校验（不做自动更正）
+  const validate = (): string | undefined => {
+    const ps = draftStartInput.trim();
+    const pe = draftEndInput.trim();
+    const sd = ps ? parseDateTimeStrict(ps) : undefined;
+    const ed = pe ? parseDateTimeStrict(pe) : undefined;
+    const sDateOnly = sd?.date; const eDateOnly = ed?.date;
+    const sHasTime = !!sd?.hasTime; const eHasTime = !!ed?.hasTime;
+
+    if (ps && !sd) return '请输入合法日期，如 2025-09-11';
+    if (pe && !ed) return '请输入合法日期，如 2025-09-11';
+
+    let sFull = sDateOnly ? new Date(sDateOnly) : undefined;
+    let eFull = eDateOnly ? new Date(eDateOnly) : undefined;
+    if (timeOn) {
+      if (sFull) {
+        const t = sHasTime ? toHHmm(sd!.date) : (startTime || undefined);
+        if (!t) return '请选择开始时间';
+        const [hh, mm] = t.split(':').map(Number); sFull.setHours(hh, mm, 0, 0);
+      }
+      if (eFull) {
+        const t = eHasTime ? toHHmm(ed!.date) : (endTime || undefined);
+        if (!t) return '请选择结束时间';
+        const [hh, mm] = t.split(':').map(Number); eFull.setHours(hh, mm, 0, 0);
+      }
+    }
+
+    if (sFull && isDisabledDate(sFull)) return disabledReason(sFull) || '该日期不可选';
+    if (eFull && isDisabledDate(eFull)) return disabledReason(eFull) || '该日期不可选';
+
+    if (sFull && eFull) {
+      if (!timeOn) {
+        if (eFull < sFull) return '结束日期不能早于开始日期';
+      } else {
+        if (eFull <= sFull) return '结束时间需晚于开始时间';
+      }
+      const days = spanDaysInclusive(sFull, eFull);
+      if (days > maxSpanDays) return `跨度不能超过 ${maxSpanDays} 天`;
+    }
+    return undefined;
+  };
+
+  const doConfirm = () => {
+    const err = validate(); setError(err); if (err) return;
+    const ps = draftStartInput.trim();
+    const pe = draftEndInput.trim();
+    const sd = ps ? parseDateTimeStrict(ps) : undefined;
+    const ed = pe ? parseDateTimeStrict(pe) : undefined;
+    let outS: string | undefined = undefined;
+    let outE: string | undefined = undefined;
+    if (sd?.date) {
+      if (timeOn) {
+        const has = sd.hasTime ? sd.date : (startTime ? new Date(sd.date.getFullYear(), sd.date.getMonth(), sd.date.getDate(), Number(startTime.split(':')[0]), Number(startTime.split(':')[1])) : undefined);
+        outS = has ? formatDateTime(has) : formatISO(sd.date);
+      } else {
+        outS = formatISO(sd.date);
+      }
+    }
+    if (ed?.date) {
+      if (timeOn) {
+        const has = ed.hasTime ? ed.date : (endTime ? new Date(ed.date.getFullYear(), ed.date.getMonth(), ed.date.getDate(), Number(endTime.split(':')[0]), Number(endTime.split(':')[1])) : undefined);
+        outE = has ? formatDateTime(has) : formatISO(ed.date);
+      } else {
+        outE = formatISO(ed.date);
+      }
+    }
+    if (!isControlled) { setS(outS); setE(outE); }
+    onChange?.(outS, outE);
+    setOpen(false);
+  };
+
+  const doClear = () => {
+    if (!isControlled) { setS(undefined); setE(undefined); }
+    onChange?.(undefined, undefined);
+    setDraftStart(undefined); setDraftEnd(undefined); setDraftStartInput(''); setDraftEndInput(''); setStartTime(undefined); setEndTime(undefined);
+    setOpen(false);
+  };
+
+  // 面板选中（只改草稿）
   const select = (d: Date) => {
-    if (disabledDate?.(d)) return;
-    const pick = formatISO(d);
+    if (isDisabledDate(d)) { setError(disabledReason(d)); return; }
+    const pick = new Date(d.getFullYear(), d.getMonth(), d.getDate());
     if (active === 'start') {
-      // picking start explicitly
-      if (ev && d > parseISO(ev)!) {
-        // start > end: keep start and clear end
-        commit(pick, undefined);
-      } else {
-        commit(pick, ev);
-      }
+      setDraftStart(pick);
+      setDraftStartInput(formatISO(pick));
       setActive('end');
-      return;
-    }
-    if (active === 'end') {
-      // picking end explicitly
-      if (sv && d < parseISO(sv)!) {
-        // end < start: keep end only, clear start
-        commit(undefined, pick);
-      } else {
-        commit(sv, pick);
-        setOpen(false);
-      }
-      return;
-    }
-    // auto mode: first click sets start; second sets end
-    if (!sv || (sv && ev)) {
-      commit(pick, undefined);
+    } else if (active === 'end') {
+      setDraftEnd(pick);
+      setDraftEndInput(formatISO(pick));
     } else {
-      const sD = parseISO(sv)!;
-      if (d < sD) commit(formatISO(d), formatISO(sD));
-      else commit(formatISO(sD), formatISO(d));
-      setOpen(false);
+      if (!draftStart || (draftStart && draftEnd)) {
+        setDraftStart(pick); setDraftStartInput(formatISO(pick)); setDraftEnd(undefined); setDraftEndInput(''); setActive('end');
+      } else {
+        setDraftEnd(pick); setDraftEndInput(formatISO(pick));
+      }
     }
+    setError(validate());
   };
 
   return (
     <label className="block">
-      {/* 外层 label 用于对齐表单结构 */}
       {label && <span className={fieldLabel}>{label}</span>}
       <div ref={anchor} className={`relative ${className}`}>
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-          {/* 输入区：左（开始）- 中（分隔）- 右（结束） */}
+          {/* 左：开始 */}
           <div className="relative">
             <input
               type="text"
-              placeholder="开始日期"
-              value={sv ?? ''}
-              onFocus={() => { setActive('start'); setOpen(true); }}
-              onClick={() => { setActive('start'); setOpen(true); }}
-              onChange={(e) => {
-                const raw = e.target.value.trim();
-                if (raw === '') { commit(undefined, ev); return; }
-                if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-                  const d = parseISO(raw)!;
-                  if (disabledDate?.(d)) return;
-                  if (ev && d > parseISO(ev)!) {
-                    commit(raw, undefined);
-                  } else {
-                    commit(raw, ev);
-                  }
-                }
-              }}
-              className={`${inputBase} text-left pr-10 leading-none flex items-center h-10 ${active === 'start' ? 'ring-2 ring-primary/60 border-transparent' : ''} ${!sv ? 'text-gray-400' : 'text-gray-700'}`}
+              placeholder={'开始日期'}
+              value={open ? draftStartInput : (sv ?? '')}
+              onFocus={() => openPanel('start')}
+              onClick={() => openPanel('start')}
+              onChange={(e) => { setDraftStartInput(e.target.value); setError(undefined); }}
+              onBlur={() => { setError(validate()); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { const v = validate(); setError(v); if (!requireConfirm && !v) doConfirm(); }}}
+              className={`${inputBase} text-left pr-10 leading-none flex items-center h-10 ${active === 'start' ? 'ring-2 ring-primary/60 border-transparent' : ''} ${(open ? !draftStartInput : !sv) ? 'text-gray-400' : 'text-gray-700'} ${error ? 'border-red-400' : ''}`}
             />
             <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><CalendarIcon size={18} aria-hidden /></span>
           </div>
           <span className="text-xs text-gray-500">至</span>
+          {/* 右：结束 */}
           <div className="relative">
             <input
               type="text"
-              placeholder="结束日期"
-              value={ev ?? ''}
-              onFocus={() => { setActive('end'); setOpen(true); }}
-              onClick={() => { setActive('end'); setOpen(true); }}
-              onChange={(e) => {
-                const raw = e.target.value.trim();
-                if (raw === '') { commit(sv, undefined); return; }
-                if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-                  const d = parseISO(raw)!;
-                  if (disabledDate?.(d)) return;
-                  if (sv && d < parseISO(sv)!) {
-                    // keep end only, clear start
-                    commit(undefined, raw);
-                  } else {
-                    commit(sv, raw);
-                  }
-                }
-              }}
-              className={`${inputBase} text-left pr-10 leading-none flex items-center h-10 ${active === 'end' ? 'ring-2 ring-primary/60 border-transparent' : ''} ${!ev ? 'text-gray-400' : 'text-gray-700'}`}
+              placeholder={'结束日期'}
+              value={open ? draftEndInput : (ev ?? '')}
+              onFocus={() => openPanel('end')}
+              onClick={() => openPanel('end')}
+              onChange={(e) => { setDraftEndInput(e.target.value); setError(undefined); }}
+              onBlur={() => { setError(validate()); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { const v = validate(); setError(v); if (!requireConfirm && !v) doConfirm(); }}}
+              className={`${inputBase} text-left pr-10 leading-none flex items-center h-10 ${active === 'end' ? 'ring-2 ring-primary/60 border-transparent' : ''} ${(open ? !draftEndInput : !ev) ? 'text-gray-400' : 'text-gray-700'} ${error ? 'border-red-400' : ''}`}
             />
             <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><CalendarIcon size={18} aria-hidden /></span>
           </div>
         </div>
+
         {open && (
-          <div ref={pop} className="absolute z-20 mt-1 rounded-lg border border-gray-200 bg-white p-2 shadow-elevation-1">
-            {/* 键盘导航：方向键移动、PageUp/PageDown 切月/切年、Enter 选中、Esc 关闭 */}
+          <div ref={pop} className="absolute z-20 mt-1 w-[560px] rounded-lg border border-gray-200 bg-white p-2 shadow-elevation-1">
+            {/* 顶部：快捷 + 时间开关 */}
+            <div className="flex items-center justify-between px-1 pb-2">
+              <div className="flex gap-2">
+                <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => {
+                  const d = new Date(); const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                  setDraftStart(day); setDraftEnd(day); setDraftStartInput(formatISO(day)); setDraftEndInput(formatISO(day));
+                  if (!shortcutsNeedConfirm) { doConfirm(); } else { setError(validate()); }
+                }}>今天</button>
+                <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => {
+                  const d = new Date(); d.setDate(d.getDate() - 1); const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                  setDraftStart(day); setDraftEnd(day); setDraftStartInput(formatISO(day)); setDraftEndInput(formatISO(day));
+                  if (!shortcutsNeedConfirm) { doConfirm(); } else { setError(validate()); }
+                }}>昨天</button>
+                <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => {
+                  const endD = new Date(); const e0 = new Date(endD.getFullYear(), endD.getMonth(), endD.getDate());
+                  const s0 = new Date(e0); s0.setDate(e0.getDate() - 6);
+                  setDraftStart(s0); setDraftEnd(e0); setDraftStartInput(formatISO(s0)); setDraftEndInput(formatISO(e0));
+                  if (!shortcutsNeedConfirm) { doConfirm(); } else { setError(validate()); }
+                }}>最近7天</button>
+                {showThisMonthShortcut && (
+                  <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => {
+                    const now = new Date(); const ms = new Date(now.getFullYear(), now.getMonth(), 1); const me = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                    setDraftStart(ms); setDraftEnd(me); setDraftStartInput(formatISO(ms)); setDraftEndInput(formatISO(me));
+                    if (!shortcutsNeedConfirm) { doConfirm(); } else { setError(validate()); }
+                  }}>本月</button>
+                )}
+              </div>
+              {enableTime && (
+                <label className="flex items-center gap-2 text-xs text-gray-700">
+                  <input type="checkbox" checked={timeOn} onChange={(e) => { setTimeOn(e.target.checked); setError(undefined); }} /> 含时间
+                </label>
+              )}
+            </div>
+
+            {/* 键盘最小集：方向键、Enter、Esc */}
             <div className="flex gap-2" tabIndex={0} onKeyDown={(e) => {
-              const minD = parseISO(min);
-              const maxD = parseISO(max);
-              const clamp = (d: Date) => {
-                if (minD && d < minD) return minD;
-                if (maxD && d > maxD) return maxD;
-                return d;
-              };
-              const base = hoverDate || (active === 'start' ? (sDate || left) : (eDate || right));
+              const base = hoverDate || (active === 'start' ? (draftStart || left) : (draftEnd || right));
               const stepDays = (d: Date, n: number) => { const t = new Date(d); t.setDate(t.getDate() + n); return t; };
-              const isDisabled = (d: Date) => !!disabledDate?.(d) || (minD && d < minD) || (maxD && d > maxD);
-              const move = (n: number) => {
-                let next = stepDays(base, n);
-                next = clamp(next);
-                const leftStart = startOfMonth(left);
-                const rightEnd = endOfMonth(right);
+              const clampToPanel = (next: Date) => {
+                const leftStart = startOfMonth(left); const rightEnd = endOfMonth(right);
                 if (next < leftStart) { const nm = startOfMonth(next); setLeft(nm); setRight(addMonths(nm, 1)); }
                 if (next > rightEnd) { const nm = startOfMonth(next); setLeft(addMonths(nm, -1)); setRight(nm); }
+              };
+              const move = (n: number) => {
+                let next = stepDays(base, n);
+                // 跳过禁用
                 let guard = 0;
-                while (isDisabled(next) && guard < 31) { next = stepDays(next, n > 0 ? 1 : -1); guard++; }
-                setHoverDate(next);
+                while (isDisabledDate(next) && guard < 31) { next = stepDays(next, n > 0 ? 1 : -1); guard++; }
+                clampToPanel(next); setHoverDate(next);
               };
               if (e.key === 'ArrowLeft') { e.preventDefault(); move(-1); }
               if (e.key === 'ArrowRight') { e.preventDefault(); move(1); }
               if (e.key === 'ArrowUp') { e.preventDefault(); move(-7); }
               if (e.key === 'ArrowDown') { e.preventDefault(); move(7); }
-              if (e.key === 'PageUp') { e.preventDefault(); const nm = addMonths(base, e.shiftKey ? -12 : -1); setLeft(startOfMonth(nm)); setRight(addMonths(startOfMonth(nm), 1)); setHoverDate(nm); }
-              if (e.key === 'PageDown') { e.preventDefault(); const nm = addMonths(base, e.shiftKey ? 12 : 1); setLeft(addMonths(startOfMonth(nm), -1)); setRight(startOfMonth(nm)); setHoverDate(nm); }
               if (e.key === 'Enter') { e.preventDefault(); select(base); }
               if (e.key === 'Escape') { e.preventDefault(); setOpen(false); }
             }}>
-              {/* 左侧月份日历 */}
-              {/* 右侧月份日历 */}
               <Calendar
                 month={left}
-                rangeStart={sDate}
-                rangeEnd={eDate}
-                min={parseISO(min)}
-                max={parseISO(max)}
-                disabledDate={disabledDate}
+                rangeStart={draftStart}
+                rangeEnd={draftEnd}
+                min={minD}
+                max={maxD}
+                disabledDate={isDisabledDate}
+                disabledReason={disabledReason}
                 hoverDate={hoverDate}
                 onHoverDate={setHoverDate}
-                onMonthChange={(m) => {
-                  setLeft(m); setRight(addMonths(m, 1));
-                  if (active === 'start') {
-                    // 切换开始月时，尽量保持同一天；若不可选则向近处搜索可选日
-                    const y = m.getFullYear();
-                    const mon = m.getMonth();
-                    const baseDay = sDate?.getDate() ?? 1;
-                    const lastDay = new Date(y, mon + 1, 0).getDate();
-                    const tryDay = (day: number) => new Date(y, mon, day);
-                    const minD = parseISO(min);
-                    const maxD = parseISO(max);
-                    let nd: Date | undefined = tryDay(Math.min(baseDay, lastDay));
-                    const isInvalid = (d: Date) => (minD && d < minD) || (maxD && d > maxD) || !!disabledDate?.(d);
-                    if (nd && isInvalid(nd)) {
-                      nd = undefined;
-                      for (let offset = 1; offset <= lastDay; offset++) {
-                        const down = baseDay - offset;
-                        const up = baseDay + offset;
-                        if (down >= 1) {
-                          const cand = tryDay(down);
-                          if (!isInvalid(cand)) { nd = cand; break; }
-                        }
-                        if (up <= lastDay) {
-                          const cand = tryDay(up);
-                          if (!isInvalid(cand)) { nd = cand; break; }
-                        }
-                      }
-                    }
-                    if (nd) {
-                      if (ev && nd > parseISO(ev)!) {
-                        commit(formatISO(nd), undefined);
-                      } else {
-                        commit(formatISO(nd), ev);
-                      }
-                    }
-                  }
-                }}
+                onMonthChange={(m) => { setLeft(m); }}
                 onSelect={select}
               />
-              {/* 右侧月份日历 */}
               <Calendar
                 month={right}
-                rangeStart={sDate}
-                rangeEnd={eDate}
-                min={parseISO(min)}
-                max={parseISO(max)}
-                disabledDate={disabledDate}
+                rangeStart={draftStart}
+                rangeEnd={draftEnd}
+                min={minD}
+                max={maxD}
+                disabledDate={isDisabledDate}
+                disabledReason={disabledReason}
                 hoverDate={hoverDate}
                 onHoverDate={setHoverDate}
-                onMonthChange={(m) => {
-                  setRight(m); setLeft(addMonths(m, -1));
-                  if (active === 'end') {
-                    // 切换结束月时同理处理
-                    const y = m.getFullYear();
-                    const mon = m.getMonth();
-                    const baseDay = eDate?.getDate() ?? 1;
-                    const lastDay = new Date(y, mon + 1, 0).getDate();
-                    const tryDay = (day: number) => new Date(y, mon, day);
-                    const minD = parseISO(min);
-                    const maxD = parseISO(max);
-                    let nd: Date | undefined = tryDay(Math.min(baseDay, lastDay));
-                    const isInvalid = (d: Date) => (minD && d < minD) || (maxD && d > maxD) || !!disabledDate?.(d);
-                    if (nd && isInvalid(nd)) {
-                      nd = undefined;
-                      for (let offset = 1; offset <= lastDay; offset++) {
-                        const down = baseDay - offset;
-                        const up = baseDay + offset;
-                        if (down >= 1) {
-                          const cand = tryDay(down);
-                          if (!isInvalid(cand)) { nd = cand; break; }
-                        }
-                        if (up <= lastDay) {
-                          const cand = tryDay(up);
-                          if (!isInvalid(cand)) { nd = cand; break; }
-                        }
-                      }
-                    }
-                    if (nd) {
-                      if (sv && nd < parseISO(sv)!) {
-                        // keep end only, clear start
-                        commit(undefined, formatISO(nd));
-                      } else {
-                        commit(sv, formatISO(nd));
-                      }
-                    }
-                  }
-                }}
+                onMonthChange={(m) => { setRight(m); }}
                 onSelect={select}
               />
             </div>
-            <div className="mt-2 flex items-center justify-between px-1">
-              {/* 简要提示文案与快捷按钮 */}
-              <div className="text-[11px] text-gray-400">可选择年份、月份、日期</div>
-              <div className="flex gap-2">
-                <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => {
-                  // 快捷按钮：今天
-                  const base = new Date();
-                  const minD = parseISO(min);
-                  const maxD = parseISO(max);
-                  const isInvalid = (d: Date) => (minD && d < minD) || (maxD && d > maxD) || !!disabledDate?.(d);
-                  let nd: Date | undefined = base;
-                  if (isInvalid(base)) {
-                    nd = undefined;
-                    for (let i = 1; i <= 366; i++) {
-                      const down = new Date(base); down.setDate(base.getDate() - i);
-                      if (!isInvalid(down)) { nd = down; break; }
-                      const up = new Date(base); up.setDate(base.getDate() + i);
-                      if (!isInvalid(up)) { nd = up; break; }
-                    }
-                  }
-                  if (nd) {
-                    commit(formatISO(nd), formatISO(nd));
-                    setLeft(nd); setRight(addMonths(nd, 1));
-                    setOpen(false);
-                  }
-                }}>今天</button>
-                <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => {
-                  // 快捷按钮：近7天
-                  const minD = parseISO(min);
-                  const maxD = parseISO(max);
-                  const isInvalid = (d: Date) => (minD && d < minD) || (maxD && d > maxD) || !!disabledDate?.(d);
-                  const baseEnd = new Date();
-                  let endD: Date | undefined = baseEnd;
-                  if (isInvalid(baseEnd)) {
-                    endD = undefined;
-                    for (let i = 1; i <= 366; i++) {
-                      const down = new Date(baseEnd); down.setDate(baseEnd.getDate() - i);
-                      if (!isInvalid(down)) { endD = down; break; }
-                      const up = new Date(baseEnd); up.setDate(baseEnd.getDate() + i);
-                      if (!isInvalid(up)) { endD = up; break; }
-                    }
-                  }
-                  if (!endD) return;
-                  const baseStart = new Date(endD); baseStart.setDate(endD.getDate() - 6);
-                  let startD: Date | undefined = baseStart;
-                  if (isInvalid(baseStart) || baseStart > endD) {
-                    startD = undefined;
-                    for (let i = 0; i <= 366; i++) {
-                      const cand = new Date(endD); cand.setDate(endD.getDate() - i);
-                      if (!isInvalid(cand)) { startD = cand; break; }
-                    }
-                  }
-                  if (startD && endD) {
-                    commit(formatISO(startD), formatISO(endD));
-                    setLeft(startD); setRight(addMonths(startD, 1));
-                    setOpen(false);
-                  }
-                }}>近7天</button>
-                <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => {
-                  // 快捷按钮：本月
-                  const now = new Date();
-                  const mStart = startOfMonth(now);
-                  const mEnd = endOfMonth(now);
-                  const minD = parseISO(min);
-                  const maxD = parseISO(max);
-                  const inRange = (d: Date) => (!minD || d >= minD) && (!maxD || d <= maxD) && !disabledDate?.(d);
-                  let startD: Date | undefined = undefined;
-                  for (let d = new Date(mStart); d <= mEnd; d.setDate(d.getDate() + 1)) {
-                    const cand = new Date(d);
-                    if (inRange(cand)) { startD = cand; break; }
-                  }
-                  let endD: Date | undefined = undefined;
-                  for (let d = new Date(mEnd); d >= mStart; d.setDate(d.getDate() - 1)) {
-                    const cand = new Date(d);
-                    if (inRange(cand)) { endD = cand; break; }
-                  }
-                  if (startD && endD) {
-                    commit(formatISO(startD), formatISO(endD));
-                    setLeft(startD); setRight(addMonths(startD, 1));
-                    setOpen(false);
-                  }
-                }}>本月</button>
-                <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => {
-                  // 快捷按钮：清空
-                  commit(undefined, undefined);
-                }}>清空</button>
+
+            {/* 时间选择（可选）*/}
+            {enableTime && timeOn && (
+              <div className="mb-2 grid grid-cols-2 gap-2 px-1">
+                <div className="flex items-center gap-2 text-xs text-gray-700">
+                  <span className="w-10 text-right text-gray-500">开始</span>
+                  <select className="h-8 rounded border border-gray-200 px-1" value={startTime || ''} onChange={(e) => { setStartTime(e.target.value); setError(undefined); }}>
+                    <option value="" disabled>选择时分</option>
+                    {Array.from({ length: 24 }, (_, h) => h).map(h => (
+                      Array.from({ length: 60 }, (_, m) => m).map(m => {
+                        const hh = String(h).padStart(2, '0'); const mm = String(m).padStart(2, '0'); const v = `${hh}:${mm}`;
+                        return <option key={`s-${v}`} value={v}>{v}</option>;
+                      })
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-gray-700">
+                  <span className="w-10 text-right text-gray-500">结束</span>
+                  <select className="h-8 rounded border border-gray-200 px-1" value={endTime || ''} onChange={(e) => { setEndTime(e.target.value); setError(undefined); }}>
+                    <option value="" disabled>选择时分</option>
+                    {Array.from({ length: 24 }, (_, h) => h).map(h => (
+                      Array.from({ length: 60 }, (_, m) => m).map(m => {
+                        const hh = String(h).padStart(2, '0'); const mm = String(m).padStart(2, '0'); const v = `${hh}:${mm}`;
+                        return <option key={`e-${v}`} value={v}>{v}</option>;
+                      })
+                    ))}
+                  </select>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* 已选择天数（仅日期模式）*/}
+            {!timeOn && draftStart && draftEnd && (
+              <div className="px-1 pb-2 text-[11px] text-gray-500">已选择 {spanDaysInclusive(draftStart, draftEnd)} 天</div>
+            )}
+
+            {/* 错误提示 */}
+            {error && (
+              <div className="px-1 pb-2 text-[12px] text-red-500">{error}</div>
+            )}
+
+            {/* 底部操作 */}
+            {requireConfirm && (
+              <div className="flex items-center justify-end gap-2 px-1 pt-1">
+                <button type="button" className="h-8 rounded-md border border-gray-200 px-3 text-sm text-gray-700 hover:bg-gray-50" onClick={doClear}>清除</button>
+                <button type="button" className="h-8 rounded-md border border-gray-200 px-3 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setOpen(false)}>取消</button>
+                <button type="button" disabled={!!validate()} className={`h-8 rounded-md px-3 text-sm text-white ${validate() ? 'bg-gray-300 cursor-not-allowed' : 'bg-primary hover:bg-primary/90'}`} onClick={doConfirm}>确定</button>
+              </div>
+            )}
           </div>
         )}
       </div>
-      {/* 助手提示文本 */}
       {helper && <span className={helperText}>{helper}</span>}
     </label>
   );
