@@ -66,6 +66,7 @@ export default function DateRangePicker({
   const [left, setLeft] = useState<Date>(() => startOfMonth(today));
   const [right, setRight] = useState<Date>(() => addMonths(startOfMonth(today), 1));
   const [hoverDate, setHoverDate] = useState<Date | undefined>(undefined);
+  const [focusDate, setFocusDate] = useState<Date | undefined>(undefined);
   const pop = useRef<HTMLDivElement>(null);
   const anchor = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState<'start'|'end'|'auto'>('auto');
@@ -112,6 +113,7 @@ export default function DateRangePicker({
     setEndTime(pe && pe.hasTime ? toHHmm(pe.date) : undefined);
     setLeft(startOfMonth(today));
     setRight(addMonths(startOfMonth(today), 1));
+    setFocusDate(focus === 'start' ? (ps?.date || (sv ? parseDateStrict(sv) : undefined) || new Date()) : (pe?.date || (ev ? parseDateStrict(ev) : undefined) || new Date()));
     setHoverDate(undefined);
     setOpen(true);
   };
@@ -248,20 +250,27 @@ export default function DateRangePicker({
         {open && (
           <div ref={pop} className="absolute z-20 mt-1 w-[560px] rounded-lg border border-gray-200 bg-white p-2 shadow-elevation-1">
 
-            <div className="flex gap-2" tabIndex={0} onKeyDown={(e) => {
-              const base = hoverDate || (active === 'start' ? (draftStart || left) : (draftEnd || right));
+            <div className="flex gap-2 outline-none focus:outline-none" tabIndex={0} onKeyDown={(e) => {
+              const base = focusDate || (active === 'start' ? (draftStart || left) : (draftEnd || right) || new Date());
               const stepDays = (d: Date, n: number) => { const t = new Date(d); t.setDate(t.getDate() + n); return t; };
-              const clampToPanel = (next: Date) => {
-                const leftStart = startOfMonth(left); const rightEnd = endOfMonth(right);
-                if (next < leftStart) { const nm = startOfMonth(next); setLeft(nm); setRight(addMonths(nm, 1)); }
-                if (next > rightEnd) { const nm = startOfMonth(next); setLeft(addMonths(nm, -1)); setRight(nm); }
+              const ensureVisible = (next: Date) => {
+                const nm = startOfMonth(next);
+                if (active === 'start') {
+                  const leftStart = startOfMonth(left);
+                  const rightEnd = endOfMonth(right);
+                  if (next < leftStart || next > rightEnd) { setLeft(nm); setRight(addMonths(nm, 1)); }
+                } else {
+                  const leftStart = startOfMonth(left);
+                  const rightEnd = endOfMonth(right);
+                  if (next < leftStart || next > rightEnd) { setRight(nm); setLeft(addMonths(nm, -1)); }
+                }
               };
               const move = (n: number) => {
                 let next = stepDays(base, n);
                 let guard = 0;
                 const disabledForKey = active === 'start' ? isDisabledStartPick : isDisabledEndPick;
                 while (disabledForKey(next) && guard < 31) { next = stepDays(next, n > 0 ? 1 : -1); guard++; }
-                clampToPanel(next); setHoverDate(next);
+                ensureVisible(next); setHoverDate(next); setFocusDate(next);
               };
               if (e.key === 'ArrowLeft') { e.preventDefault(); move(-1); }
               if (e.key === 'ArrowRight') { e.preventDefault(); move(1); }

@@ -84,7 +84,7 @@ export default function Calendar({ month, value, min, max, disabledDate, disable
               <div key={w}>{w}</div>
             ))}
           </div>
-          <div className="grid grid-cols-7 gap-1 px-2 pb-2">
+          <div className="grid grid-cols-7 gap-x-0 gap-y-1 px-2 pb-2">
             {cells.map((d, i) => {
               if (!d) return <div key={i} className="h-8"/>;
               const disabled = !canPick(d);
@@ -107,22 +107,20 @@ export default function Calendar({ month, value, min, max, disabledDate, disable
                   onMouseLeave={() => onHoverDate?.(undefined)}
                   onClick={() => !disabled && onSelect?.(d)}
                   className={[
-                    'h-8 rounded text-sm',
+                    'h-8 text-sm focus:outline-none focus:ring-0',
                     disabled ? 'text-gray-400 bg-gray-50 opacity-60 cursor-not-allowed' : 'hover:bg-gray-100',
                     // single date selected styling（禁用时不渲染选中态）
                     !disabled && singleSelected ? 'bg-primary text-white hover:bg-primary/90' : '',
                     // range edges styling: primary for this panel's edge; also force primary when start=end
                     !disabled && !singleSelected && (sameDayEdge || (panel === 'start' && isStart) || (panel === 'end' && isEnd)) ? 'bg-primary text-white hover:bg-primary/90' : '',
                     // mirror edge (other panel's edge) glass-like style when both ends exist (and not same-day)
-                    !disabled && !singleSelected && !sameDayEdge && rangeStart && rangeEnd && ((panel === 'start' && isEnd) || (panel === 'end' && isStart)) ? 'bg-primary/20 text-primary/60 ring-1 ring-primary/60' : '',
-                    // in-range (only for range selection) deepen a bit for readability
-                    !disabled && !singleSelected && !selectedEdge && inSelectedRange ? 'bg-gray-100 text-gray-700' : '',
+                    !disabled && !singleSelected && !sameDayEdge && rangeStart && rangeEnd && ((panel === 'start' && isEnd) || (panel === 'end' && isStart)) ? 'relative z-10 bg-primary/20 text-primary/60 ring-1 ring-primary/60' : '',
+                    // in-range (only for range selection) — text slightly softer for contrast
+                    !disabled && !singleSelected && !selectedEdge && inSelectedRange ? 'bg-gray-100 text-gray-500' : '',
                     // default text color when not selected
                     !disabled && !singleSelected && !inSelectedRange && !selectedEdge ? 'text-gray-700' : '',
                     // hover-range preview slightly lighter than selected range
                     !disabled && inHoverRange ? 'bg-gray-50 text-gray-600' : '',
-                    isStart ? 'rounded-l' : '',
-                    isEnd ? 'rounded-r' : '',
                   ].join(' ')}
                 >
                   {d.getDate()}
