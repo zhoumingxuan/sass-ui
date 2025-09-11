@@ -111,12 +111,12 @@ export default function Calendar({ month, value, min, max, disabledDate, disable
                     !disabled && singleSelected ? 'bg-primary text-white hover:bg-primary/90' : '',
                     // range edges styling
                     !disabled && !singleSelected && selectedEdge ? 'bg-primary text-white hover:bg-primary/90' : '',
-                    // in-range (only for range selection) use default tone, not primary
+                    // in-range (only for range selection) deepen a bit for readability
                     !disabled && !singleSelected && !selectedEdge && inSelectedRange ? 'bg-gray-100 text-gray-700' : '',
                     // default text color when not selected
                     !disabled && !singleSelected && !inSelectedRange && !selectedEdge ? 'text-gray-700' : '',
-                    // hover-range preview uses default tone as well
-                    !disabled && inHoverRange ? 'bg-gray-50 text-gray-700' : '',
+                    // hover-range preview slightly lighter than selected range
+                    !disabled && inHoverRange ? 'bg-gray-50 text-gray-600' : '',
                     isStart ? 'rounded-l' : '',
                     isEnd ? 'rounded-r' : '',
                   ].join(' ')}
