@@ -148,10 +148,15 @@ export default function DateRangePicker({
     if (inDisabledRanges(d)) return true;
     return false;
   };
-  const isDisabledForPick = (d: Date) => {
+  // 左（开始）与右（结束）各自的禁用规则
+  const isDisabledStartPick = (d: Date) => {
     if (isDisabledBase(d)) return true;
-    if (active === 'end' && draftStart) return d < startOfDay(draftStart);
-    if (active === 'start' && draftEnd) return d > endOfDay(draftEnd);
+    if (draftEnd) return d > endOfDay(draftEnd);
+    return false;
+  };
+  const isDisabledEndPick = (d: Date) => {
+    if (isDisabledBase(d)) return true;
+    if (draftStart) return d < startOfDay(draftStart);
     return false;
   };
 
@@ -190,23 +195,22 @@ export default function DateRangePicker({
     setOpen(false);
   };
 
-  const select = (d: Date) => {
-    if (isDisabledForPick(d)) return;
+  const selectStart = (d: Date) => {
+    if (isDisabledStartPick(d)) return;
     const pick = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-    if (active === 'start') {
-      setDraftStart(pick);
-      setDraftStartInput(formatISO(pick));
-      setActive('end');
-    } else if (active === 'end') {
-      setDraftEnd(pick);
-      setDraftEndInput(formatISO(pick));
-    } else {
-      if (!draftStart || (draftStart && draftEnd)) {
-        setDraftStart(pick); setDraftStartInput(formatISO(pick)); setDraftEnd(undefined); setDraftEndInput(''); setActive('end');
-      } else {
-        setDraftEnd(pick); setDraftEndInput(formatISO(pick));
-      }
-    }
+    setDraftStart(pick);
+    setDraftStartInput(formatISO(pick));
+  };
+  const selectEnd = (d: Date) => {
+    if (isDisabledEndPick(d)) return;
+    const pick = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    setDraftEnd(pick);
+    setDraftEndInput(formatISO(pick));
+  };
+  // 键盘选中：依赖当前 active 面板
+  const select = (d: Date) => {
+    if (active === 'start') return selectStart(d);
+    if (active === 'end') return selectEnd(d);
   };
 
   return (
@@ -287,7 +291,8 @@ export default function DateRangePicker({
               const move = (n: number) => {
                 let next = stepDays(base, n);
                 let guard = 0;
-                while (isDisabledForPick(next) && guard < 31) { next = stepDays(next, n > 0 ? 1 : -1); guard++; }
+                const disabledForKey = active === 'start' ? isDisabledStartPick : isDisabledEndPick;
+                while (disabledForKey(next) && guard < 31) { next = stepDays(next, n > 0 ? 1 : -1); guard++; }
                 clampToPanel(next); setHoverDate(next);
               };
               if (e.key === 'ArrowLeft') { e.preventDefault(); move(-1); }
@@ -303,11 +308,11 @@ export default function DateRangePicker({
                 rangeEnd={draftEnd}
                 min={minD}
                 max={maxD}
-                disabledDate={isDisabledForPick}
+                disabledDate={isDisabledStartPick}
                 hoverDate={hoverDate}
                 onHoverDate={setHoverDate}
-                onMonthChange={(m) => { setLeft(m); }}
-                onSelect={select}
+                onMonthChange={(m) => { setLeft(m); setActive('start'); }}
+                onSelect={selectStart}
               />
               <Calendar
                 month={right}
@@ -315,11 +320,11 @@ export default function DateRangePicker({
                 rangeEnd={draftEnd}
                 min={minD}
                 max={maxD}
-                disabledDate={isDisabledForPick}
+                disabledDate={isDisabledEndPick}
                 hoverDate={hoverDate}
                 onHoverDate={setHoverDate}
-                onMonthChange={(m) => { setRight(m); }}
-                onSelect={select}
+                onMonthChange={(m) => { setRight(m); setActive('end'); }}
+                onSelect={selectEnd}
               />
             </div>
 
@@ -366,4 +371,3 @@ export default function DateRangePicker({
     </label>
   );
 }
-

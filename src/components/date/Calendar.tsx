@@ -99,13 +99,14 @@ export default function Calendar({ month, value, min, max, disabledDate, disable
                   type="button"
                   key={i}
                   disabled={disabled}
+                  aria-disabled={disabled}
                   title={title}
                   onMouseEnter={() => onHoverDate?.(d)}
                   onMouseLeave={() => onHoverDate?.(undefined)}
                   onClick={() => !disabled && onSelect?.(d)}
                   className={[
                     'h-8 rounded text-sm',
-                    disabled ? 'text-gray-300 cursor-not-allowed' : 'hover:bg-primary/10',
+                    disabled ? 'text-gray-300 bg-gray-50 cursor-not-allowed' : 'hover:bg-primary/10',
                     // single date selected styling
                     singleSelected ? 'bg-primary text-white hover:bg-primary/90' : '',
                     // range edges styling
