@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
-import { fieldLabel, helperText } from "../formStyles";
+import { fieldLabel, helperText, errorText } from "../formStyles";
 
 type Rule = {
   required?: boolean;
@@ -27,6 +27,8 @@ type FormContextType = {
   validateField: (name: string) => Promise<string[]>;
   validateAll: () => Promise<Record<string, string[]>>;
   setTouched: (name: string, touched: boolean) => void;
+  layout?: 'vertical' | 'horizontal';
+  labelWidth?: number | string;
 };
 
 const FormContext = createContext<FormContextType | null>(null);
@@ -136,9 +138,10 @@ export type FormProps = React.FormHTMLAttributes<HTMLFormElement> & {
   onFinishFailed?: (opts: { values: Record<string, any>; errors: Record<string, string[]> }) => void;
   layout?: 'vertical' | 'horizontal';
   labelWidth?: number | string; // for horizontal layout
+  colon?: boolean; // show colon after label text
 };
 
-function FormRoot({ initialValues, onFinish, onFinishFailed, layout = 'vertical', labelWidth, className = '', onSubmit, children, ...rest }: FormProps) {
+function FormRoot({ initialValues, onFinish, onFinishFailed, layout = 'vertical', labelWidth, colon = true, className = '', onSubmit, children, ...rest }: FormProps) {
   const api = useFormInternal();
   const mounted = useRef(false);
 
@@ -162,7 +165,7 @@ function FormRoot({ initialValues, onFinish, onFinishFailed, layout = 'vertical'
     else onFinish?.(api.values);
   };
 
-  const ctx = useMemo(() => api, [api]);
+  const ctx = useMemo(() => ({ ...api, layout, labelWidth, colon }), [api, layout, labelWidth, colon]);
 
   return (
     <FormContext.Provider value={ctx}>
@@ -190,6 +193,7 @@ export type FormItemProps = {
   className?: string;
   style?: React.CSSProperties;
   children?: React.ReactElement;
+  colon?: boolean; // override form colon
 };
 
 function defaultGetValueFromEvent(valuePropName: string, ...args: any[]) {
@@ -200,6 +204,8 @@ function defaultGetValueFromEvent(valuePropName: string, ...args: any[]) {
     if (valuePropName === 'checked') return t.checked;
     return t.value;
   }
+  // 如果 onChange 以多参数形式返回（如日期范围），默认返回参数数组
+  if (args.length > 1) return args;
   return first;
 }
 
@@ -218,6 +224,7 @@ function FormItem({
   className = '',
   style,
   children,
+  colon,
 }: FormItemProps) {
   const form = useContext(FormContext);
   if (!form) return <div className={className} style={style}>{children}</div>;
@@ -260,17 +267,45 @@ function FormItem({
     };
   }
 
+  const isHorizontal = form.layout === 'horizontal';
+  const showColon = typeof colon === 'boolean' ? colon : (form as any).colon !== false;
+  const renderLabel = () => {
+    if (!label) return null;
+    const txt = typeof label === 'string' ? label : label;
+    return (
+      <div className={fieldLabel}>
+        <span className="text-error mr-1">{required ? '*' : ''}</span>
+        <span className="text-gray-700">{txt}{showColon ? '：' : ''}</span>
+      </div>
+    );
+  };
+  if (isHorizontal) {
+    const labelBoxStyle: React.CSSProperties = { width: typeof form.labelWidth === 'number' ? `${form.labelWidth}px` : form.labelWidth };
+    return (
+      <div className={["mb-3", className].join(' ')} style={style}>
+        <div className="flex items-center gap-4">
+          <div className="shrink-0 text-right flex items-center justify-end min-h-10" style={labelBoxStyle}>
+            {renderLabel()}
+          </div>
+          <div className="flex-1">
+            {child ? React.cloneElement(child, childProps) : null}
+            {hasErr ? (
+              <div className={errorText}>{errs![0]}</div>
+            ) : (
+              help ? <div className={helperText}>{help}</div> : extra ? <div className={helperText}>{extra}</div> : null
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+  // vertical
   return (
     <div className={["mb-3", className].join(' ')} style={style}>
-      {label && (
-        <div className={fieldLabel} style={{ display: 'flex', alignItems: 'center' }}>
-          <span className="text-gray-600">{label}</span>
-          {required && <span className="ml-1 text-error">*</span>}
-        </div>
-      )}
+      {renderLabel()}
       {child ? React.cloneElement(child, childProps) : null}
       {hasErr ? (
-        <div className={[helperText, 'text-error'].join(' ')}>{errs![0]}</div>
+        <div className={errorText}>{errs![0]}</div>
       ) : (
         help ? <div className={helperText}>{help}</div> : extra ? <div className={helperText}>{extra}</div> : null
       )}
@@ -287,4 +322,3 @@ export function useForm() {
 export const Form = Object.assign(FormRoot, { Item: FormItem, useForm });
 
 export default Form;
-

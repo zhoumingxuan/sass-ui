@@ -8,8 +8,10 @@ export const inputBase = [
   'shadow-none',
 ].join(' ');
 
-export const fieldLabel = 'mb-2 block text-xs text-gray-500';
+// Labels: keep legible size and tone to match inputs
+export const fieldLabel = 'mb-1 block text-sm text-gray-600';
 export const helperText = 'mt-1 block text-xs text-gray-400';
+export const errorText = 'mt-1 block text-xs text-error';
 export const fieldWrapper = 'block';
 
 // Tokens for small control elements (checkbox, radio, switch, slider thumbs)
