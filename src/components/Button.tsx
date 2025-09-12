@@ -92,7 +92,7 @@ export default function Button({
     error: 'border border-error/25 bg-error/10 text-error backdrop-blur-sm hover:bg-error/15 focus-visible:ring-error/40',
     info: 'border border-info/25 bg-info/10 text-info backdrop-blur-sm hover:bg-info/15 focus-visible:ring-info/40',
   };
-  const variants = outline ? outlined : solid;
+  // note: deprecated 'outline' keeps backward compatibility via mode below
 
   const hasLabel = !!props.children;
   const withGap = icon && hasLabel ? 'gap-2' : '';
@@ -103,13 +103,15 @@ export default function Button({
   };
   let iconNode: ReactNode = icon;
   if (icon && isValidElement(icon)) {
-    const anyProps: any = (icon as any).props ?? {};
-    const mergedClass = [anyProps.className, 'shrink-0'].filter(Boolean).join(' ');
-    iconNode = cloneElement(icon as any, {
+    type IconLiteProps = { className?: string; size?: number; strokeWidth?: number } & Record<string, unknown>;
+    const el = icon as React.ReactElement<IconLiteProps>;
+    const p: IconLiteProps = (el.props ?? {}) as IconLiteProps;
+    const mergedClass = [p.className, 'shrink-0'].filter(Boolean).join(' ');
+    iconNode = cloneElement(el, {
       className: mergedClass,
-      size: anyProps.size ?? iconSizeMap[size],
-      strokeWidth: anyProps.strokeWidth ?? 2,
-      'aria-hidden': anyProps['aria-hidden'] ?? true,
+      size: p.size ?? iconSizeMap[size],
+      strokeWidth: p.strokeWidth ?? 2,
+      'aria-hidden': (p['aria-hidden'] as boolean | undefined) ?? true,
     });
   }
 

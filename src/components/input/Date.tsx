@@ -18,7 +18,7 @@ export default function DateInput({ label, helper, className = "", value, defaul
   const id = useId();
   const isControlled = typeof value !== "undefined";
   const [internal, setInternal] = useState<string | undefined>(defaultValue);
-  const val = (isControlled ? value : internal) as any;
+  const val: string | undefined = isControlled ? value : internal;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = e.target.value;
@@ -70,4 +70,3 @@ export function DateRange({ label, helper, start, end, defaultStart, defaultEnd,
     </label>
   );
 }
-

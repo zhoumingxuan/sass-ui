@@ -1,7 +1,7 @@
 'use client';
 
 import { useId, useState } from 'react';
-import { controlRing, controlDisabled, fieldLabel, helperText } from './formStyles';
+import { controlRing, controlDisabled, fieldLabel } from './formStyles';
 
 type Size = 'small' | 'medium' | 'large';
 

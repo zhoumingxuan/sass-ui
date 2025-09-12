@@ -16,17 +16,17 @@ type Props = InputHTMLAttributes<HTMLInputElement> & {
 export default function Text({ label, helper, prefix, suffix, clearable = false, status, className = "", onChange, ...props }: Props) {
   const id = useId();
   const isControlled = Object.prototype.hasOwnProperty.call(props, "value");
-  const [internal, setInternal] = useState(() => (props as any).defaultValue ?? "");
-  const val = (isControlled ? (props.value as any) : internal) as any;
+  const [internal, setInternal] = useState<string>(() => (props.defaultValue as string | number | readonly string[] | undefined)?.toString() ?? "");
+  const rawVal = isControlled ? props.value : internal;
+  const val: string = (rawVal as string | number | readonly string[] | undefined)?.toString() ?? '';
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!isControlled) setInternal(e.target.value);
     onChange?.(e);
   };
   const handleClear = () => {
-    const e = { target: { value: "" } } as any;
+    const e = { target: { value: "" } } as unknown as React.ChangeEvent<HTMLInputElement>;
     if (!isControlled) setInternal("");
-    // fire synthetic onChange for parent
     onChange?.(e);
   };
 
@@ -40,7 +40,7 @@ export default function Text({ label, helper, prefix, suffix, clearable = false,
           type="text"
           aria-invalid={status === 'error' ? true : undefined}
           className={[inputBase, status ? inputStatus[status] : '', prefix ? "pl-8" : "", suffix || clearable ? "pr-8" : ""].filter(Boolean).join(" ")}
-          value={(val as any) ?? ''}
+          value={val}
           onChange={handleChange}
           {...props}
         />

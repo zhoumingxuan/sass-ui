@@ -1033,7 +1033,7 @@ export default function SuperSearch({
                   <div
                     key={sec.key}
                     className="min-w-0 mb-4 break-inside-avoid"
-                    style={{ breakInside: "avoid" as any }}
+                    style={{ breakInside: "avoid" as unknown as 'auto' | 'avoid' }}
                   >
                     <div className="sticky top-0 z-10 mb-1 flex h-9 items-center rounded-md bg-white/80 px-2 text-sm font-semibold text-gray-700 backdrop-blur">
                       <div className="flex items-center gap-2 w-full">

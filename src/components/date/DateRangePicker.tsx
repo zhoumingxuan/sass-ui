@@ -79,8 +79,16 @@ export default function DateRangePicker({
   const [draftStartInput, setDraftStartInput] = useState<string>('');
   const [draftEndInput, setDraftEndInput] = useState<string>('');
 
-  const emit = (a?: string, b?: string) => { if (onChange) { (onChange as any)(a, b); (onChange as any)([a, b]); } };
-  const shortcutsNeedConfirm = typeof shortcutRequireConfirm === 'boolean' ? shortcutRequireConfirm : false;
+  type OnChangePair = (start?: string, end?: string) => void;
+  type OnChangeTuple = (value: [string | undefined, string | undefined]) => void;
+  const emit = (a?: string, b?: string) => {
+    const fn = onChange as OnChangePair | OnChangeTuple | undefined;
+    if (!fn) return;
+    (fn as OnChangePair)(a, b);
+    (fn as OnChangeTuple)([a, b]);
+  };
+  const shortcutsNeedConfirm = typeof shortcutRequireConfirm === 'boolean' ? shortcutRequireConfirm : false; void shortcutsNeedConfirm;
+  void showThisMonthShortcut;
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
@@ -498,4 +506,3 @@ export default function DateRangePicker({
     </label>
   );
 }
-

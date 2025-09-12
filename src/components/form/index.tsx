@@ -10,25 +10,26 @@ type Rule = {
   max?: number; // for number value or string length
   len?: number; // string length exact
   pattern?: RegExp;
-  validator?: (value: any, values: Record<string, any>) => string | void | Promise<string | void>;
+  validator?: (value: unknown, values: Record<string, unknown>) => string | void | Promise<string | void>;
 };
 
 type ValidateTrigger = "change" | "blur";
 
 type FormContextType = {
-  values: Record<string, any>;
+  values: Record<string, unknown>;
   errors: Record<string, string[]>;
   touched: Record<string, boolean>;
   register: (name: string, options: { rules?: Rule[]; valuePropName?: string; validateTrigger?: ValidateTrigger | ValidateTrigger[] }) => void;
   unregister: (name: string) => void;
-  setValue: (name: string, value: any, opts?: { validate?: boolean }) => Promise<string[] | undefined>;
-  getValue: (name: string) => any;
+  setValue: (name: string, value: unknown, opts?: { validate?: boolean }) => Promise<string[] | undefined>;
+  getValue: (name: string) => unknown;
   getError: (name: string) => string[] | undefined;
   validateField: (name: string) => Promise<string[]>;
   validateAll: () => Promise<Record<string, string[]>>;
   setTouched: (name: string, touched: boolean) => void;
   layout?: 'vertical' | 'horizontal';
   labelWidth?: number | string;
+  colon?: boolean;
 };
 
 const FormContext = createContext<FormContextType | null>(null);
@@ -36,7 +37,7 @@ const FormContext = createContext<FormContextType | null>(null);
 function useFormInternal() {
   const rulesRef = useRef<Record<string, Rule[] | undefined>>({});
   const triggersRef = useRef<Record<string, ValidateTrigger | ValidateTrigger[] | undefined>>({});
-  const [values, setValues] = useState<Record<string, any>>({});
+  const [values, setValues] = useState<Record<string, unknown>>({});
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [touched, setTouchedState] = useState<Record<string, boolean>>({});
 
@@ -72,7 +73,7 @@ function useFormInternal() {
   const getValue = useCallback((name: string) => values[name], [values]);
   const getError = useCallback((name: string) => errors[name], [errors]);
 
-  const runRules = useCallback(async (name: string, value: any) => {
+  const runRules = useCallback(async (name: string, value: unknown) => {
     const r = rulesRef.current[name] || [];
     const res: string[] = [];
     for (const rule of r) {
@@ -81,18 +82,18 @@ function useFormInternal() {
         if (empty) { res.push(rule.message || '必填项'); continue; }
       }
       if (typeof rule.len === 'number' && typeof value === 'string') {
-        if (value.length !== rule.len) res.push(rule.message || `长度必须为${rule.len}`);
+        if ((value as string).length !== rule.len) res.push(rule.message || `长度必须为${rule.len}`);
       }
       if (typeof rule.min === 'number') {
         if (typeof value === 'number' && value < rule.min) res.push(rule.message || `不能小于${rule.min}`);
-        if (typeof value === 'string' && value.length < rule.min) res.push(rule.message || `长度不能小于${rule.min}`);
+        if (typeof value === 'string' && (value as string).length < rule.min) res.push(rule.message || `长度不能小于${rule.min}`);
       }
       if (typeof rule.max === 'number') {
         if (typeof value === 'number' && value > rule.max) res.push(rule.message || `不能大于${rule.max}`);
-        if (typeof value === 'string' && value.length > rule.max) res.push(rule.message || `长度不能大于${rule.max}`);
+        if (typeof value === 'string' && (value as string).length > rule.max) res.push(rule.message || `长度不能大于${rule.max}`);
       }
       if (rule.pattern && typeof value === 'string') {
-        if (!rule.pattern.test(value)) res.push(rule.message || '格式不正确');
+        if (!rule.pattern.test(value as string)) res.push(rule.message || '格式不正确');
       }
       if (rule.validator) {
         const out = await rule.validator(value, values);
@@ -102,7 +103,7 @@ function useFormInternal() {
     return res;
   }, [values]);
 
-  const setValue = useCallback(async (name: string, value: any, opts?: { validate?: boolean }) => {
+  const setValue = useCallback(async (name: string, value: unknown, opts?: { validate?: boolean }) => {
     setValues((prev) => ({ ...prev, [name]: value }));
     if (opts?.validate) {
       const errs = await runRules(name, value);
@@ -133,9 +134,9 @@ function useFormInternal() {
 }
 
 export type FormProps = React.FormHTMLAttributes<HTMLFormElement> & {
-  initialValues?: Record<string, any>;
-  onFinish?: (values: Record<string, any>) => void;
-  onFinishFailed?: (opts: { values: Record<string, any>; errors: Record<string, string[]> }) => void;
+  initialValues?: Record<string, unknown>;
+  onFinish?: (values: Record<string, unknown>) => void;
+  onFinishFailed?: (opts: { values: Record<string, unknown>; errors: Record<string, string[]> }) => void;
   layout?: 'vertical' | 'horizontal';
   labelWidth?: number | string; // for horizontal layout
   colon?: boolean; // show colon after label text
@@ -167,10 +168,14 @@ function FormRoot({ initialValues, onFinish, onFinishFailed, layout = 'vertical'
 
   const ctx = useMemo(() => ({ ...api, layout, labelWidth, colon }), [api, layout, labelWidth, colon]);
 
+  const style = layout === 'horizontal'
+    ? ({ ['--form-label-width' as string]: typeof labelWidth === 'number' ? `${labelWidth}px` : labelWidth } as React.CSSProperties)
+    : undefined;
+
   return (
     <FormContext.Provider value={ctx}>
       <form onSubmit={handleSubmit} className={[layout === 'horizontal' ? 'space-y-3' : 'space-y-3', className].join(' ')} {...rest}>
-        <div style={layout === 'horizontal' ? { ['--form-label-width' as any]: typeof labelWidth === 'number' ? `${labelWidth}px` : labelWidth } : undefined}>
+        <div style={style}>
           {children}
         </div>
       </form>
@@ -186,8 +191,8 @@ export type FormItemProps = {
   valuePropName?: string; // default 'value'; for Switch/Checkbox use 'checked'
   trigger?: string; // default 'onChange'
   validateTrigger?: ValidateTrigger | ValidateTrigger[]; // default 'change'
-  normalize?: (value: any, values: Record<string, any>) => any;
-  getValueFromEvent?: (...args: any[]) => any;
+  normalize?: (value: unknown, values: Record<string, unknown>) => unknown;
+  getValueFromEvent?: (...args: unknown[]) => unknown;
   help?: React.ReactNode;
   extra?: React.ReactNode;
   className?: string;
@@ -196,11 +201,12 @@ export type FormItemProps = {
   colon?: boolean; // override form colon
 };
 
-function defaultGetValueFromEvent(valuePropName: string, ...args: any[]) {
+function defaultGetValueFromEvent(valuePropName: string, ...args: unknown[]) {
   if (!args || args.length === 0) return undefined;
   const first = args[0];
   if (first && typeof first === 'object' && 'target' in first) {
-    const t = (first as any).target;
+    const t = (first as { target?: { checked?: boolean; value?: unknown } }).target;
+    if (!t) return undefined;
     if (valuePropName === 'checked') return t.checked;
     return t.value;
   }
@@ -227,11 +233,10 @@ function FormItem({
   colon,
 }: FormItemProps) {
   const form = useContext(FormContext);
-  if (!form) return <div className={className} style={style}>{children}</div>;
 
   // register/unregister
   React.useEffect(() => {
-    if (!name) return;
+    if (!form || !name) return;
     const r = [...(rules || [])];
     if (required) r.unshift({ required: true });
     form.register(name, { rules: r, valuePropName, validateTrigger });
@@ -244,13 +249,13 @@ function FormItem({
   const hasErr = !!(errs && errs.length > 0);
 
   const child = children as React.ReactElement | undefined;
-  const childProps: Record<string, any> = {};
+  const childProps: Record<string, unknown> = {};
 
   if (name && child) {
     childProps[valuePropName] = val;
 
-    const origin = (child.props as any)[trigger];
-    childProps[trigger] = (...args: any[]) => {
+    const origin = (child.props as Record<string, unknown>)[trigger] as ((...a: unknown[]) => void) | undefined;
+    (childProps as Record<string, unknown>)[trigger] = (...args: unknown[]) => {
       if (origin) origin(...args);
       let v = getValueFromEvent ? getValueFromEvent(...args) : defaultGetValueFromEvent(valuePropName, ...args);
       if (normalize) v = normalize(v, form.values);
@@ -258,8 +263,8 @@ function FormItem({
     };
 
     // blur validation
-    const originBlur = (child.props as any).onBlur;
-    childProps.onBlur = (...args: any[]) => {
+    const originBlur = (child.props as Record<string, unknown>).onBlur as ((...a: unknown[]) => void) | undefined;
+    (childProps as Record<string, unknown>).onBlur = (...args: unknown[]) => {
       if (originBlur) originBlur(...args);
       if (Array.isArray(validateTrigger) ? validateTrigger.includes('blur') : validateTrigger === 'blur') {
         if (name) form.validateField(name);
@@ -267,8 +272,9 @@ function FormItem({
     };
   }
 
+  if (!form) return <div className={className} style={style}>{children}</div>;
   const isHorizontal = form.layout === 'horizontal';
-  const showColon = typeof colon === 'boolean' ? colon : (form as any).colon !== false;
+  const showColon = typeof colon === 'boolean' ? colon : form.colon !== false;
   const renderLabel = () => {
     if (!label) return null;
     const txt = typeof label === 'string' ? label : label;

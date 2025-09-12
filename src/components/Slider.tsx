@@ -11,7 +11,7 @@ type Props = React.InputHTMLAttributes<HTMLInputElement> & {
 
 export default function Slider({ label, helper, className = '', showValue = true, disabled, ...props }: Props) {
   const id = useId();
-  const { value, defaultValue, min = 0, max = 100 } = props as any;
+  const { value, defaultValue, min = 0, max = 100 } = props;
   const val = typeof value !== 'undefined' ? Number(value) : typeof defaultValue !== 'undefined' ? Number(defaultValue) : undefined;
   const pct = typeof val === 'number' ? ((val - Number(min)) / (Number(max) - Number(min))) * 100 : 0;
 
