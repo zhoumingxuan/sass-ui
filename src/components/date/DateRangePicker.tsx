@@ -45,7 +45,6 @@ export default function DateRangePicker({
   disabledWeekdays = [],
   disabledBefore,
   disabledAfter,
-  requireConfirm = true,
   shortcutRequireConfirm,
   showThisMonthShortcut = true,
   onChange,
@@ -74,16 +73,18 @@ export default function DateRangePicker({
   const [draftStartInput, setDraftStartInput] = useState<string>('');
   const [draftEndInput, setDraftEndInput] = useState<string>('');
 
-  const shortcutsNeedConfirm = typeof shortcutRequireConfirm === 'boolean' ? shortcutRequireConfirm : requireConfirm;
+  // With no Confirm/Cancel buttons, shortcuts should commit immediately by default
+  const shortcutsNeedConfirm = typeof shortcutRequireConfirm === 'boolean' ? shortcutRequireConfirm : false;
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
       if (!pop.current || !anchor.current) return;
       if (pop.current.contains(e.target as Node) || anchor.current.contains(e.target as Node)) return;
-      setOpen(false);
+      // Outside click: auto-submit current draft instead of just closing
+      doConfirm();
     };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
+    document.addEventListener('click', onDoc);
+    return () => document.removeEventListener('click', onDoc);
   }, []);
 
   const openPanel = (focus: 'start'|'end') => {
@@ -95,8 +96,18 @@ export default function DateRangePicker({
     setDraftStartInput(sv || '');
     setDraftEndInput(ev || '');
     
-    setLeft(startOfMonth(today));
-    setRight(addMonths(startOfMonth(today), 1));
+    // Anchor panels to the relevant month and keep panels adjacent
+    if (focus === 'start') {
+      const base = ps || pe || today;
+      const lm = startOfMonth(base);
+      setLeft(lm);
+      setRight(addMonths(lm, 1));
+    } else {
+      const base = pe || ps || today;
+      const rm = startOfMonth(base);
+      setRight(rm);
+      setLeft(addMonths(rm, -1));
+    }
     setFocusDate(focus === 'start' ? (ps || (sv ? parseDateStrict(sv) : undefined) || new Date()) : (pe || (ev ? parseDateStrict(ev) : undefined) || new Date()));
     setHoverDate(undefined);
     setOpen(true);
@@ -147,13 +158,54 @@ export default function DateRangePicker({
   const doConfirm = () => {
     const ps = draftStartInput.trim();
     const pe = draftEndInput.trim();
-    const sd = ps ? parseDateStrict(ps) : undefined;
-    const ed = pe ? parseDateStrict(pe) : undefined;
-    const outS = sd ? formatISO(sd) : undefined;
-    const outE = ed ? formatISO(ed) : undefined;
-    if (!isControlled) { setS(outS); setE(outE); }
-    onChange?.(outS, outE);
+    // Prefer parsed input; fall back to draft selections
+    const sd = ps ? parseDateStrict(ps) : (draftStart || undefined);
+    const ed = pe ? parseDateStrict(pe) : (draftEnd || undefined);
+
+    const isInvalidBase = (d?: Date) => !d || isDisabledBase(d);
+    const withinOrderForStart = (d?: Date) => {
+      if (!d) return false;
+      if (ed) return d <= endOfDay(ed);
+      return true;
+    };
+    const withinOrderForEnd = (d?: Date) => {
+      if (!d) return false;
+      if (sd) return d >= startOfDay(sd);
+      return true;
+    };
+
+    const nextS = (!isInvalidBase(sd) && withinOrderForStart(sd)) ? formatISO(sd!) : sv;
+    const nextE = (!isInvalidBase(ed) && withinOrderForEnd(ed)) ? formatISO(ed!) : ev;
+
+    if (!isControlled) { setS(nextS); setE(nextE); }
+    onChange?.(nextS, nextE);
     setOpen(false);
+  };
+
+  // Commit on input blur only when leaving the whole widget; clear only invalid input
+  const handleInputBlur = (side: 'start'|'end') => (e: React.FocusEvent<HTMLInputElement>) => {
+    const nextTarget = e.relatedTarget as Node | null;
+    if (nextTarget && (anchor.current?.contains(nextTarget) || pop.current?.contains(nextTarget))) return;
+    const raw = e.currentTarget.value;
+    const val = (raw ?? '').trim();
+    const d = val ? parseDateStrict(val) : undefined;
+    const invalid = side === 'start' ? (!d || isDisabledStartPick(d!)) : (!d || isDisabledEndPick(d!));
+    if (invalid) {
+      if (side === 'start') {
+        if (!isControlled) { setS(undefined); }
+        onChange?.(undefined, ev);
+        setDraftStart(undefined); setDraftStartInput('');
+      } else {
+        if (!isControlled) { setE(undefined); }
+        onChange?.(sv, undefined);
+        setDraftEnd(undefined); setDraftEndInput('');
+      }
+      setOpen(false);
+      return;
+    }
+    if (side === 'start') { setDraftStart(d!); setDraftStartInput(formatISO(d!)); }
+    else { setDraftEnd(d!); setDraftEndInput(formatISO(d!)); }
+    doConfirm();
   };
 
   const doClear = () => {
@@ -168,12 +220,14 @@ export default function DateRangePicker({
     const pick = new Date(d.getFullYear(), d.getMonth(), d.getDate());
     setDraftStart(pick);
     setDraftStartInput(formatISO(pick));
+    if (draftEnd) { doConfirm(); }
   };
   const selectEnd = (d: Date) => {
     if (isDisabledEndPick(d)) return;
     const pick = new Date(d.getFullYear(), d.getMonth(), d.getDate());
     setDraftEnd(pick);
     setDraftEndInput(formatISO(pick));
+    if (draftStart) { doConfirm(); }
   };
   // 键盘选中：依赖当前 active 面板
   const select = (d: Date) => {
@@ -199,40 +253,22 @@ export default function DateRangePicker({
       setActive('start');
       setDraftStart(d);
       const nm = startOfMonth(d);
-      setLeft(nm); setRight(addMonths(nm, 1));
+      // Only adjust the left panel to the typed month; do not touch right panel
+      setLeft(nm);
       setFocusDate(d);
       setDraftStartInput(formatISO(d));
     } else {
       setActive('end');
       setDraftEnd(d);
       const nm = startOfMonth(d);
-      setRight(nm); setLeft(addMonths(nm, -1));
+      // Only adjust the right panel to the typed month; do not touch left panel
+      setRight(nm);
       setFocusDate(d);
       setDraftEndInput(formatISO(d));
     }
   };
 
-  // Auto submit on blur if format valid; otherwise clear that side without warning
-  const handleBlur = (side: 'start'|'end', raw: string) => {
-    const val = (raw ?? '').trim();
-    const commitPair = (ns?: string, ne?: string) => {
-      if (!isControlled) { setS(ns); setE(ne); }
-      onChange?.(ns, ne);
-    };
-    if (side === 'start') {
-      if (!val) { setDraftStart(undefined); setDraftStartInput(''); commitPair(undefined, ev); return; }
-      const d = parseDateStrict(val);
-      if (!d || isDisabledStartPick(d)) { setDraftStart(undefined); setDraftStartInput(''); commitPair(undefined, ev); return; }
-      setDraftStart(d); setDraftStartInput(formatISO(d));
-      commitPair(formatISO(d), ev);
-    } else {
-      if (!val) { setDraftEnd(undefined); setDraftEndInput(''); commitPair(sv, undefined); return; }
-      const d = parseDateStrict(val);
-      if (!d || isDisabledEndPick(d)) { setDraftEnd(undefined); setDraftEndInput(''); commitPair(sv, undefined); return; }
-      setDraftEnd(d); setDraftEndInput(formatISO(d));
-      commitPair(sv, formatISO(d));
-    }
-  };
+  // (removed legacy handleBlur; using handleInputBlur instead)
 
   return (
     <label className="block">
@@ -248,7 +284,7 @@ export default function DateRangePicker({
               onClick={() => openPanel('start')}
               onChange={(e) => { applyTyped('start', e.target.value); }}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); doConfirm(); } }}
-              onBlur={(e) => { handleBlur('start', e.target.value); }}
+              onBlur={handleInputBlur('start')}
               className={`${inputBase} text-left pr-10 leading-none flex items-center h-10 ${active === 'start' ? 'ring-2 ring-primary/60 border-transparent' : ''} ${(open ? !draftStartInput : !sv) ? 'text-gray-400' : 'text-gray-700'}`}
             />
             <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><CalendarIcon size={18} aria-hidden /></span>
@@ -263,7 +299,7 @@ export default function DateRangePicker({
               onClick={() => openPanel('end')}
               onChange={(e) => { applyTyped('end', e.target.value); }}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); doConfirm(); } }}
-              onBlur={(e) => { handleBlur('end', e.target.value); }}
+              onBlur={handleInputBlur('end')}
               className={`${inputBase} text-left pr-10 leading-none flex items-center h-10 ${active === 'end' ? 'ring-2 ring-primary/60 border-transparent' : ''} ${(open ? !draftEndInput : !ev) ? 'text-gray-400' : 'text-gray-700'}`}
             />
             <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><CalendarIcon size={18} aria-hidden /></span>
@@ -357,13 +393,7 @@ export default function DateRangePicker({
                 }}>昨天</button>
               </div>
               <div className="flex items-center gap-2">
-                {requireConfirm && (
-                  <>
-                    <button type="button" className="h-8 rounded-md border border-gray-200 px-3 text-sm text-gray-700 hover:bg-gray-50" onClick={doClear}>清除</button>
-                    <button type="button" className="h-8 rounded-md border border-gray-200 px-3 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setOpen(false)}>取消</button>
-                    <button type="button" className={`h-8 rounded-md px-3 text-sm text-white bg-primary hover:bg-primary/90`} onClick={doConfirm}>确定</button>
-                  </>
-                )}
+                <button type="button" className="h-8 rounded-md border border-gray-200 px-3 text-sm text-gray-700 hover:bg-gray-50" onClick={doClear}>清除</button>
               </div>
             </div>
           </div>
