@@ -120,12 +120,10 @@ export default function DateRangePicker({
         const base = ps || pe || today;
         const lm = startOfMonth(base);
         setLeft(lm);
-        setRight(addMonths(lm, 1));
       } else {
         const base = pe || ps || today;
         const rm = startOfMonth(base);
         setRight(rm);
-        setLeft(addMonths(rm, -1));
       }
       setFocusDate(focus === 'start' ? (ps || new Date()) : (pe || new Date()));
       setHoverDate(undefined);
@@ -347,11 +345,11 @@ export default function DateRangePicker({
                 if (active === 'start') {
                   const leftStart = startOfMonth(left);
                   const rightEnd = endOfMonth(right);
-                  if (next < leftStart || next > rightEnd) { setLeft(nm); setRight(addMonths(nm, 1)); }
+                  if (next < leftStart || next > rightEnd) { setLeft(nm); }
                 } else {
                   const leftStart = startOfMonth(left);
                   const rightEnd = endOfMonth(right);
-                  if (next < leftStart || next > rightEnd) { setRight(nm); setLeft(addMonths(nm, -1)); }
+                  if (next < leftStart || next > rightEnd) { setRight(nm); }
                 }
               };
               const move = (n: number) => {
