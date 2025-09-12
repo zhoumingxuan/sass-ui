@@ -257,7 +257,18 @@ export default function DateRangePicker({
     }
   };
 
-  
+  // 根据当前焦点侧，计算“今天/昨天”按钮是否可用（不可用则禁用置灰）
+  const nowForBtns = new Date();
+  const todayDay = new Date(nowForBtns.getFullYear(), nowForBtns.getMonth(), nowForBtns.getDate());
+  const yForBtns = new Date(nowForBtns);
+  yForBtns.setDate(yForBtns.getDate() - 1);
+  const yesterdayDay = new Date(yForBtns.getFullYear(), yForBtns.getMonth(), yForBtns.getDate());
+  const canPickToday = focused === 'start' ? !isDisabledStartPick(todayDay)
+                     : focused === 'end' ? !isDisabledEndPick(todayDay)
+                     : true;
+  const canPickYesterday = focused === 'start' ? !isDisabledStartPick(yesterdayDay)
+                        : focused === 'end' ? !isDisabledEndPick(yesterdayDay)
+                        : true;
 
   return (
     <label className="block">
@@ -452,7 +463,7 @@ export default function DateRangePicker({
 
             <div className="flex items-center justify-between px-1 pt-1">
               <div className="flex gap-2">
-                <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => {
+                <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed" disabled={!canPickToday} onClick={() => {
                   const d = new Date(); const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
                   if (focused === 'start') {
                     if (isDisabledStartPick(day)) return;
@@ -474,7 +485,7 @@ export default function DateRangePicker({
                     }
                   }
                 }}>今天</button>
-                <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => {
+                <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed" disabled={!canPickYesterday} onClick={() => {
                   const d = new Date(); d.setDate(d.getDate() - 1); const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
                   if (focused === 'start') {
                     if (isDisabledStartPick(day)) return;
