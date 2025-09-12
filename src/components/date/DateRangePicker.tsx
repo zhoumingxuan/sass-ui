@@ -65,6 +65,7 @@ export default function DateRangePicker({
   const pop = useRef<HTMLDivElement>(null);
   const anchor = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState<'start'|'end'|'auto'>('auto');
+  const [focused, setFocused] = useState<'start'|'end'|undefined>(undefined);
 
   
 
@@ -104,6 +105,7 @@ export default function DateRangePicker({
   }, [draftStartInput, draftEndInput, draftStart, draftEnd, sv, ev, isControlled, onChange]);
 
   const openPanel = (focus: 'start'|'end') => {
+    setFocused(focus);
     setActive(focus);
     const ps = sv ? parseDateStrict(sv) : undefined;
     const pe = ev ? parseDateStrict(ev) : undefined;
@@ -204,7 +206,6 @@ export default function DateRangePicker({
     }
   };
   const selectEnd = (d: Date) => {
-    console.log("Select End:",d);
     if (isDisabledEndPick(d)) return;
     const pick = new Date(d.getFullYear(), d.getMonth(), d.getDate());
     setDraftEnd(pick);
@@ -453,22 +454,46 @@ export default function DateRangePicker({
               <div className="flex gap-2">
                 <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => {
                   const d = new Date(); const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-                  if (active === 'end') {
+                  if (focused === 'start') {
+                    if (isDisabledStartPick(day)) return;
+                    setDraftStart(day); setDraftStartInput(formatISO(day));
+                    const leftM = startOfMonth(day); setLeft(leftM);
+                  } else if (focused === 'end') {
+                    if (isDisabledEndPick(day)) return;
                     setDraftEnd(day); setDraftEndInput(formatISO(day));
                     const rightM = startOfMonth(day); setRight(rightM);
                   } else {
-                    setDraftStart(day); setDraftStartInput(formatISO(day));
-                    const leftM = startOfMonth(day); setLeft(leftM);
+                    if (active === 'end') {
+                      if (isDisabledEndPick(day)) return;
+                      setDraftEnd(day); setDraftEndInput(formatISO(day));
+                      const rightM = startOfMonth(day); setRight(rightM);
+                    } else {
+                      if (isDisabledStartPick(day)) return;
+                      setDraftStart(day); setDraftStartInput(formatISO(day));
+                      const leftM = startOfMonth(day); setLeft(leftM);
+                    }
                   }
                 }}>今天</button>
                 <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => {
                   const d = new Date(); d.setDate(d.getDate() - 1); const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-                  if (active === 'end') {
+                  if (focused === 'start') {
+                    if (isDisabledStartPick(day)) return;
+                    setDraftStart(day); setDraftStartInput(formatISO(day));
+                    const leftM = startOfMonth(day); setLeft(leftM);
+                  } else if (focused === 'end') {
+                    if (isDisabledEndPick(day)) return;
                     setDraftEnd(day); setDraftEndInput(formatISO(day));
                     const rightM = startOfMonth(day); setRight(rightM);
                   } else {
-                    setDraftStart(day); setDraftStartInput(formatISO(day));
-                    const leftM = startOfMonth(day); setLeft(leftM);
+                    if (active === 'end') {
+                      if (isDisabledEndPick(day)) return;
+                      setDraftEnd(day); setDraftEndInput(formatISO(day));
+                      const rightM = startOfMonth(day); setRight(rightM);
+                    } else {
+                      if (isDisabledStartPick(day)) return;
+                      setDraftStart(day); setDraftStartInput(formatISO(day));
+                      const leftM = startOfMonth(day); setLeft(leftM);
+                    }
                   }
                 }}>昨天</button>
               </div>
