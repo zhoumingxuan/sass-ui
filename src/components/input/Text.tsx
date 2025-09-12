@@ -16,7 +16,7 @@ type Props = InputHTMLAttributes<HTMLInputElement> & {
 export default function Text({ label, helper, prefix, suffix, clearable = false, status, className = "", onChange, ...props }: Props) {
   const id = useId();
   const isControlled = Object.prototype.hasOwnProperty.call(props, "value");
-  const [internal, setInternal] = useState("");
+  const [internal, setInternal] = useState(() => (props as any).defaultValue ?? "");
   const val = (isControlled ? (props.value as any) : internal) as any;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

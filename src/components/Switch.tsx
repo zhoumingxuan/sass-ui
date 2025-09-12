@@ -6,11 +6,15 @@ import { controlRing, controlDisabled, fieldLabel, helperText } from './formStyl
 type Size = 'small' | 'medium' | 'large';
 
 type SwitchProps = {
+  // legacy props
   checked?: boolean;
   defaultChecked?: boolean;
+  // form-friendly props
+  value?: boolean;
+  defaultValue?: boolean;
   onChange?: (checked: boolean) => void;
   name?: string;
-  value?: string;
+  inputValue?: string; // hidden input value when on
   disabled?: boolean;
   label?: string;
   description?: string;
@@ -21,9 +25,11 @@ type SwitchProps = {
 export default function Switch({
   checked,
   defaultChecked,
+  value,
+  defaultValue,
   onChange,
   name,
-  value = 'on',
+  inputValue = 'on',
   disabled,
   label,
   description,
@@ -31,9 +37,11 @@ export default function Switch({
   className = '',
 }: SwitchProps) {
   const id = useId();
-  const [internal, setInternal] = useState<boolean>(!!defaultChecked);
-  const isControlled = typeof checked === 'boolean';
-  const isOn = isControlled ? !!checked : internal;
+  const [internal, setInternal] = useState<boolean>(
+    typeof defaultChecked === 'boolean' ? !!defaultChecked : !!defaultValue
+  );
+  const isControlled = typeof checked === 'boolean' || typeof value === 'boolean';
+  const isOn = isControlled ? (typeof checked === 'boolean' ? !!checked : !!value) : internal;
 
   const sizes: Record<Size, { track: string; thumbSize: string; thumbTranslate: string }>
     = {
@@ -84,7 +92,7 @@ export default function Switch({
         )}
       </div>
       {name && (
-        <input type="hidden" name={name} value={isOn ? value : ''} />
+        <input type="hidden" name={name} value={isOn ? inputValue : ''} />
       )}
       {/* helper text slot */}
     </div>

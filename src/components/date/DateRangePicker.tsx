@@ -11,10 +11,14 @@ type DisabledRange = { start: string | Date; end: string | Date; reason?: string
 type Props = {
   label?: string;
   helper?: string;
+  // legacy single props (kept for compatibility)
   start?: string;
   end?: string;
   defaultStart?: string;
   defaultEnd?: string;
+  // form-friendly tuple props
+  value?: [string | undefined, string | undefined];
+  defaultValue?: [string | undefined, string | undefined];
   min?: string;
   max?: string;
   disabledDate?: (d: Date) => boolean;
@@ -23,10 +27,9 @@ type Props = {
   disabledWeekdays?: number[];
   disabledBefore?: string | Date;
   disabledAfter?: string | Date;
-  requireConfirm?: boolean;
   shortcutRequireConfirm?: boolean;
   showThisMonthShortcut?: boolean;
-  onChange?: (start?: string, end?: string) => void;
+  onChange?: ((start?: string, end?: string) => void) | ((value: [string | undefined, string | undefined]) => void);
   className?: string;
 };
 
@@ -37,6 +40,8 @@ export default function DateRangePicker({
   end,
   defaultStart,
   defaultEnd,
+  value,
+  defaultValue,
   min,
   max,
   disabledDate,
@@ -50,11 +55,13 @@ export default function DateRangePicker({
   onChange,
   className = '',
 }: Props) {
-  const isControlled = typeof start !== 'undefined' || typeof end !== 'undefined';
-  const [s, setS] = useState<string | undefined>(defaultStart);
-  const [e, setE] = useState<string | undefined>(defaultEnd);
-  const sv = isControlled ? start : s;
-  const ev = isControlled ? end : e;
+  const tupleControlled = Array.isArray(value);
+  const legacyControlled = typeof start !== 'undefined' || typeof end !== 'undefined';
+  const isControlled = tupleControlled || legacyControlled;
+  const [s, setS] = useState<string | undefined>(typeof defaultValue !== 'undefined' ? defaultValue?.[0] : defaultStart);
+  const [e, setE] = useState<string | undefined>(typeof defaultValue !== 'undefined' ? defaultValue?.[1] : defaultEnd);
+  const sv = tupleControlled ? value?.[0] : legacyControlled ? start : s;
+  const ev = tupleControlled ? value?.[1] : legacyControlled ? end : e;
 
   const today = useMemo(() => new Date(), []);
   const [open, setOpen] = useState(false);
@@ -67,21 +74,19 @@ export default function DateRangePicker({
   const [active, setActive] = useState<'start'|'end'|'auto'>('auto');
   const [focused, setFocused] = useState<'start'|'end'|undefined>(undefined);
 
-  
-
   const [draftStart, setDraftStart] = useState<Date | undefined>(undefined);
   const [draftEnd, setDraftEnd] = useState<Date | undefined>(undefined);
   const [draftStartInput, setDraftStartInput] = useState<string>('');
   const [draftEndInput, setDraftEndInput] = useState<string>('');
 
-  // With no Confirm/Cancel buttons, shortcuts should commit immediately by default
+  const emit = (a?: string, b?: string) => { if (onChange) { (onChange as any)(a, b); (onChange as any)([a, b]); } };
   const shortcutsNeedConfirm = typeof shortcutRequireConfirm === 'boolean' ? shortcutRequireConfirm : false;
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
       if (!pop.current || !anchor.current) return;
       if (pop.current.contains(e.target as Node) || anchor.current.contains(e.target as Node)) return;
-      // Outside click: commit drafts (clear only invalid typed side)
+      // commit drafts or keep previous
       const ps = draftStartInput.trim();
       const pe = draftEndInput.trim();
       const typedS = ps ? parseDateStrict(ps) : undefined;
@@ -97,11 +102,11 @@ export default function DateRangePicker({
       else if (draftEnd) { finalE = formatISO(draftEnd); }
       else { finalE = ev; }
       if (!isControlled) { setS(finalS); setE(finalE); }
-      onChange?.(finalS, finalE);
+      emit(finalS, finalE);
       setOpen(false);
     };
-    document.addEventListener('click', onDoc);
-    return () => document.removeEventListener('click', onDoc);
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
   }, [draftStartInput, draftEndInput, draftStart, draftEnd, sv, ev, isControlled, onChange]);
 
   const openPanel = (focus: 'start'|'end') => {
@@ -111,27 +116,24 @@ export default function DateRangePicker({
     const pe = ev ? parseDateStrict(ev) : undefined;
 
     if (!open) {
-      // initialize drafts from committed values on first open
       setDraftStart(ps);
       setDraftEnd(pe);
       setDraftStartInput(sv || '');
       setDraftEndInput(ev || '');
 
-      // Anchor panels to the relevant month and keep panels adjacent
       if (focus === 'start') {
         const base = ps || pe || today;
         const lm = startOfMonth(base);
         setLeft(lm);
+        setRight(addMonths(lm, 1));
       } else {
         const base = pe || ps || today;
         const rm = startOfMonth(base);
         setRight(rm);
+        setLeft(addMonths(rm, -1));
       }
-      setFocusDate(focus === 'start' ? (ps || new Date()) : (pe || new Date()));
-      setHoverDate(undefined);
       setOpen(true);
     } else {
-      // keep current drafts/months; only update focus date hint
       if (focus === 'start') setFocusDate(draftStart || ps || new Date());
       else setFocusDate(draftEnd || pe || new Date());
     }
@@ -167,7 +169,6 @@ export default function DateRangePicker({
     if (inDisabledRanges(d)) return true;
     return false;
   };
-  // 左（开始）与右（结束）各自的禁用规则
   const isDisabledStartPick = (d: Date) => {
     if (isDisabledBase(d)) return true;
     if (draftEnd) return d > endOfDay(draftEnd);
@@ -179,13 +180,9 @@ export default function DateRangePicker({
     return false;
   };
 
-
-  // Commit on input blur only when leaving the whole widget; clear only invalid input
-  // removed legacy handleInputBlur (no longer used)
-
   const doClear = () => {
     if (!isControlled) { setS(undefined); setE(undefined); }
-    onChange?.(undefined, undefined);
+    emit(undefined, undefined);
     setDraftStart(undefined); setDraftEnd(undefined); setDraftStartInput(''); setDraftEndInput('');
     setOpen(false);
   };
@@ -195,13 +192,12 @@ export default function DateRangePicker({
     const pick = new Date(d.getFullYear(), d.getMonth(), d.getDate());
     setDraftStart(pick);
     setDraftStartInput(formatISO(pick));
-    // switch to picking end
     setActive('end');
     if (draftEnd) {
       const outS = formatISO(pick);
       const outE = formatISO(draftEnd);
       if (!isControlled) { setS(outS); setE(outE); }
-      onChange?.(outS, outE);
+      emit(outS, outE);
       setOpen(false);
     }
   };
@@ -214,17 +210,15 @@ export default function DateRangePicker({
       const outS = formatISO(draftStart);
       const outE = formatISO(pick);
       if (!isControlled) { setS(outS); setE(outE); }
-      onChange?.(outS, outE);
+      emit(outS, outE);
       setOpen(false);
     }
   };
-  // 键盘选中：依赖当前 active 面板
   const select = (d: Date) => {
     if (active === 'start') return selectStart(d);
     if (active === 'end') return selectEnd(d);
   };
 
-  // When user types a valid date/time, auto-select and sync panel
   const applyTyped = (side: 'start'|'end', raw: string) => {
     const val = raw.trim();
     if (side === 'start') setDraftStartInput(raw);
@@ -235,40 +229,32 @@ export default function DateRangePicker({
       return;
     }
     const d = parseDateStrict(val);
-    if (!d) return; // not a valid date format we accept
+    if (!d) return;
     const canUse = side === 'start' ? !isDisabledStartPick(d) : !isDisabledEndPick(d);
     if (!canUse) return;
     if (side === 'start') {
       setActive('start');
       setDraftStart(d);
       const nm = startOfMonth(d);
-      // Only adjust the left panel to the typed month; do not touch right panel
-      setLeft(nm);
+      setLeft(nm); setRight(addMonths(nm, 1));
       setFocusDate(d);
       setDraftStartInput(formatISO(d));
     } else {
       setActive('end');
       setDraftEnd(d);
       const nm = startOfMonth(d);
-      // Only adjust the right panel to the typed month; do not touch left panel
-      setRight(nm);
+      setRight(nm); setLeft(addMonths(nm, -1));
       setFocusDate(d);
       setDraftEndInput(formatISO(d));
     }
   };
 
-  // 根据当前焦点侧，计算“今天/昨天”按钮是否可用（不可用则禁用置灰）
-  const nowForBtns = new Date();
-  const todayDay = new Date(nowForBtns.getFullYear(), nowForBtns.getMonth(), nowForBtns.getDate());
-  const yForBtns = new Date(nowForBtns);
+  const yForBtns = new Date();
+  const todayDay = new Date(yForBtns.getFullYear(), yForBtns.getMonth(), yForBtns.getDate());
   yForBtns.setDate(yForBtns.getDate() - 1);
   const yesterdayDay = new Date(yForBtns.getFullYear(), yForBtns.getMonth(), yForBtns.getDate());
-  const canPickToday = focused === 'start' ? !isDisabledStartPick(todayDay)
-                     : focused === 'end' ? !isDisabledEndPick(todayDay)
-                     : true;
-  const canPickYesterday = focused === 'start' ? !isDisabledStartPick(yesterdayDay)
-                        : focused === 'end' ? !isDisabledEndPick(yesterdayDay)
-                        : true;
+  const canPickToday = focused === 'start' ? !isDisabledStartPick(todayDay) : focused === 'end' ? !isDisabledEndPick(todayDay) : true;
+  const canPickYesterday = focused === 'start' ? !isDisabledStartPick(yesterdayDay) : focused === 'end' ? !isDisabledEndPick(yesterdayDay) : true;
 
   return (
     <label className="block">
@@ -301,7 +287,7 @@ export default function DateRangePicker({
                   else if (draftEnd) { finalE = formatISO(draftEnd); }
                   else { finalE = ev; }
                   if (!isControlled) { setS(finalS); setE(finalE); }
-                  onChange?.(finalS, finalE);
+                  emit(finalS, finalE);
                   setOpen(false);
                 }
               }}
@@ -336,7 +322,7 @@ export default function DateRangePicker({
                   else if (draftEnd) { finalE = formatISO(draftEnd); }
                   else { finalE = ev; }
                   if (!isControlled) { setS(finalS); setE(finalE); }
-                  onChange?.(finalS, finalE);
+                  emit(finalS, finalE);
                   setOpen(false);
                 }
               }}
@@ -357,11 +343,11 @@ export default function DateRangePicker({
                 if (active === 'start') {
                   const leftStart = startOfMonth(left);
                   const rightEnd = endOfMonth(right);
-                  if (next < leftStart || next > rightEnd) { setLeft(nm); }
+                  if (next < leftStart || next > rightEnd) { setLeft(nm); setRight(addMonths(nm, 1)); }
                 } else {
                   const leftStart = startOfMonth(left);
                   const rightEnd = endOfMonth(right);
-                  if (next < leftStart || next > rightEnd) { setRight(nm); }
+                  if (next < leftStart || next > rightEnd) { setRight(nm); setLeft(addMonths(nm, -1)); }
                 }
               };
               const move = (n: number) => {
@@ -380,18 +366,15 @@ export default function DateRangePicker({
             }}>
               <Calendar
                 month={left}
-                rangeStart={draftStart}
-                rangeEnd={draftEnd}
+                value={draftStart}
                 min={minD}
                 max={maxD}
                 disabledDate={isDisabledStartPick}
                 hoverDate={hoverDate}
                 onHoverDate={setHoverDate}
                 onMonthChange={(m) => {
-                  // Keep panels adjacent and mark active side
                   setLeft(m);
                   setActive('start');
-                  // Try to pick a sensible day in this month for start
                   const y = m.getFullYear();
                   const mon = m.getMonth();
                   const baseDay = draftStart ? draftStart.getDate() : 1;
@@ -420,18 +403,15 @@ export default function DateRangePicker({
               />
               <Calendar
                 month={right}
-                rangeStart={draftStart}
-                rangeEnd={draftEnd}
+                value={draftEnd}
                 min={minD}
                 max={maxD}
                 disabledDate={isDisabledEndPick}
                 hoverDate={hoverDate}
                 onHoverDate={setHoverDate}
                 onMonthChange={(m) => {
-                  // Keep panels adjacent and mark active side
                   setRight(m);
                   setActive('end');
-                  // Try to pick a sensible day in this month for end
                   const y = m.getFullYear();
                   const mon = m.getMonth();
                   const baseDay = draftEnd ? draftEnd.getDate() : 1;
@@ -460,7 +440,6 @@ export default function DateRangePicker({
               />
             </div>
 
-
             <div className="flex items-center justify-between px-1 pt-1">
               <div className="flex gap-2">
                 <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed" disabled={!canPickToday} onClick={() => {
@@ -468,20 +447,20 @@ export default function DateRangePicker({
                   if (focused === 'start') {
                     if (isDisabledStartPick(day)) return;
                     setDraftStart(day); setDraftStartInput(formatISO(day));
-                    const leftM = startOfMonth(day); setLeft(leftM);
+                    const leftM = startOfMonth(day); setLeft(leftM); setRight(addMonths(leftM, 1));
                   } else if (focused === 'end') {
                     if (isDisabledEndPick(day)) return;
                     setDraftEnd(day); setDraftEndInput(formatISO(day));
-                    const rightM = startOfMonth(day); setRight(rightM);
+                    const rightM = startOfMonth(day); setRight(rightM); setLeft(addMonths(rightM, -1));
                   } else {
                     if (active === 'end') {
                       if (isDisabledEndPick(day)) return;
                       setDraftEnd(day); setDraftEndInput(formatISO(day));
-                      const rightM = startOfMonth(day); setRight(rightM);
+                      const rightM = startOfMonth(day); setRight(rightM); setLeft(addMonths(rightM, -1));
                     } else {
                       if (isDisabledStartPick(day)) return;
                       setDraftStart(day); setDraftStartInput(formatISO(day));
-                      const leftM = startOfMonth(day); setLeft(leftM);
+                      const leftM = startOfMonth(day); setLeft(leftM); setRight(addMonths(leftM, 1));
                     }
                   }
                 }}>今天</button>
@@ -490,20 +469,20 @@ export default function DateRangePicker({
                   if (focused === 'start') {
                     if (isDisabledStartPick(day)) return;
                     setDraftStart(day); setDraftStartInput(formatISO(day));
-                    const leftM = startOfMonth(day); setLeft(leftM);
+                    const leftM = startOfMonth(day); setLeft(leftM); setRight(addMonths(leftM, 1));
                   } else if (focused === 'end') {
                     if (isDisabledEndPick(day)) return;
                     setDraftEnd(day); setDraftEndInput(formatISO(day));
-                    const rightM = startOfMonth(day); setRight(rightM);
+                    const rightM = startOfMonth(day); setRight(rightM); setLeft(addMonths(rightM, -1));
                   } else {
                     if (active === 'end') {
                       if (isDisabledEndPick(day)) return;
                       setDraftEnd(day); setDraftEndInput(formatISO(day));
-                      const rightM = startOfMonth(day); setRight(rightM);
+                      const rightM = startOfMonth(day); setRight(rightM); setLeft(addMonths(rightM, -1));
                     } else {
                       if (isDisabledStartPick(day)) return;
                       setDraftStart(day); setDraftStartInput(formatISO(day));
-                      const leftM = startOfMonth(day); setLeft(leftM);
+                      const leftM = startOfMonth(day); setLeft(leftM); setRight(addMonths(leftM, 1));
                     }
                   }
                 }}>昨天</button>
@@ -519,3 +498,4 @@ export default function DateRangePicker({
     </label>
   );
 }
+

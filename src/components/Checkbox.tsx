@@ -62,8 +62,10 @@ export function Checkbox({ label, description, indeterminate, className = '', di
 
 type CheckboxGroupProps = {
   name?: string;
-  values?: string[];
-  defaultValues?: string[];
+  values?: string[]; // legacy
+  defaultValues?: string[]; // legacy
+  value?: string[]; // form-friendly alias
+  defaultValue?: string[]; // form-friendly alias
   onChange?: (values: string[]) => void;
   options?: CheckboxOption[];
   label?: string;
@@ -77,6 +79,8 @@ export function CheckboxGroup({
   name,
   values,
   defaultValues,
+  value,
+  defaultValue,
   onChange,
   options,
   label,
@@ -85,8 +89,10 @@ export function CheckboxGroup({
   className = '',
   inline = false,
 }: CheckboxGroupProps) {
-  const isControlled = Array.isArray(values);
-  const current = isControlled ? values! : defaultValues ?? [];
+  const nextValues = typeof value !== 'undefined' ? value : values;
+  const nextDefault = typeof defaultValue !== 'undefined' ? defaultValue : defaultValues;
+  const isControlled = Array.isArray(nextValues);
+  const current = isControlled ? (nextValues as string[]) : nextDefault ?? [];
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
