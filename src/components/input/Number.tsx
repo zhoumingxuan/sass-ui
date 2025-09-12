@@ -17,7 +17,7 @@ type Props = Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "value" | 
   status?: Status;
 };
 
-export default function Number({ label, helper, className = "", value, defaultValue, step = 1, min, max, precision, onChange, status, ...props }: Props) {
+export default function NumberInput({ label, helper, className = "", value, defaultValue, step = 1, min, max, precision, onChange, status, ...props }: Props) {
   const id = useId();
   const isControlled = typeof value === "number" || value === null;
   const [internal, setInternal] = useState<number | null>(typeof defaultValue === "number" ? defaultValue : null);

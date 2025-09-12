@@ -6,7 +6,7 @@ export { default as DateInput } from './date/DatePicker';
 export { default as DateRangeInput } from './date/DateRangePicker';
 
 // Aggregated Input namespace (Ant Design-like)
-import * as InputNs from './input';
+import * as InputNs from './input/index';
 import DatePicker from './date/DatePicker';
 import DateRangePicker from './date/DateRangePicker';
 import TextArea from './TextArea';

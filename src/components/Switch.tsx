@@ -14,7 +14,6 @@ type SwitchProps = {
   defaultValue?: boolean;
   onChange?: (checked: boolean) => void;
   name?: string;
-  inputValue?: string; // hidden input value when on
   disabled?: boolean;
   label?: string;
   description?: string;
@@ -29,7 +28,6 @@ export default function Switch({
   defaultValue,
   onChange,
   name,
-  inputValue = 'on',
   disabled,
   label,
   description,
@@ -92,7 +90,7 @@ export default function Switch({
         )}
       </div>
       {name && (
-        <input type="hidden" name={name} value={isOn ? inputValue : ''} />
+        <input type="hidden" name={name} value={isOn ? 'on' : ''} />
       )}
       {/* helper text slot */}
     </div>

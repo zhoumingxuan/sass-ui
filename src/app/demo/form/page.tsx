@@ -6,149 +6,156 @@ import Button from '@/components/Button';
 import { Input } from '@/components/Input';
 import Switch from '@/components/Switch';
 import { RadioGroup } from '@/components/Radio';
-import { Checkbox, CheckboxGroup } from '@/components/Checkbox';
+import { CheckboxGroup } from '@/components/Checkbox';
 import Slider from '@/components/Slider';
-import { useState } from 'react';
+import Form from '@/components/form';
 import { menuItems, footerItems } from '@/components/menuItems';
+import { useState } from 'react';
 
 export default function FormDemo() {
-  const [submitting, setSubmitting] = useState(false);
-  const [agree, setAgree] = useState(true);
-  const [gender, setGender] = useState('male');
-  const [hobbies, setHobbies] = useState<string[]>(['read']);
-  const allHobbyOptions = ['read', 'sport', 'music'];
-  const allSelected = hobbies.length === allHobbyOptions.length;
-  const someSelected = hobbies.length > 0 && !allSelected;
-  const [volume, setVolume] = useState(30);
-  const onSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setTimeout(() => setSubmitting(false), 1000);
-  };
+  const [layout, setLayout] = useState<'vertical'|'horizontal'>('vertical');
+
   return (
-    <Layout
-      menuItems={menuItems}
-      footerItems={footerItems}
-      header={<div className="text-xl font-semibold text-gray-800">表单示例</div>}
-    >
-      <Card title="输入控件">
-        <form className="grid grid-cols-12 gap-4 md:gap-6" onSubmit={onSubmit}>
-          <div className="col-span-12 md:col-span-6"><Input.Text label="文本输入" placeholder="请输入文本" clearable /></div>
-          <div className="col-span-12 md:col-span-6"><Input.Number label="数字输入" placeholder="请输入数字" step={5} min={0} max={100} precision={0} /></div>
-          <div className="col-span-12 md:col-span-6"><Input.Password label="密码输入" placeholder="请输入密码" /></div>
-          <div className="col-span-12 md:col-span-6">
-            <Input.Select label="选择输入" placeholder="请选择" clearable options={[{ value: '', label: '请选择', disabled: true }, { value: '1', label: '选项1' }, { value: '2', label: '选项2' }]} />
+    <Layout menuItems={menuItems} footerItems={footerItems} header={<div className="text-xl font-semibold text-gray-800">Form Demo</div>}>
+      <div className="space-y-6">
+        <Card title="Layout">
+          <div className="flex items-center gap-4">
+            <Button variant={layout === 'vertical' ? 'primary' : 'default'} onClick={() => setLayout('vertical')}>Vertical</Button>
+            <Button variant={layout === 'horizontal' ? 'primary' : 'default'} onClick={() => setLayout('horizontal')}>Horizontal</Button>
           </div>
-          <div className="col-span-12 md:col-span-6"><Input.Date label="日期输入" /></div>
-          <div className="col-span-12 md:col-span-6"><Input.DateRange label="日期范围" /></div>
+        </Card>
 
-          <div className="col-span-12 md:col-span-6">
-            <Switch label="是否同意" description={agree ? '已同意' : '未同意'} checked={agree} onChange={setAgree} />
-          </div>
-          <div className="col-span-12 md:col-span-6">
-            <div className="flex items-center gap-6">
-              <Switch size="small" label="小号" defaultChecked />
-              <Switch size="medium" label="中号" />
-              <Switch size="large" label="大号" />
+        <Card title="Form">
+          <Form
+            layout={layout}
+            labelWidth={120}
+            initialValues={{
+              username: '',
+              age: 30,
+              password: '',
+              gender: 'male',
+              hobbies: ['read'],
+              agree: true,
+              city: '',
+              birthday: '',
+              period: [undefined, undefined],
+              bio: '',
+              volume: 30,
+            }}
+            onFinish={(values) => {
+              console.log('finish', values);
+              alert('Submitted\n' + JSON.stringify(values, null, 2));
+            }}
+            onFinishFailed={() => {
+              alert('Please fix validation errors');
+            }}
+          >
+            <div className="grid grid-cols-12 gap-4 md:gap-6">
+              <div className="col-span-12 md:col-span-6">
+                <Form.Item name="username" label="Username" required rules={[{ min: 2, message: 'Min length 2' }]}>
+                  <Input.Text placeholder="Enter username" clearable />
+                </Form.Item>
+              </div>
+
+              <div className="col-span-12 md:col-span-6">
+                <Form.Item name="age" label="Age" rules={[{ min: 0, message: 'Must be >= 0' }]}
+                  getValueFromEvent={(v: number | null) => v}
+                >
+                  <Input.Number placeholder="Enter age" min={0} precision={0} />
+                </Form.Item>
+              </div>
+
+              <div className="col-span-12 md:col-span-6">
+                <Form.Item name="password" label="Password" required rules={[{ min: 6, message: 'Min length 6' }]}>
+                  <Input.Password placeholder="Enter password" />
+                </Form.Item>
+              </div>
+
+              <div className="col-span-12 md:col-span-6">
+                <Form.Item name="gender" label="Gender" required>
+                  <RadioGroup
+                    name="gender"
+                    options={[
+                      { value: 'male', label: 'Male' },
+                      { value: 'female', label: 'Female' },
+                      { value: 'other', label: 'Other' },
+                    ]}
+                    inline
+                  />
+                </Form.Item>
+              </div>
+
+              <div className="col-span-12 md:col-span-6">
+                <Form.Item name="hobbies" label="Hobbies" required>
+                  <CheckboxGroup
+                    name="hobbies"
+                    options={[
+                      { value: 'read', label: 'Reading' },
+                      { value: 'sport', label: 'Sport' },
+                      { value: 'music', label: 'Music' },
+                    ]}
+                    inline
+                  />
+                </Form.Item>
+              </div>
+
+              <div className="col-span-12 md:col-span-6">
+                <Form.Item name="agree" label="Agree" valuePropName="checked">
+                  <Switch label="" />
+                </Form.Item>
+              </div>
+
+              <div className="col-span-12 md:col-span-6">
+                <Form.Item name="city" label="City" rules={[{ required: true, message: 'Please choose a city' }]}>
+                  <Input.Select placeholder="Choose city" options={[
+                    { value: 'sh', label: 'Shanghai' },
+                    { value: 'bj', label: 'Beijing' },
+                    { value: 'gz', label: 'Guangzhou' },
+                  ]} />
+                </Form.Item>
+              </div>
+
+              <div className="col-span-12 md:col-span-6">
+                <Form.Item name="birthday" label="Birthday">
+                  <Input.Date />
+                </Form.Item>
+              </div>
+
+              <div className="col-span-12 md:col-span-6">
+                <Form.Item
+                  name="period"
+                  label="Period"
+                  getValueFromEvent={(start?: string, end?: string) => [start, end] as [string|undefined,string|undefined]}
+                >
+                  <Input.DateRange />
+                </Form.Item>
+              </div>
+
+              <div className="col-span-12">
+                <Form.Item name="bio" label="Bio" rules={[{ max: 200, message: 'Max 200 chars' }]}>
+                  <Input.TextArea placeholder="Say something..." autoGrow />
+                </Form.Item>
+              </div>
+
+              <div className="col-span-12">
+                <Form.Item
+                  name="volume"
+                  label="Volume"
+                  getValueFromEvent={(e: React.ChangeEvent<HTMLInputElement>) => Number(e.target.value)}
+                  normalize={(v) => (typeof v === 'number' ? Math.min(100, Math.max(0, v)) : v)}
+                >
+                  <Slider min={0} max={100} defaultValue={30} />
+                </Form.Item>
+              </div>
+
+              <div className="col-span-12">
+                <Button type="submit" variant="primary">Submit</Button>
+              </div>
             </div>
-          </div>
-
-          <div className="col-span-12 md:col-span-6">
-            <RadioGroup
-              name="gender"
-              label="单选（性别）"
-              value={gender}
-              onChange={setGender}
-              options={[
-                { value: 'male', label: '男' },
-                { value: 'female', label: '女' },
-                { value: 'other', label: '其他' },
-              ]}
-              inline
-            />
-          </div>
-
-          <div className="col-span-12 md:col-span-6">
-            <CheckboxGroup
-              name="hobbies"
-              label="多选（爱好）"
-              values={hobbies}
-              onChange={setHobbies}
-              options={[
-                { value: 'read', label: '阅读' },
-                { value: 'sport', label: '运动' },
-                { value: 'music', label: '音乐' },
-              ]}
-              inline
-            />
-          </div>
-
-          <div className="col-span-12 md:col-span-6">
-            <div className="mb-2 text-xs text-gray-500">三态选择示例（全选 / 部分 / 全不选）</div>
-            <div className="space-y-2">
-              <Checkbox
-                label="全选爱好"
-                checked={allSelected}
-                indeterminate={someSelected}
-                onChange={(e) => {
-                  const checked = (e.target as HTMLInputElement).checked;
-                  setHobbies(checked ? allHobbyOptions : []);
-                }}
-              />
-            </div>
-          </div>
-
-          <div className="col-span-12 md:col-span-6">
-            <RadioGroup
-              name="gender-disabled"
-              label="单选（禁用示例）"
-              value={gender}
-              onChange={setGender}
-              options={[
-                { value: 'male', label: '男' },
-                { value: 'female', label: '女' },
-                { value: 'other', label: '其他' },
-              ]}
-              disabled
-              inline
-            />
-          </div>
-
-          <div className="col-span-12 md:col-span-6">
-            <CheckboxGroup
-              name="hobbies-disabled"
-              label="多选（禁用示例）"
-              values={hobbies}
-              onChange={setHobbies}
-              options={[
-                { value: 'read', label: '阅读' },
-                { value: 'sport', label: '运动' },
-                { value: 'music', label: '音乐' },
-              ]}
-              disabled
-              inline
-            />
-          </div>
-
-          <div className="col-span-12">
-            <Input.TextArea label="文本域" placeholder="请输入更多内容…" helper="支持自动高度" autoGrow />
-          </div>
-
-          <div className="col-span-12">
-            <Slider
-              label="滑动输入条（音量）"
-              min={0}
-              max={100}
-              step={1}
-              value={volume}
-              onChange={(e) => setVolume(Number(e.target.value))}
-            />
-          </div>
-          <div className="col-span-12">
-            <Button type="submit" disabled={submitting}>{submitting ? '提交中…' : '提交'}</Button>
-          </div>
-        </form>
-      </Card>
+          </Form>
+        </Card>
+      </div>
     </Layout>
   );
 }
+
