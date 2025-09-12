@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { fieldLabel, helperText, inputBase } from '../formStyles';
@@ -80,37 +80,61 @@ export default function DateRangePicker({
     const onDoc = (e: MouseEvent) => {
       if (!pop.current || !anchor.current) return;
       if (pop.current.contains(e.target as Node) || anchor.current.contains(e.target as Node)) return;
-      // Outside click: auto-submit current draft instead of just closing
-      doConfirm();
+      // Outside click: commit drafts (clear only invalid typed side)
+      const ps = draftStartInput.trim();
+      const pe = draftEndInput.trim();
+      const typedS = ps ? parseDateStrict(ps) : undefined;
+      const typedE = pe ? parseDateStrict(pe) : undefined;
+      const validTypedS = typedS && !isDisabledStartPick(typedS) ? typedS : undefined;
+      const validTypedE = typedE && !isDisabledEndPick(typedE) ? typedE : undefined;
+      let finalS: string | undefined;
+      let finalE: string | undefined;
+      if (ps !== '') { finalS = validTypedS ? formatISO(validTypedS) : undefined; }
+      else if (draftStart) { finalS = formatISO(draftStart); }
+      else { finalS = sv; }
+      if (pe !== '') { finalE = validTypedE ? formatISO(validTypedE) : undefined; }
+      else if (draftEnd) { finalE = formatISO(draftEnd); }
+      else { finalE = ev; }
+      if (!isControlled) { setS(finalS); setE(finalE); }
+      onChange?.(finalS, finalE);
+      setOpen(false);
     };
     document.addEventListener('click', onDoc);
     return () => document.removeEventListener('click', onDoc);
-  }, []);
+  }, [draftStartInput, draftEndInput, draftStart, draftEnd, sv, ev, isControlled, onChange]);
 
   const openPanel = (focus: 'start'|'end') => {
     setActive(focus);
     const ps = sv ? parseDateStrict(sv) : undefined;
     const pe = ev ? parseDateStrict(ev) : undefined;
-    setDraftStart(ps || (sv ? parseDateStrict(sv) : undefined));
-    setDraftEnd(pe || (ev ? parseDateStrict(ev) : undefined));
-    setDraftStartInput(sv || '');
-    setDraftEndInput(ev || '');
-    
-    // Anchor panels to the relevant month and keep panels adjacent
-    if (focus === 'start') {
-      const base = ps || pe || today;
-      const lm = startOfMonth(base);
-      setLeft(lm);
-      setRight(addMonths(lm, 1));
+
+    if (!open) {
+      // initialize drafts from committed values on first open
+      setDraftStart(ps);
+      setDraftEnd(pe);
+      setDraftStartInput(sv || '');
+      setDraftEndInput(ev || '');
+
+      // Anchor panels to the relevant month and keep panels adjacent
+      if (focus === 'start') {
+        const base = ps || pe || today;
+        const lm = startOfMonth(base);
+        setLeft(lm);
+        setRight(addMonths(lm, 1));
+      } else {
+        const base = pe || ps || today;
+        const rm = startOfMonth(base);
+        setRight(rm);
+        setLeft(addMonths(rm, -1));
+      }
+      setFocusDate(focus === 'start' ? (ps || new Date()) : (pe || new Date()));
+      setHoverDate(undefined);
+      setOpen(true);
     } else {
-      const base = pe || ps || today;
-      const rm = startOfMonth(base);
-      setRight(rm);
-      setLeft(addMonths(rm, -1));
+      // keep current drafts/months; only update focus date hint
+      if (focus === 'start') setFocusDate(draftStart || ps || new Date());
+      else setFocusDate(draftEnd || pe || new Date());
     }
-    setFocusDate(focus === 'start' ? (ps || (sv ? parseDateStrict(sv) : undefined) || new Date()) : (pe || (ev ? parseDateStrict(ev) : undefined) || new Date()));
-    setHoverDate(undefined);
-    setOpen(true);
   };
 
   function toDate(v?: string | Date): Date | undefined {
@@ -155,58 +179,9 @@ export default function DateRangePicker({
     return false;
   };
 
-  const doConfirm = () => {
-    const ps = draftStartInput.trim();
-    const pe = draftEndInput.trim();
-    // Prefer parsed input; fall back to draft selections
-    const sd = ps ? parseDateStrict(ps) : (draftStart || undefined);
-    const ed = pe ? parseDateStrict(pe) : (draftEnd || undefined);
-
-    const isInvalidBase = (d?: Date) => !d || isDisabledBase(d);
-    const withinOrderForStart = (d?: Date) => {
-      if (!d) return false;
-      if (ed) return d <= endOfDay(ed);
-      return true;
-    };
-    const withinOrderForEnd = (d?: Date) => {
-      if (!d) return false;
-      if (sd) return d >= startOfDay(sd);
-      return true;
-    };
-
-    const nextS = (!isInvalidBase(sd) && withinOrderForStart(sd)) ? formatISO(sd!) : sv;
-    const nextE = (!isInvalidBase(ed) && withinOrderForEnd(ed)) ? formatISO(ed!) : ev;
-
-    if (!isControlled) { setS(nextS); setE(nextE); }
-    onChange?.(nextS, nextE);
-    setOpen(false);
-  };
 
   // Commit on input blur only when leaving the whole widget; clear only invalid input
-  const handleInputBlur = (side: 'start'|'end') => (e: React.FocusEvent<HTMLInputElement>) => {
-    const nextTarget = e.relatedTarget as Node | null;
-    if (nextTarget && (anchor.current?.contains(nextTarget) || pop.current?.contains(nextTarget))) return;
-    const raw = e.currentTarget.value;
-    const val = (raw ?? '').trim();
-    const d = val ? parseDateStrict(val) : undefined;
-    const invalid = side === 'start' ? (!d || isDisabledStartPick(d!)) : (!d || isDisabledEndPick(d!));
-    if (invalid) {
-      if (side === 'start') {
-        if (!isControlled) { setS(undefined); }
-        onChange?.(undefined, ev);
-        setDraftStart(undefined); setDraftStartInput('');
-      } else {
-        if (!isControlled) { setE(undefined); }
-        onChange?.(sv, undefined);
-        setDraftEnd(undefined); setDraftEndInput('');
-      }
-      setOpen(false);
-      return;
-    }
-    if (side === 'start') { setDraftStart(d!); setDraftStartInput(formatISO(d!)); }
-    else { setDraftEnd(d!); setDraftEndInput(formatISO(d!)); }
-    doConfirm();
-  };
+  // removed legacy handleInputBlur (no longer used)
 
   const doClear = () => {
     if (!isControlled) { setS(undefined); setE(undefined); }
@@ -220,14 +195,29 @@ export default function DateRangePicker({
     const pick = new Date(d.getFullYear(), d.getMonth(), d.getDate());
     setDraftStart(pick);
     setDraftStartInput(formatISO(pick));
-    if (draftEnd) { doConfirm(); }
+    // switch to picking end
+    setActive('end');
+    if (draftEnd) {
+      const outS = formatISO(pick);
+      const outE = formatISO(draftEnd);
+      if (!isControlled) { setS(outS); setE(outE); }
+      onChange?.(outS, outE);
+      setOpen(false);
+    }
   };
   const selectEnd = (d: Date) => {
+    console.log("Select End:",d);
     if (isDisabledEndPick(d)) return;
     const pick = new Date(d.getFullYear(), d.getMonth(), d.getDate());
     setDraftEnd(pick);
     setDraftEndInput(formatISO(pick));
-    if (draftStart) { doConfirm(); }
+    if (draftStart) {
+      const outS = formatISO(draftStart);
+      const outE = formatISO(pick);
+      if (!isControlled) { setS(outS); setE(outE); }
+      onChange?.(outS, outE);
+      setOpen(false);
+    }
   };
   // 键盘选中：依赖当前 active 面板
   const select = (d: Date) => {
@@ -268,7 +258,7 @@ export default function DateRangePicker({
     }
   };
 
-  // (removed legacy handleBlur; using handleInputBlur instead)
+  
 
   return (
     <label className="block">
@@ -283,8 +273,28 @@ export default function DateRangePicker({
               onFocus={() => openPanel('start')}
               onClick={() => openPanel('start')}
               onChange={(e) => { applyTyped('start', e.target.value); }}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); doConfirm(); } }}
-              onBlur={handleInputBlur('start')}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  const ps = draftStartInput.trim();
+                  const pe = draftEndInput.trim();
+                  const typedS = ps ? parseDateStrict(ps) : undefined;
+                  const typedE = pe ? parseDateStrict(pe) : undefined;
+                  const validTypedS = typedS && !isDisabledStartPick(typedS) ? typedS : undefined;
+                  const validTypedE = typedE && !isDisabledEndPick(typedE) ? typedE : undefined;
+                  let finalS: string | undefined;
+                  let finalE: string | undefined;
+                  if (ps !== '') { finalS = validTypedS ? formatISO(validTypedS) : undefined; }
+                  else if (draftStart) { finalS = formatISO(draftStart); }
+                  else { finalS = sv; }
+                  if (pe !== '') { finalE = validTypedE ? formatISO(validTypedE) : undefined; }
+                  else if (draftEnd) { finalE = formatISO(draftEnd); }
+                  else { finalE = ev; }
+                  if (!isControlled) { setS(finalS); setE(finalE); }
+                  onChange?.(finalS, finalE);
+                  setOpen(false);
+                }
+              }}
               className={`${inputBase} text-left pr-10 leading-none flex items-center h-10 ${active === 'start' ? 'ring-2 ring-primary/60 border-transparent' : ''} ${(open ? !draftStartInput : !sv) ? 'text-gray-400' : 'text-gray-700'}`}
             />
             <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><CalendarIcon size={18} aria-hidden /></span>
@@ -298,8 +308,28 @@ export default function DateRangePicker({
               onFocus={() => openPanel('end')}
               onClick={() => openPanel('end')}
               onChange={(e) => { applyTyped('end', e.target.value); }}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); doConfirm(); } }}
-              onBlur={handleInputBlur('end')}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  const ps = draftStartInput.trim();
+                  const pe = draftEndInput.trim();
+                  const typedS = ps ? parseDateStrict(ps) : undefined;
+                  const typedE = pe ? parseDateStrict(pe) : undefined;
+                  const validTypedS = typedS && !isDisabledStartPick(typedS) ? typedS : undefined;
+                  const validTypedE = typedE && !isDisabledEndPick(typedE) ? typedE : undefined;
+                  let finalS: string | undefined;
+                  let finalE: string | undefined;
+                  if (ps !== '') { finalS = validTypedS ? formatISO(validTypedS) : undefined; }
+                  else if (draftStart) { finalS = formatISO(draftStart); }
+                  else { finalS = sv; }
+                  if (pe !== '') { finalE = validTypedE ? formatISO(validTypedE) : undefined; }
+                  else if (draftEnd) { finalE = formatISO(draftEnd); }
+                  else { finalE = ev; }
+                  if (!isControlled) { setS(finalS); setE(finalE); }
+                  onChange?.(finalS, finalE);
+                  setOpen(false);
+                }
+              }}
               className={`${inputBase} text-left pr-10 leading-none flex items-center h-10 ${active === 'end' ? 'ring-2 ring-primary/60 border-transparent' : ''} ${(open ? !draftEndInput : !ev) ? 'text-gray-400' : 'text-gray-700'}`}
             />
             <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><CalendarIcon size={18} aria-hidden /></span>
@@ -347,7 +377,34 @@ export default function DateRangePicker({
                 disabledDate={isDisabledStartPick}
                 hoverDate={hoverDate}
                 onHoverDate={setHoverDate}
-                onMonthChange={(m) => { setLeft(m); setActive('start'); }}
+                onMonthChange={(m) => {
+                  // Keep panels adjacent and mark active side
+                  setLeft(m);
+                  setActive('start');
+                  // Try to pick a sensible day in this month for start
+                  const y = m.getFullYear();
+                  const mon = m.getMonth();
+                  const baseDay = draftStart ? draftStart.getDate() : 1;
+                  const lastDay = new Date(y, mon + 1, 0).getDate();
+                  const tryDay = (day: number) => new Date(y, mon, day);
+                  let nd: Date | undefined = tryDay(Math.min(baseDay, lastDay));
+                  if (nd && isDisabledStartPick(nd)) {
+                    nd = undefined;
+                    for (let offset = 1; offset <= lastDay; offset++) {
+                      const down = baseDay - offset;
+                      const up = baseDay + offset;
+                      if (down >= 1) {
+                        const cand = tryDay(down);
+                        if (!isDisabledStartPick(cand)) { nd = cand; break; }
+                      }
+                      if (up <= lastDay) {
+                        const cand = tryDay(up);
+                        if (!isDisabledStartPick(cand)) { nd = cand; break; }
+                      }
+                    }
+                  }
+                  if (nd) { setDraftStart(nd); setDraftStartInput(formatISO(nd)); setFocusDate(nd); }
+                }}
                 onSelect={selectStart}
                 panel={'start'}
               />
@@ -360,7 +417,34 @@ export default function DateRangePicker({
                 disabledDate={isDisabledEndPick}
                 hoverDate={hoverDate}
                 onHoverDate={setHoverDate}
-                onMonthChange={(m) => { setRight(m); setActive('end'); }}
+                onMonthChange={(m) => {
+                  // Keep panels adjacent and mark active side
+                  setRight(m);
+                  setActive('end');
+                  // Try to pick a sensible day in this month for end
+                  const y = m.getFullYear();
+                  const mon = m.getMonth();
+                  const baseDay = draftEnd ? draftEnd.getDate() : 1;
+                  const lastDay = new Date(y, mon + 1, 0).getDate();
+                  const tryDay = (day: number) => new Date(y, mon, day);
+                  let nd: Date | undefined = tryDay(Math.min(baseDay, lastDay));
+                  if (nd && isDisabledEndPick(nd)) {
+                    nd = undefined;
+                    for (let offset = 1; offset <= lastDay; offset++) {
+                      const down = baseDay - offset;
+                      const up = baseDay + offset;
+                      if (down >= 1) {
+                        const cand = tryDay(down);
+                        if (!isDisabledEndPick(cand)) { nd = cand; break; }
+                      }
+                      if (up <= lastDay) {
+                        const cand = tryDay(up);
+                        if (!isDisabledEndPick(cand)) { nd = cand; break; }
+                      }
+                    }
+                  }
+                  if (nd) { setDraftEnd(nd); setDraftEndInput(formatISO(nd)); setFocusDate(nd); }
+                }}
                 onSelect={selectEnd}
                 panel={'end'}
               />
@@ -378,7 +462,6 @@ export default function DateRangePicker({
                     setDraftStart(day); setDraftStartInput(formatISO(day));
                     const leftM = startOfMonth(day); setLeft(leftM);
                   }
-                  if (!shortcutsNeedConfirm) { doConfirm(); }
                 }}>今天</button>
                 <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => {
                   const d = new Date(); d.setDate(d.getDate() - 1); const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -389,7 +472,6 @@ export default function DateRangePicker({
                     setDraftStart(day); setDraftStartInput(formatISO(day));
                     const leftM = startOfMonth(day); setLeft(leftM);
                   }
-                  if (!shortcutsNeedConfirm) { doConfirm(); }
                 }}>昨天</button>
               </div>
               <div className="flex items-center gap-2">
