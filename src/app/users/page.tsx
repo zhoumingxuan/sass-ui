@@ -15,18 +15,20 @@ interface UserRow {
   actions: ReactNode;
 }
 
+type Row = UserRow & Record<string, unknown>;
+
 export default function Users() {
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
 
-  const columns: Column<UserRow>[] = [
+  const columns: Column<Row>[] = [
     { key: 'username', title: '用户名' },
     { key: 'email', title: '邮箱' },
     { key: 'actions', title: '操作' },
   ];
 
-  const data: UserRow[] = [
+  const data: Row[] = [
     {
       username: '张三',
       email: 'zhang@example.com',
@@ -54,7 +56,7 @@ export default function Users() {
         <h2>用户管理</h2>
         <Button onClick={() => setShowAdd(true)}>新增用户</Button>
       </div>
-      <Table
+      <Table<Row>
         title="用户"
         columns={columns}
         data={data}

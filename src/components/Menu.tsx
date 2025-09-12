@@ -30,9 +30,9 @@ function Item({
   collapsed: boolean;
 }) {
   const pathname = usePathname();
-  const hasChildren = item.children && item.children.length > 0;
+  const hasChildren: boolean = !!(item.children && item.children.length > 0);
   const active = item.href ? pathname.startsWith(item.href) : false;
-  const shouldBeOpen = hasChildren && (active || isDescendantActive(item, pathname));
+  const shouldBeOpen: boolean = hasChildren && (active || isDescendantActive(item, pathname));
   const [open, setOpen] = useState<boolean>(shouldBeOpen);
 
   // Keep parents expanded when current route matches a child
