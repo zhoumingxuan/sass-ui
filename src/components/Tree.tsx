@@ -23,6 +23,7 @@ type Props = {
   className?: string;
   selectable?: SelectMode | boolean; // true => single
   checkable?: boolean;
+  checkInteractive?: boolean; // show checkbox but forbid manual toggle when false
   loading?: boolean;
   emptyText?: ReactNode;
   keyword?: string; // highlight query (case-insensitive) for UX
@@ -44,6 +45,7 @@ export default function Tree({
   className = "",
   selectable = false,
   checkable = false,
+  checkInteractive = true,
   loading = false,
   emptyText,
   keyword = '',
@@ -74,6 +76,7 @@ export default function Tree({
   // Loading states for async load
   const [loadingKeys, setLoadingKeys] = useState<Set<Key>>(new Set());
   const [dynamicChildren, setDynamicChildren] = useState<Record<Key, TreeNode[]>>({});
+  const [emptyLoadedKeys, setEmptyLoaded] = useState<Set<Key>>(new Set());
 
   // Build node map and parent map for fast operations
   const flatMap = useMemo(() => {
@@ -117,15 +120,23 @@ export default function Tree({
     const next = new Set(expanded);
     if (next.has(node.key)) next.delete(node.key);
     else {
-      next.add(node.key);
-      if (loadData && !node.isLeaf && (!node.children || node.children.length === 0) && !dynamicChildren[node.key]) {
+      // If needs async load, do it before expanding
+      if (loadData && !node.isLeaf && (!node.children || node.children.length === 0) && !dynamicChildren[node.key] && !emptyLoadedKeys.has(node.key)) {
         setLoadingKeys(prev => new Set(prev).add(node.key));
         try {
           const children = await loadData(node);
-          setDynamicChildren(prev => ({ ...prev, [node.key]: children }));
+          if (children && children.length > 0) {
+            setDynamicChildren(prev => ({ ...prev, [node.key]: children }));
+            next.add(node.key);
+          } else {
+            // mark as empty-loaded, treat as non-expandable afterwards
+            setEmptyLoaded(prev => { const n = new Set(prev); n.add(node.key); return n; });
+          }
         } finally {
           setLoadingKeys(prev => { const n = new Set(prev); n.delete(node.key); return n; });
         }
+      } else {
+        next.add(node.key);
       }
     }
     if (!isExpandedControlled) setInternalExpanded(next);
@@ -167,7 +178,7 @@ export default function Tree({
   }, [flatMap]);
 
   const toggleCheck = (node: TreeNode) => {
-    if (!checkable || node.disabled) return;
+    if (!checkable || node.disabled || !checkInteractive) return;
     const next = new Set(checked);
     const keysToFlip = [node.key, ...descendants(node)];
     const turnOn = !checked.has(node.key);
@@ -239,17 +250,25 @@ export default function Tree({
     const isHalf = halfChecked.has(node.key);
     const effectiveSelectable = node.selectable ?? !!selectable;
     const effectiveCheckable = node.checkable ?? !!checkable;
+    const canExpand = !node.isLeaf && (hasChildren || !!loadData);
+    const trulyExpandable = !node.isLeaf && (hasChildren || (!!loadData && !emptyLoadedKeys.has(node.key)));
+    const interactive = !node.disabled && (effectiveSelectable || effectiveCheckable);
 
     return (
       <div
         role="treeitem"
         aria-expanded={hasChildren ? isOpen : undefined}
         aria-selected={effectiveSelectable ? isSelected : undefined}
-        onClick={() => effectiveSelectable && doSelect(node)}
-        onContextMenu={(e) => { e.preventDefault(); onContextMenu?.(node, e); }}
+        aria-disabled={node.disabled || undefined}
+        onClick={() => effectiveSelectable && !node.disabled && doSelect(node)}
+        onContextMenu={(e) => { if (node.disabled) return; e.preventDefault(); onContextMenu?.(node, e); }}
         className={[
           "group flex items-center gap-2 h-8 rounded-md px-2 text-sm",
-          node.disabled ? "text-gray-400 cursor-not-allowed" : (isSelected ? "bg-primary/10 text-primary" : "text-gray-700 hover:bg-gray-50 active:bg-gray-100 cursor-pointer"),
+          node.disabled
+            ? "text-gray-400 cursor-not-allowed"
+            : isSelected
+            ? "bg-primary/10 text-primary"
+            : (interactive ? "text-gray-700 hover:bg-gray-50 active:bg-gray-100 cursor-pointer" : "text-gray-700 cursor-default"),
         ].join(" ")}
         style={{ paddingLeft: 8 + depth * 16 }}
       >
@@ -257,17 +276,19 @@ export default function Tree({
         <button
           type="button"
           aria-label={isOpen ? "折叠" : "展开"}
-          onClick={(e) => { e.stopPropagation(); if (!node.isLeaf && (hasChildren || loadData)) toggleExpand(node); }}
-          disabled={node.isLeaf || (!hasChildren && !loadData)}
+          onClick={(e) => { e.stopPropagation(); if (trulyExpandable && !node.disabled) toggleExpand(node); }}
+          disabled={!trulyExpandable || node.disabled}
           className={[
             "inline-flex h-5 w-5 items-center justify-center",
-            node.isLeaf || (!hasChildren && !loadData) ? "text-gray-300 cursor-default" : "text-gray-500 hover:text-gray-700 cursor-pointer",
+            !trulyExpandable || node.disabled
+              ? "text-gray-300 cursor-default"
+              : (hasChildren ? "text-gray-500 hover:text-gray-700 cursor-pointer" : "text-gray-400 hover:text-gray-600 cursor-pointer"),
             "focus-visible:outline-none focus-visible:ring-0"
           ].join(" ")}
         >
           {isLoading ? (
             <Loader2 size={16} className="animate-spin" aria-hidden />
-          ) : node.isLeaf || (!hasChildren && !loadData) ? (
+          ) : !trulyExpandable ? (
             <span className="inline-block w-5 h-5" aria-hidden />
           ) : (
             isOpen ? <ChevronDown size={16} aria-hidden /> : <ChevronRight size={16} aria-hidden />
@@ -282,7 +303,7 @@ export default function Tree({
             onChange={() => toggleCheck(node)}
             aria-checked={isHalf ? "mixed" : isChecked}
             className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/30 disabled:opacity-50"
-            disabled={node.disabled}
+            disabled={node.disabled || !checkInteractive}
             onClick={(e) => e.stopPropagation()}
             ref={(el) => { if (el) el.indeterminate = isHalf && !isChecked; }}
           />

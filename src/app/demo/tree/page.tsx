@@ -12,10 +12,10 @@ export default function TreeDemo() {
     { key: 'c', title: '客户', children: [
       { key: 'c-a', title: '华东区', children: [
         { key: 'c-a-1', title: '张三' },
-        { key: 'c-a-2', title: '李四' },
+        { key: 'c-a-2', title: '李四', selectable: false },
       ]},
       { key: 'c-b', title: '华南区', children: [
-        { key: 'c-b-1', title: '王五' },
+        { key: 'c-b-1', title: '王五', disabled: true },
         { key: 'c-b-2', title: '赵六' },
       ]},
     ]},
@@ -101,12 +101,13 @@ export default function TreeDemo() {
           )}
         </Card>
 
-        <Card title="可勾选（父子联动）">
+        <Card title="可勾选（父子联动 + 禁用示例）">
           <div className="grid grid-cols-12 gap-6">
             <div className="col-span-12 md:col-span-6">
               <Tree
                 data={baseData}
                 checkable
+                checkInteractive
                 selectable={false}
                 defaultExpandedKeys={['c']}
                 checkedKeys={checked}
@@ -116,12 +117,31 @@ export default function TreeDemo() {
               <div className="mt-3 flex gap-2">
                 <Button variant="default" onClick={() => setChecked([])}>清空选择</Button>
                 <Button onClick={() => setChecked(['c-a-1','c-a-2'])}>选择华东区下客户（演示半选）</Button>
+                <Button onClick={() => setChecked(['c-b-2'])}>选择华南区可选客户（禁用不受影响）</Button>
               </div>
             </div>
             <div className="col-span-12 md:col-span-6">
               <div className="space-y-2 text-sm text-gray-700">
                 <div>已勾选：{checked.join(', ') || '无'}</div>
               </div>
+            </div>
+          </div>
+        </Card>
+
+        <Card title="只读勾选（展示勾选状态，但禁止手动更改）">
+          <div className="grid grid-cols-12 gap-6">
+            <div className="col-span-12 md:col-span-6">
+              <Tree
+                data={baseData}
+                checkable
+                checkInteractive={false}
+                selectable={false}
+                defaultExpandedKeys={['c']}
+                checkedKeys={checked}
+                onCheck={(keys) => setChecked(keys)}
+                className="p-2 bg-white rounded-xl border border-gray-200"
+              />
+              <div className="mt-3 text-xs text-gray-500">该示例用于“系统根据规则勾选，但用户无法手动修改”的场景。</div>
             </div>
           </div>
         </Card>
