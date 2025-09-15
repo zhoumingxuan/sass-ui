@@ -90,6 +90,7 @@ export default function Tree({
   }, [data, dynamicChildren]);
 
   const getChildren = useCallback((n: TreeNode): TreeNode[] => (dynamicChildren[n.key] ?? n.children) || [], [dynamicChildren]);
+  const getActiveChildren = useCallback((n: TreeNode): TreeNode[] => (getChildren(n) || []).filter(c => !c.disabled), [getChildren]);
 
   // Derive half-checked keys from children state
   const { halfChecked } = useMemo(() => {
@@ -99,23 +100,18 @@ export default function Tree({
     const nodes = Array.from(flatMap.values()).sort((a, b) => b.depth - a.depth);
     const isChecked = (k: Key) => checked.has(k);
     for (const n of nodes) {
-      const children = getChildren(n) || [];
+      const children = getActiveChildren(n) || [];
       if (!children.length) continue;
       let cChecked = 0;
-      let cTotal = 0;
+      const cTotal = children.length;
       for (const c of children) {
-        cTotal++;
         if (checked.has(c.key)) cChecked++;
-        if (half.has(c.key)) half.add(n.key); // any half child makes parent half too
+        if (half.has(c.key)) half.add(n.key); // any half child bubbles up
       }
-      if (cChecked > 0 && cChecked < cTotal) half.add(n.key);
-      if (cChecked === cTotal && cTotal > 0 && isChecked(n.key) === false) {
-        // parent not checked but all children are checked -> keep half to hint linkage
-        half.add(n.key);
-      }
+      if (cTotal > 0 && cChecked > 0 && cChecked < cTotal) half.add(n.key);
     }
     return { halfChecked: half };
-  }, [checkable, flatMap, checked, getChildren]);
+  }, [checkable, flatMap, checked, getActiveChildren]);
 
   const toggleExpand = async (node: TreeNode) => {
     const next = new Set(expanded);
@@ -176,16 +172,35 @@ export default function Tree({
     const keysToFlip = [node.key, ...descendants(node)];
     const turnOn = !checked.has(node.key);
     for (const k of keysToFlip) { if (turnOn) next.add(k); else next.delete(k); }
-    // Update ancestors (add half state if some but not all children checked). For simplicity, just ensure parent presence based on children.
-    const halfAfter = new Set<Key>();
-    for (const k of ancestors(node.key)) {
-      const n = flatMap.get(k);
-      if (!n) continue;
-      const cs = getChildren(n) || [];
-      const cnt = cs.length;
+
+    // Recompute ancestors state from bottom to top:
+    const parents = ancestors(node.key);
+    for (const pKey of parents) {
+      const p = flatMap.get(pKey);
+      if (!p) continue;
+      const cs = getActiveChildren(p);
+      if (cs.length === 0) continue;
       const checkedCnt = cs.filter(c => next.has(c.key)).length;
-      if (cnt > 0 && checkedCnt > 0 && checkedCnt < cnt) halfAfter.add(k);
+      if (checkedCnt === cs.length) {
+        next.add(pKey); // all children checked -> parent checked
+      } else if (checkedCnt === 0) {
+        next.delete(pKey); // none checked -> parent unchecked
+      } else {
+        next.delete(pKey); // some checked -> parent half (via derived half set), not fully checked
+      }
     }
+
+    // Compose halfChecked for callback info
+    const halfAfter = new Set<Key>();
+    for (const pKey of parents) {
+      const p = flatMap.get(pKey);
+      if (!p) continue;
+      const cs = getActiveChildren(p);
+      const cnt = cs.length;
+      const cntChecked = cs.filter(c => next.has(c.key)).length;
+      if (cnt > 0 && cntChecked > 0 && cntChecked < cnt) halfAfter.add(pKey);
+    }
+
     if (!isCheckedControlled) setInternalChecked(next);
     onCheck?.(Array.from(next), { checked: turnOn, node, halfCheckedKeys: Array.from(halfAfter) });
   };
@@ -266,7 +281,8 @@ export default function Tree({
             checked={isChecked}
             onChange={() => toggleCheck(node)}
             aria-checked={isHalf ? "mixed" : isChecked}
-            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/30"
+            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/30 disabled:opacity-50"
+            disabled={node.disabled}
             onClick={(e) => e.stopPropagation()}
             ref={(el) => { if (el) el.indeterminate = isHalf && !isChecked; }}
           />
