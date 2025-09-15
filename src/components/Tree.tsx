@@ -28,7 +28,11 @@ type Props = {
   dragScope?: 'same-parent' | 'any';
   loading?: boolean;
   emptyText?: ReactNode;
+  loadingText?: ReactNode;
   keyword?: string; // highlight query (case-insensitive) for UX
+  searchMode?: 'highlight' | 'filter';
+  searchLoader?: (keyword: string) => Promise<TreeNode[]>; // optional async search; when provided and keyword set, results drive render
+  autoExpandOnSearch?: boolean; // auto expand all visible branches when filtering/searching
   expandedKeys?: Key[];
   defaultExpandedKeys?: Key[];
   selectedKeys?: Key[];
@@ -53,7 +57,11 @@ export default function Tree({
   dragScope = 'same-parent',
   loading = false,
   emptyText,
+  loadingText,
   keyword = '',
+  searchMode = 'highlight',
+  searchLoader,
+  autoExpandOnSearch = true,
   expandedKeys,
   defaultExpandedKeys = [],
   selectedKeys,
@@ -86,6 +94,64 @@ export default function Tree({
   const [dragKey, setDragKey] = useState<Key | null>(null);
   const [dragOverKey, setDragOverKey] = useState<Key | null>(null);
   const [allowDrop, setAllowDrop] = useState<boolean>(false);
+  const [searchLoading, setSearchLoading] = useState<boolean>(false);
+  const [searchResults, setSearchResults] = useState<TreeNode[] | null>(null);
+
+  // Async search support
+  useEffect(() => {
+    const q = (keyword || '').trim();
+    if (!q || !searchLoader) { setSearchResults(null); setSearchLoading(false); return; }
+    let active = true;
+    setSearchLoading(true);
+    searchLoader(q)
+      .then(res => { if (active) setSearchResults(res || []); })
+      .finally(() => { if (active) setSearchLoading(false); });
+    return () => { active = false; };
+  }, [keyword, searchLoader]);
+
+  // Local filter when enabled and no async loader
+  const filterTree = useCallback((items: TreeNode[], q: string): TreeNode[] => {
+    const out: TreeNode[] = [];
+    for (const n of items) {
+      const t = typeof n.title === 'string' ? n.title : '';
+      const selfHit = t.toLowerCase().includes(q);
+      const children = (dynamicChildren[n.key] ?? n.children) || [];
+      const sub = filterTree(children, q);
+      if (selfHit || sub.length > 0) out.push({ ...n, children: sub });
+    }
+    return out;
+  }, [dynamicChildren]);
+
+  const viewData: TreeNode[] = useMemo(() => {
+    const q = (keyword || '').trim().toLowerCase();
+    if (searchLoader && q) return searchResults ?? [];
+    if (q && (/* @ts-ignore */ (typeof searchMode === 'string' && searchMode === 'filter'))) return filterTree(data, q);
+    return data;
+  }, [data, keyword, searchLoader, searchResults, filterTree]);
+
+  // Auto expand visible tree when searching/filtering (uncontrolled only)
+  useEffect(() => {
+    if (isExpandedControlled || !autoExpandOnSearch) return;
+    const q = (keyword || '').trim();
+    const inSearch = (!!q && (searchMode === 'filter' || !!searchLoader));
+    if (!inSearch) return;
+    // collect all nodes with visible children to expand
+    const keys: Key[] = [];
+    const walk = (items: TreeNode[]) => {
+      for (const n of items) {
+        const cs = (dynamicChildren[n.key] ?? n.children) || n.children || [];
+        if (cs && cs.length > 0) {
+          keys.push(n.key);
+          walk(cs);
+        }
+      }
+    };
+    walk(viewData);
+    const next = new Set<Key>(keys);
+    setInternalExpanded(next);
+    onExpand?.(Array.from(next));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewData, autoExpandOnSearch, isExpandedControlled]);
 
   // Build node map and parent map for fast operations
   const flatMap = useMemo(() => {
@@ -97,9 +163,9 @@ export default function Tree({
         if (children && children.length) walk(children, n.key, depth + 1);
       }
     };
-    walk(data, undefined, 0);
+    walk(viewData, undefined, 0);
     return map;
-  }, [data, dynamicChildren]);
+  }, [viewData, dynamicChildren]);
 
   const getChildren = useCallback((n: TreeNode): TreeNode[] => (dynamicChildren[n.key] ?? n.children) || [], [dynamicChildren]);
   const getActiveChildren = useCallback((n: TreeNode): TreeNode[] => (getChildren(n) || []).filter(c => !c.disabled), [getChildren]);
@@ -266,7 +332,7 @@ export default function Tree({
     const effectiveCheckable = node.checkable ?? !!checkable;
     const canExpand = !node.isLeaf && (hasChildren || !!loadData);
     const trulyExpandable = !node.isLeaf && (hasChildren || (!!loadData && !emptyLoadedKeys.has(node.key)));
-    const interactive = !node.disabled && (effectiveSelectable || effectiveCheckable);
+    const interactive = !node.disabled && (effectiveSelectable || (effectiveCheckable && checkInteractive));
     const isDropTarget = draggable && dragOverKey === node.key;
 
     return (
@@ -275,7 +341,10 @@ export default function Tree({
         aria-expanded={hasChildren ? isOpen : undefined}
         aria-selected={effectiveSelectable ? isSelected : undefined}
         aria-disabled={node.disabled || undefined}
-        onClick={() => effectiveSelectable && !node.disabled && doSelect(node)}
+        onClick={() => {
+          if (!node.disabled && effectiveCheckable && checkInteractive) { toggleCheck(node); return; }
+          if (!node.disabled && effectiveSelectable) { doSelect(node); }
+        }}
         onContextMenu={(e) => { if (node.disabled) return; e.preventDefault(); onContextMenu?.(node, e); }}
         draggable={draggable && !node.disabled}
         onDragStart={(e) => {
@@ -316,7 +385,9 @@ export default function Tree({
             ? "text-gray-400 cursor-not-allowed"
             : isSelected
             ? "bg-primary/10 text-primary"
-            : (interactive ? "text-gray-700 hover:bg-gray-50 active:bg-gray-100 cursor-pointer" : "text-gray-700 cursor-default"),
+            : (interactive
+                ? "text-gray-700 hover:bg-gray-50 active:bg-gray-100 cursor-pointer"
+                : "text-gray-500 hover:bg-transparent group-hover:text-gray-600 cursor-default"),
           isDropTarget ? (allowDrop ? "ring-1 ring-primary/30 bg-primary/5" : "ring-1 ring-error/20 bg-error/5") : ""
         ].join(" ")}
         style={{ paddingLeft: 8 + depth * 16 }}
@@ -389,18 +460,19 @@ export default function Tree({
     </div>
   );
 
-  const showEmpty = !loading && (!data || data.length === 0);
+  const overallLoading = (!!loading) || (!!searchLoader && (keyword || '').trim() && searchLoading);
+  const showEmpty = !overallLoading && (!viewData || viewData.length === 0);
 
   return (
     <div role="tree" className={["select-none", className].join(" ")}> 
-      {loading && (!data || data.length === 0) ? (
+      {overallLoading && (!viewData || viewData.length === 0) ? (
         <div className="py-6 px-3 text-sm text-gray-500 inline-flex items-center gap-2">
-          <Loader2 size={16} className="animate-spin" aria-hidden /> 加载中...
+          <Loader2 size={16} className="animate-spin" aria-hidden /> {loadingText ?? '搜索/加载中...'}
         </div>
       ) : showEmpty ? (
         <div className="py-6 px-3 text-sm text-gray-400">{emptyText ?? '暂无数据'}</div>
       ) : (
-        render(data)
+        render(viewData)
       )}
     </div>
   );

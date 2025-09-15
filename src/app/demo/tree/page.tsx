@@ -49,6 +49,27 @@ export default function TreeDemo() {
   const [keyword, setKeyword] = useState('');
   const [ctx, setCtx] = useState<{x:number;y:number;node?:TreeNode}|null>(null);
   const [treeData, setTreeData] = useState<TreeNode[]>(baseData);
+  const [mode, setMode] = useState<'highlight'|'filter'>('highlight');
+  const [useAsync, setUseAsync] = useState(false);
+  const [autoExpand, setAutoExpand] = useState(true);
+
+  // async search loader (mock)
+  const searchLoader = async (kw: string): Promise<TreeNode[]> => {
+    const q = kw.trim().toLowerCase();
+    const filterTree = (items: TreeNode[]): TreeNode[] => {
+      const out: TreeNode[] = [];
+      for (const n of items) {
+        const t = typeof n.title === 'string' ? n.title : '';
+        const hit = t.toLowerCase().includes(q);
+        const sub = n.children ? filterTree(n.children) : [];
+        if (hit || sub.length > 0) out.push({ ...n, children: sub });
+      }
+      return out;
+    };
+    await new Promise(r => setTimeout(r, 400));
+    if (!q) return baseData;
+    return filterTree(baseData);
+  };
 
   // Helpers for drag move
   function clone(data: TreeNode[]): TreeNode[] { return data.map(n => ({ ...n, children: n.children ? clone(n.children) : undefined })); }
@@ -101,6 +122,13 @@ export default function TreeDemo() {
                 className="w-full h-9 px-3 rounded-lg border border-gray-300 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
+            <div className="col-span-12 md:col-span-6 flex items-center gap-2 text-sm text-gray-700">
+              <span>模式</span>
+              <button type="button" className={`h-8 px-3 rounded border ${mode==='highlight'?'border-primary text-primary bg-primary/5':'border-gray-300 text-gray-600 hover:bg-gray-50'}`} onClick={()=>setMode('highlight')}>高亮</button>
+              <button type="button" className={`h-8 px-3 rounded border ${mode==='filter'?'border-primary text-primary bg-primary/5':'border-gray-300 text-gray-600 hover:bg-gray-50'}`} onClick={()=>setMode('filter')}>过滤</button>
+              <label className="ml-4 inline-flex items-center gap-2"><input type="checkbox" checked={useAsync} onChange={(e)=>setUseAsync(e.target.checked)} /> 异步搜索</label>
+              <label className="ml-4 inline-flex items-center gap-2"><input type="checkbox" checked={autoExpand} onChange={(e)=>setAutoExpand(e.target.checked)} /> 自动展开匹配</label>
+            </div>
           </div>
           <div className="grid grid-cols-12 gap-6">
             <div className="col-span-12 md:col-span-6">
@@ -112,6 +140,11 @@ export default function TreeDemo() {
                 selectedKeys={selected}
                 onSelect={(keys) => setSelected(keys)}
                 keyword={keyword}
+                searchMode={mode}
+                searchLoader={useAsync ? searchLoader : undefined}
+                autoExpandOnSearch={autoExpand}
+                emptyText={mode==='filter' ? '无匹配结果' : '暂无数据'}
+                loadingText={useAsync ? '正在搜索...' : '加载中...'}
                 onContextMenu={(node, e) => setCtx({ x: e.clientX + window.scrollX, y: e.clientY + window.scrollY, node })}
                 className="p-2 bg-white rounded-xl border border-gray-200"
               />
