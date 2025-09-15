@@ -48,14 +48,14 @@ export default function Calendar({ month, value, min, max, disabledDate, disable
   return (
     <div className="w-64 select-none">
       <div className="flex items-center justify-between gap-2 px-2 py-2">
-        <button type="button" aria-label="上一页" className="h-7 w-7 rounded hover:bg-gray-100" onClick={() => onMonthChange?.(addMonths(month, view === 'date' ? -1 : -12))}>
+        <button type="button" aria-label="上一月" className="h-7 w-7 rounded hover:bg-gray-100" onClick={() => onMonthChange?.(addMonths(month, view === 'date' ? -1 : -12))}>
           <ChevronLeft size={16} />
         </button>
         <div className="flex items-center gap-2 text-sm text-gray-700">
           <button type="button" className="h-7 rounded px-2 hover:bg-gray-100" onClick={() => setView('year')}>{month.getFullYear()}年</button>
           <button type="button" className="h-7 rounded px-2 hover:bg-gray-100" onClick={() => setView('month')}>{month.getMonth() + 1}月</button>
         </div>
-        <button type="button" aria-label="下一页" className="h-7 w-7 rounded hover:bg-gray-100" onClick={() => onMonthChange?.(addMonths(month, view === 'date' ? 1 : 12))}>
+        <button type="button" aria-label="下一月" className="h-7 w-7 rounded hover:bg-gray-100" onClick={() => onMonthChange?.(addMonths(month, view === 'date' ? 1 : 12))}>
           <ChevronRight size={16} />
         </button>
       </div>
