@@ -48,6 +48,41 @@ export default function TreeDemo() {
   const [checked, setChecked] = useState<Key[]>([]);
   const [keyword, setKeyword] = useState('');
   const [ctx, setCtx] = useState<{x:number;y:number;node?:TreeNode}|null>(null);
+  const [treeData, setTreeData] = useState<TreeNode[]>(baseData);
+
+  // Helpers for drag move
+  function clone(data: TreeNode[]): TreeNode[] { return data.map(n => ({ ...n, children: n.children ? clone(n.children) : undefined })); }
+  function removeNode(data: TreeNode[], key: Key): { next: TreeNode[]; removed?: TreeNode; parentKey?: Key } {
+    const out: TreeNode[] = [];
+    let removed: TreeNode | undefined;
+    let parentKey: Key | undefined;
+    for (const n of data) {
+      if (n.key === key) { removed = n; continue; }
+      if (n.children) {
+        const r = removeNode(n.children, key);
+        if (r.removed) { removed = r.removed; parentKey = n.key; out.push({ ...n, children: r.next }); continue; }
+      }
+      out.push(n);
+    }
+    return { next: out, removed, parentKey };
+  }
+  function insertAfterSibling(data: TreeNode[], targetKey: Key, node: TreeNode): TreeNode[] {
+    return data.flatMap(n => {
+      if (n.key === targetKey) return [n, { ...node }];
+      if (n.children) return [{ ...n, children: insertAfterSibling(n.children, targetKey, node) }];
+      return [n];
+    });
+  }
+  function insertAsChild(data: TreeNode[], parentKey: Key, node: TreeNode): TreeNode[] {
+    return data.map(n => {
+      if (n.key === parentKey) {
+        const kids = n.children ? [...n.children, node] : [node];
+        return { ...n, isLeaf: false, children: kids };
+      }
+      if (n.children) return { ...n, children: insertAsChild(n.children, parentKey, node) };
+      return n;
+    });
+  }
 
   return (
     <Layout
@@ -143,6 +178,51 @@ export default function TreeDemo() {
               />
               <div className="mt-3 text-xs text-gray-500">该示例用于“系统根据规则勾选，但用户无法手动修改”的场景。</div>
             </div>
+          </div>
+        </Card>
+
+        <Card title="拖拽：同级重排（仅限同父级）">
+          <div className="grid grid-cols-12 gap-6">
+            <div className="col-span-12 md:col-span-6">
+              <Tree
+                data={treeData}
+                draggable
+                dragScope="same-parent"
+                selectable="single"
+                onMove={(dragKey, dropKey) => {
+                  setTreeData(prev => {
+                    const { next, removed } = removeNode(prev, dragKey);
+                    if (!removed) return prev;
+                    return insertAfterSibling(next, dropKey, removed);
+                  });
+                }}
+                className="p-2 bg-white rounded-xl border border-gray-200"
+              />
+            </div>
+            <div className="col-span-12 md:col-span-6 text-sm text-gray-700">拖拽高亮为轻提示；不允许的位置会以淡红提示，鼠标指针为不可放置。</div>
+          </div>
+        </Card>
+
+        <Card title="拖拽：任意位置（允许重分配父级）">
+          <div className="grid grid-cols-12 gap-6">
+            <div className="col-span-12 md:col-span-6">
+              <Tree
+                data={treeData}
+                draggable
+                dragScope="any"
+                selectable="single"
+                onMove={(dragKey, dropKey, action) => {
+                  setTreeData(prev => {
+                    const { next, removed } = removeNode(prev, dragKey);
+                    if (!removed) return prev;
+                    if (action.type === 'reparent') return insertAsChild(next, dropKey, removed);
+                    return insertAfterSibling(next, dropKey, removed);
+                  });
+                }}
+                className="p-2 bg-white rounded-xl border border-gray-200"
+              />
+            </div>
+            <div className="col-span-12 md:col-span-6 text-sm text-gray-700">拖拽到某节点上：变为该节点子项；拖拽到兄弟项上：作为其后项。</div>
           </div>
         </Card>
 

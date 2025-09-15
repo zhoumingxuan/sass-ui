@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronRight, ChevronDown, Folder, FolderOpen, File, Loader2 } from "lucide-react";
+import { ChevronRight, ChevronDown, Folder, FolderOpen, File, Loader2, GripVertical } from "lucide-react";
 
 export type Key = string;
 
@@ -24,6 +24,8 @@ type Props = {
   selectable?: SelectMode | boolean; // true => single
   checkable?: boolean;
   checkInteractive?: boolean; // show checkbox but forbid manual toggle when false
+  draggable?: boolean;
+  dragScope?: 'same-parent' | 'any';
   loading?: boolean;
   emptyText?: ReactNode;
   keyword?: string; // highlight query (case-insensitive) for UX
@@ -38,6 +40,7 @@ type Props = {
   onCheck?: (keys: Key[], info: { checked: boolean; node: TreeNode; halfCheckedKeys: Key[] }) => void;
   loadData?: (node: TreeNode) => Promise<TreeNode[]>; // async load children
   onContextMenu?: (node: TreeNode, e: React.MouseEvent) => void;
+  onMove?: (dragKey: Key, dropKey: Key, action: { type: 'reorder' | 'reparent' }) => void;
 };
 
 export default function Tree({
@@ -46,6 +49,8 @@ export default function Tree({
   selectable = false,
   checkable = false,
   checkInteractive = true,
+  draggable = false,
+  dragScope = 'same-parent',
   loading = false,
   emptyText,
   keyword = '',
@@ -60,6 +65,7 @@ export default function Tree({
   onCheck,
   loadData,
   onContextMenu,
+  onMove,
 }: Props) {
   // Controlled/uncontrolled sets
   const isExpandedControlled = Array.isArray(expandedKeys);
@@ -77,6 +83,9 @@ export default function Tree({
   const [loadingKeys, setLoadingKeys] = useState<Set<Key>>(new Set());
   const [dynamicChildren, setDynamicChildren] = useState<Record<Key, TreeNode[]>>({});
   const [emptyLoadedKeys, setEmptyLoaded] = useState<Set<Key>>(new Set());
+  const [dragKey, setDragKey] = useState<Key | null>(null);
+  const [dragOverKey, setDragOverKey] = useState<Key | null>(null);
+  const [allowDrop, setAllowDrop] = useState<boolean>(false);
 
   // Build node map and parent map for fast operations
   const flatMap = useMemo(() => {
@@ -176,6 +185,11 @@ export default function Tree({
     while (cur) { out.push(cur); cur = flatMap.get(cur)?.parent; }
     return out;
   }, [flatMap]);
+  const isDescendantOf = useCallback((key: Key, maybeAncestor: Key) => {
+    let cur = flatMap.get(key)?.parent;
+    while (cur) { if (cur === maybeAncestor) return true; cur = flatMap.get(cur)?.parent; }
+    return false;
+  }, [flatMap]);
 
   const toggleCheck = (node: TreeNode) => {
     if (!checkable || node.disabled || !checkInteractive) return;
@@ -253,6 +267,7 @@ export default function Tree({
     const canExpand = !node.isLeaf && (hasChildren || !!loadData);
     const trulyExpandable = !node.isLeaf && (hasChildren || (!!loadData && !emptyLoadedKeys.has(node.key)));
     const interactive = !node.disabled && (effectiveSelectable || effectiveCheckable);
+    const isDropTarget = draggable && dragOverKey === node.key;
 
     return (
       <div
@@ -262,6 +277,39 @@ export default function Tree({
         aria-disabled={node.disabled || undefined}
         onClick={() => effectiveSelectable && !node.disabled && doSelect(node)}
         onContextMenu={(e) => { if (node.disabled) return; e.preventDefault(); onContextMenu?.(node, e); }}
+        draggable={draggable && !node.disabled}
+        onDragStart={(e) => {
+          if (!draggable || node.disabled) return;
+          setDragKey(node.key);
+          e.dataTransfer.effectAllowed = 'move';
+        }}
+        onDragOver={(e) => {
+          if (!draggable || !dragKey || node.disabled) return;
+          e.preventDefault();
+          if (node.key === dragKey) { setAllowDrop(false); setDragOverKey(node.key); e.dataTransfer.dropEffect = 'none'; return; }
+          let allowed = true;
+          if (dragScope === 'same-parent') {
+            const p1 = flatMap.get(dragKey)?.parent;
+            const p2 = flatMap.get(node.key)?.parent;
+            allowed = p1 === p2 && p1 !== undefined;
+          } else {
+            // any: cannot drop into own descendant
+            allowed = !isDescendantOf(node.key, dragKey);
+          }
+          setAllowDrop(!!allowed);
+          setDragOverKey(node.key);
+          e.dataTransfer.dropEffect = allowed ? 'move' : 'none';
+        }}
+        onDrop={(e) => {
+          if (!draggable || !dragKey) return;
+          e.preventDefault();
+          if (allowDrop && onMove && node.key !== dragKey) {
+            const action = dragScope === 'same-parent' ? { type: 'reorder' as const } : { type: 'reparent' as const };
+            onMove(dragKey, node.key, action);
+          }
+          setDragOverKey(null); setAllowDrop(false); setDragKey(null);
+        }}
+        onDragEnd={() => { setDragOverKey(null); setAllowDrop(false); setDragKey(null); }}
         className={[
           "group flex items-center gap-2 h-8 rounded-md px-2 text-sm",
           node.disabled
@@ -269,6 +317,7 @@ export default function Tree({
             : isSelected
             ? "bg-primary/10 text-primary"
             : (interactive ? "text-gray-700 hover:bg-gray-50 active:bg-gray-100 cursor-pointer" : "text-gray-700 cursor-default"),
+          isDropTarget ? (allowDrop ? "ring-1 ring-primary/30 bg-primary/5" : "ring-1 ring-error/20 bg-error/5") : ""
         ].join(" ")}
         style={{ paddingLeft: 8 + depth * 16 }}
       >
@@ -295,6 +344,13 @@ export default function Tree({
           )}
         </button>
 
+        {/* Drag handle */}
+        {draggable && !node.disabled && (
+          <span className="inline-flex h-5 w-4 items-center justify-center text-gray-300 group-hover:text-gray-500 cursor-grab active:cursor-grabbing" aria-hidden>
+            <GripVertical size={14} />
+          </span>
+        )}
+
         {/* Checkable */}
         {effectiveCheckable && (
           <input
@@ -312,7 +368,7 @@ export default function Tree({
         {/* Icon and label */}
         <span className="inline-flex items-center gap-2">
           {renderIcon(node, isOpen)}
-          <span>{highlight(node.title)}</span>
+          <span>{highlight(node.title)}{emptyLoadedKeys.has(node.key) && <span className="ml-1 text-[11px] text-gray-400">(无子项)</span>}</span>
         </span>
       </div>
     );
