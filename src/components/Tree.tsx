@@ -129,18 +129,18 @@ export default function Tree({
     return data;
   }, [data, keyword, searchLoader, searchResults, filterTree]);
 
-  // Auto expand visible tree when searching/filtering (uncontrolled only)
+  // Auto expand visible tree when searching/filtering
   useEffect(() => {
-    if (isExpandedControlled || !autoExpandOnSearch) return;
+    if (!autoExpandOnSearch) return;
     const q = (keyword || '').trim();
     const inSearch = (!!q && (searchMode === 'filter' || !!searchLoader));
     if (!inSearch) return;
-    // collect all nodes with visible children to expand
+    // collect all nodes with visible children to expand（包括根层有子项的情形）
     const keys: Key[] = [];
     const walk = (items: TreeNode[]) => {
       for (const n of items) {
-        const cs = (dynamicChildren[n.key] ?? n.children) || n.children || [];
-        if (cs && cs.length > 0) {
+        const cs = (dynamicChildren[n.key] ?? n.children) || [];
+        if (cs.length > 0) {
           keys.push(n.key);
           walk(cs);
         }
@@ -148,8 +148,12 @@ export default function Tree({
     };
     walk(viewData);
     const next = new Set<Key>(keys);
-    setInternalExpanded(next);
-    onExpand?.(Array.from(next));
+    if (isExpandedControlled) {
+      onExpand?.(Array.from(next));
+    } else {
+      setInternalExpanded(next);
+      onExpand?.(Array.from(next));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewData, autoExpandOnSearch, isExpandedControlled]);
 
