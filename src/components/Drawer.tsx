@@ -13,7 +13,7 @@ type DrawerProps = {
   title?: ReactNode;
   children?: ReactNode;
   placement?: Placement;
-  width?: number | string; // left/right => width; top/bottom => height
+  width?: number | string;
   footer?: ReactNode | null;
   closable?: boolean;
   maskClosable?: boolean;
@@ -32,7 +32,7 @@ export default function Drawer({
   width,
   footer,
   closable = true,
-  maskClosable = false,
+  maskClosable = true,
   keyboard = true,
   className = '',
   wrapperClassName = '',
@@ -66,9 +66,9 @@ export default function Drawer({
 
   const isHorizontal = placement === 'right';
 
-  const handleMaskClick: React.MouseEventHandler<HTMLDivElement> = (e) => {
+  const handleMaskClick: React.MouseEventHandler<HTMLDivElement> = () => {
     if (!maskClosable) return;
-    if (e.target === overlayRef.current) onClose?.();
+    onClose?.();
   };
 
   const overlay = (
@@ -79,9 +79,7 @@ export default function Drawer({
       onMouseDown={handleMaskClick}
       aria-hidden={!visible}
     >
-      {maskClosable && (
-        <div className="absolute inset-0 bg-black/10" aria-hidden />
-      )}
+      <div className="absolute inset-0 bg-black/20" aria-hidden />
       <div
         role="dialog"
         aria-modal="false"
@@ -89,8 +87,7 @@ export default function Drawer({
         aria-describedby={bodyId}
         className={[
           'relative bg-white shadow-elevation-3 overflow-hidden flex flex-col',
-          isHorizontal ? 'h-full ml-auto rounded-l-xl' : 'w-full rounded-b-xl max-h-[70vh]',
-          // Adaptive width/height without hard-coding
+          isHorizontal ? 'h-full ml-auto' : 'w-full max-h-[70vh]',
           !width && isHorizontal ? 'w-full sm:w-[clamp(20rem,40%,48rem)]' : '',
           className,
         ].join(' ')}
