@@ -37,6 +37,7 @@ export const menuItems: MenuItem[] = [
       { label: '卡片', href: '/demo/card', icon: <CreditCard /> },
       { label: '选项卡', href: '/demo/tabs', icon: <LayoutList /> },
       { label: '模态框', href: '/demo/modal', icon: <PanelsTopLeft /> },
+      { label: '抽屉', href: '/demo/drawer', icon: <PanelsTopLeft /> },
       { label: '消息提示', href: '/demo/message', icon: <MessageSquareText /> },
       { label: '超级搜索框', href: '/demo/supersearch', icon: <Search /> },
     ],

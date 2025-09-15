@@ -8,14 +8,13 @@ type ModalVariant = 'default' | 'confirm' | 'info' | 'success' | 'warning' | 'da
 type ModalSize = 'sm' | 'md' | 'lg' | 'xl';
 
 type Props = {
-  // Back-compat: original API
-  show?: boolean;
+  // Core API
+  open?: boolean;
   title?: ReactNode;
   children?: ReactNode;
   onClose?: () => void;
 
-  // Ant Design-like API
-  open?: boolean; // alias of show
+  // Actions / Footer
   footer?: ReactNode | null; // null = hide footer
   onOk?: () => void | Promise<unknown>;
   okText?: string;
@@ -23,24 +22,27 @@ type Props = {
   okButtonProps?: React.ComponentProps<'button'> & { variant?: React.ComponentProps<typeof Button>['variant'] };
   cancelButtonProps?: React.ComponentProps<'button'> & { variant?: React.ComponentProps<typeof Button>['variant'] };
   confirmLoading?: boolean;
-  centered?: boolean; // center vertically
+  hideCancel?: boolean; // hide cancel button in default footer
+
+  // Behavior
+  centered?: boolean; // center vertically (modal only)
   closable?: boolean; // show top-right close
   maskClosable?: boolean; // click backdrop to close
   keyboard?: boolean; // ESC to close
+
+  // Dimensions / Layout
   size?: ModalSize;
   width?: number | string; // custom width overrides size
   zIndex?: number;
   className?: string; // panel extra classes
   wrapperClassName?: string; // overlay wrapper classes
   variant?: ModalVariant; // subtle accent and icon
-  hideCancel?: boolean; // hide cancel button in default footer
   // Drawer support
   mode?: 'modal' | 'drawer';
   placement?: 'right' | 'left' | 'top' | 'bottom';
 };
 
 export default function Modal({
-  show,
   open,
   title,
   children,
@@ -66,7 +68,7 @@ export default function Modal({
   mode = 'modal',
   placement = 'right',
 }: Props) {
-  const visible = !!(typeof open === 'boolean' ? open : show);
+  const visible = !!open;
   const headerId = useId();
   const bodyId = useId();
   const overlayRef = useRef<HTMLDivElement>(null);

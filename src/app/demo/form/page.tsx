@@ -136,8 +136,7 @@ export default function FormDemo() {
                 <Form.Item
                   name="volume"
                   label="音量"
-                  getValueFromEvent={(e: React.ChangeEvent<HTMLInputElement>) => Number(e.target.value)}
-                  normalize={(v) => (typeof v === 'number' ? Math.min(100, Math.max(0, v)) : v)}
+                  normalize={(v) => (typeof v === 'number' ? Math.min(100, Math.max(0, v)) : (typeof v === 'string' ? Number(v) : v))}
                 >
                   <Slider min={0} max={100} defaultValue={30} />
                 </Form.Item>

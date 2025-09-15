@@ -66,7 +66,7 @@ export default function Users() {
         onPageChange={() => {}}
       />
 
-      <Modal show={showAdd} title="新增用户" onClose={() => setShowAdd(false)}>
+      <Modal open={showAdd} title="新增用户" onClose={() => setShowAdd(false)}>
         <form className="flex flex-col gap-2">
           <TextInput placeholder="用户名" />
           <TextInput placeholder="邮箱" />
@@ -76,7 +76,7 @@ export default function Users() {
         </form>
       </Modal>
 
-      <Modal show={showEdit} title="修改用户" onClose={() => setShowEdit(false)}>
+      <Modal open={showEdit} title="修改用户" onClose={() => setShowEdit(false)}>
         <form className="flex flex-col gap-2">
           <TextInput defaultValue="张三" />
           <TextInput defaultValue="zhang@example.com" />
@@ -86,7 +86,7 @@ export default function Users() {
         </form>
       </Modal>
 
-      <Modal show={showDelete} title="删除用户" onClose={() => setShowDelete(false)}>
+      <Modal open={showDelete} title="删除用户" onClose={() => setShowDelete(false)}>
         <p className="mb-4">确定删除该用户吗？</p>
         <div className="flex justify-end">
           <Button variant="error" onClick={() => setShowDelete(false)}>
