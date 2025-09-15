@@ -48,7 +48,6 @@ export default function ModalDemo() {
             <Button variant="default" onClick={() => setLargeOpen(true)}>较大内容</Button>
             <Button variant="error" onClick={() => setDangerOpen(true)}>危险操作</Button>
             <Button appearance="ghost" variant="default" onClick={() => setTopOpen(true)}>顶部对齐（720）</Button>
-            <Button appearance="ghost" variant="default" onClick={() => setDrawerOpen(true)}>抽屉（右侧）</Button>
             <Button variant="primary" onClick={() => setValidateOpen(true)}>表单校验</Button>
           </div>
         </Card>
@@ -120,22 +119,7 @@ export default function ModalDemo() {
           顶部对齐更利于长内容阅读；示例自定义宽度 720px，保持设计基准。
         </Modal>
 
-        {/* 抽屉式：右侧，默认 w-modal，如需更宽可设置 width */}
-        <Modal
-          open={drawerOpen}
-          onClose={() => setDrawerOpen(false)}
-          title="抽屉（右侧）"
-          mode="drawer"
-          placement="right"
-          width={420}
-          footer={<div className="flex items-center justify-end gap-2"><Button variant="default" onClick={() => setDrawerOpen(false)}>关闭</Button></div>}
-        >
-          <div className="space-y-3">
-            <Input.Text label="搜索" placeholder="输入关键词" />
-            <Input.DateRange label="时间范围" />
-            <Input.Select label="类型" options={[{ value: 'all', label: '全部' }, { value: 'doc', label: '文档' }]} />
-          </div>
-        </Modal>
+        {/* 抽屉示例已迁移到 /demo/drawer 页面，避免与模态混用 */}
 
         {/* 表单校验：本地校验示例 */}
         <Modal

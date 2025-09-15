@@ -206,13 +206,13 @@ export default function Modal({
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className={`bg-white ${isDrawer ? 'h-full ' + (width ? '' : 'w-modal ') + 'rounded-none' : 'rounded-xl'} shadow-elevation-3 overflow-hidden`}>
-          <div className={`px-5 ${isDrawer ? 'py-4' : 'pt-4 pb-3'} flex items-start justify-between gap-2 border-b border-gray-100`}>
+          <div className={`px-5 ${isDrawer ? 'py-4' : 'pt-4 pb-3'} flex items-center justify-between gap-2 border-b border-gray-100`}>
             <div id={headerId} className="min-h-6">{titleNode}</div>
             {closable && (
               <button
                 onClick={onClose}
                 aria-label="关闭"
-                className="-m-1 p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2"
+                className="h-8 w-8 inline-flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2"
               >
                 <X size={18} aria-hidden />
               </button>

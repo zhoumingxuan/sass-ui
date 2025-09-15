@@ -13,7 +13,7 @@ export function Header({ children }: { children: ReactNode }) {
 
 export function Content({ children }: { children: ReactNode }) {
   return (
-    <div className="flex-1 overflow-auto bg-bg px-6 py-6 nice-scrollbar scrollbar-stable">
+    <div className="flex-1 overflow-auto bg-bg px-6 py-6 nice-scrollbar scrollbar-stable relative">
       <div className="mx-auto max-w-screen-2xl space-y-6">{children}</div>
     </div>
   );
@@ -33,7 +33,7 @@ export default function Layout({
   return (
     <div className="flex h-screen bg-bg">
       <Menu items={menuItems} footerItems={footerItems} />
-      <div className="flex-1 flex flex-col">
+      <div id="layout-body" className="flex-1 flex flex-col relative">
         <Header>{header}</Header>
         <Content>{children}</Content>
       </div>

@@ -233,19 +233,20 @@ function FormItem({
   colon,
 }: FormItemProps) {
   const form = useContext(FormContext);
+  if (!form) return <div className={className} style={style}>{children}</div>;
 
   // register/unregister
   React.useEffect(() => {
     if (!form || !name) return;
     const r = [...(rules || [])];
     if (required) r.unshift({ required: true });
-    form.register(name, { rules: r, valuePropName, validateTrigger });
-    return () => { form.unregister(name); };
+    form!.register(name, { rules: r, valuePropName, validateTrigger });
+    return () => { form!.unregister(name); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name, JSON.stringify(rules), required, valuePropName, JSON.stringify(validateTrigger)]);
 
-  const val = name ? form.getValue(name) : undefined;
-  const errs = name ? form.getError(name) : undefined;
+  const val = name ? form!.getValue(name) : undefined;
+  const errs = name ? form!.getError(name) : undefined;
   const hasErr = !!(errs && errs.length > 0);
 
   const child = children as React.ReactElement | undefined;
@@ -258,8 +259,8 @@ function FormItem({
     (childProps as Record<string, unknown>)[trigger] = (...args: unknown[]) => {
       if (origin) origin(...args);
       let v = getValueFromEvent ? getValueFromEvent(...args) : defaultGetValueFromEvent(valuePropName, ...args);
-      if (normalize) v = normalize(v, form.values);
-      form.setValue(name, v, { validate: Array.isArray(validateTrigger) ? validateTrigger.includes('change') : validateTrigger === 'change' });
+      if (normalize) v = normalize(v, form!.values);
+      form!.setValue(name, v, { validate: Array.isArray(validateTrigger) ? validateTrigger.includes('change') : validateTrigger === 'change' });
     };
 
     // blur validation
@@ -267,14 +268,12 @@ function FormItem({
     (childProps as Record<string, unknown>).onBlur = (...args: unknown[]) => {
       if (originBlur) originBlur(...args);
       if (Array.isArray(validateTrigger) ? validateTrigger.includes('blur') : validateTrigger === 'blur') {
-        if (name) form.validateField(name);
+        if (name) form!.validateField(name);
       }
     };
   }
-
-  if (!form) return <div className={className} style={style}>{children}</div>;
-  const isHorizontal = form.layout === 'horizontal';
-  const showColon = typeof colon === 'boolean' ? colon : form.colon !== false;
+  const isHorizontal = form!.layout === 'horizontal';
+  const showColon = typeof colon === 'boolean' ? colon : form!.colon !== false;
   const renderLabel = () => {
     if (!label) return null;
     const txt = typeof label === 'string' ? label : label;
@@ -286,7 +285,7 @@ function FormItem({
     );
   };
   if (isHorizontal) {
-    const labelBoxStyle: React.CSSProperties = { width: typeof form.labelWidth === 'number' ? `${form.labelWidth}px` : form.labelWidth };
+    const labelBoxStyle: React.CSSProperties = { width: typeof form!.labelWidth === 'number' ? `${form!.labelWidth}px` : form!.labelWidth };
     return (
       <div className={["mb-3", className].join(' ')} style={style}>
         <div className="flex items-center gap-4">
