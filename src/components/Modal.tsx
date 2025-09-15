@@ -149,7 +149,7 @@ export default function Modal({
       <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-end gap-2">
         {!hideCancel && (
           <Button
-            variant={cancelVariant as any}
+            variant={cancelVariant}
             onClick={onClose}
             {...cancelButtonProps}
           >
@@ -157,7 +157,7 @@ export default function Modal({
           </Button>
         )}
         <Button
-          variant={okVariant as any}
+          variant={okVariant}
           onClick={handleOk}
           disabled={loading}
           {...okButtonProps}
