@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import type { CSSProperties } from 'react';
 import { fieldLabel, helperText, inputBase, inputStatus, Status } from '../formStyles';
 import { X, Calendar as CalendarIcon } from 'lucide-react';
 import Calendar from './Calendar';
@@ -30,6 +32,8 @@ export default function DatePicker({ label, helper, value, defaultValue, min, ma
   const [month, setMonth] = useState<Date>(() => date ?? new Date());
   const pop = useRef<HTMLDivElement>(null);
   const anchor = useRef<HTMLDivElement>(null);
+  const [mountNode, setMountNode] = useState<Element | null>(null);
+  const [pos, setPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 0 });
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
@@ -40,6 +44,22 @@ export default function DatePicker({ label, helper, value, defaultValue, min, ma
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
+
+  useEffect(() => { if (typeof document !== 'undefined') setMountNode(document.getElementById('layout-body') || document.body); }, []);
+  useEffect(() => {
+    if (!open) return;
+    const update = () => {
+      const el = anchor.current; if (!el) return;
+      const r = el.getBoundingClientRect();
+      const top = r.bottom + 4 + window.scrollY;
+      const left = r.left + window.scrollX;
+      setPos({ top, left, width: r.width });
+    };
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    return () => { window.removeEventListener('resize', update); window.removeEventListener('scroll', update, true); };
+  }, [open]);
 
   const commit = (val?: string) => {
     let next = val;
@@ -114,8 +134,8 @@ export default function DatePicker({ label, helper, value, defaultValue, min, ma
           </button>
         )}
         <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><CalendarIcon size={18} aria-hidden /></span>
-        {open && (
-          <div ref={pop} className="absolute z-20 mt-1 rounded-lg border border-gray-200 bg-white p-2 shadow-elevation-1">
+        {open && mountNode && createPortal(
+          <div ref={pop} className="fixed z-[1200] rounded-lg border border-gray-200 bg-white p-2 shadow-elevation-1" style={{ top: pos.top, left: pos.left, minWidth: pos.width } as CSSProperties}>
             <Calendar
               month={month}
               value={date}
@@ -159,8 +179,8 @@ export default function DatePicker({ label, helper, value, defaultValue, min, ma
                 {clearable && <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => { clear(); }}>清空</button>}
               </div>
             </div>
-          </div>
-        )}
+          </div>, mountNode)
+        }
       </div>
       {helper && <span className={helperText}>{helper}</span>}
     </label>

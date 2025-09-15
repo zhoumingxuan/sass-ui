@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import type { CSSProperties } from 'react';
 import { fieldLabel, helperText, inputBase } from '../formStyles';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import Calendar from './Calendar';
@@ -60,6 +62,8 @@ export default function DateRangePicker({
   const [focusDate, setFocusDate] = useState<Date | undefined>(undefined);
   const pop = useRef<HTMLDivElement>(null);
   const anchor = useRef<HTMLDivElement>(null);
+  const [mountNode, setMountNode] = useState<Element | null>(null);
+  const [pos, setPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const [active, setActive] = useState<'start'|'end'|'auto'>('auto');
   const [focused, setFocused] = useState<'start'|'end'|undefined>(undefined);
 
@@ -97,6 +101,25 @@ export default function DateRangePicker({
     document.addEventListener('click', onDoc);
     return () => document.removeEventListener('click', onDoc);
   }, [draftStartInput, draftEndInput, draftStart, draftEnd, sv, ev, isControlled, onChange]);
+
+  useEffect(() => { if (typeof document !== 'undefined') setMountNode(document.getElementById('layout-body') || document.body); }, []);
+  useEffect(() => {
+    if (!open) return;
+    const update = () => {
+      const el = anchor.current; if (!el) return;
+      const r = el.getBoundingClientRect();
+      const panelW = 560; // desired width
+      let left = r.left + window.scrollX;
+      const top = r.bottom + 4 + window.scrollY;
+      const maxLeft = Math.max(8, window.scrollX + window.innerWidth - panelW - 8);
+      if (left > maxLeft) left = maxLeft;
+      setPos({ top, left });
+    };
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    return () => { window.removeEventListener('resize', update); window.removeEventListener('scroll', update, true); };
+  }, [open]);
 
   const openPanel = (focus: 'start'|'end') => {
     setFocused(focus);
@@ -340,8 +363,8 @@ export default function DateRangePicker({
           </div>
         </div>
 
-        {open && (
-          <div ref={pop} className="absolute z-20 mt-1 w-[560px] rounded-lg border border-gray-200 bg-white p-2 shadow-elevation-1">
+        {open && mountNode && createPortal(
+          <div ref={pop} className="fixed z-[1200] w-[560px] rounded-lg border border-gray-200 bg-white p-2 shadow-elevation-1" style={{ top: pos.top, left: pos.left } as CSSProperties}>
 
             <div className="flex gap-2 outline-none focus:outline-none" tabIndex={0} onKeyDown={(e) => {
               const base = focusDate || (active === 'start' ? (draftStart || left) : (draftEnd || right) || new Date());
@@ -460,8 +483,8 @@ export default function DateRangePicker({
                 <button type="button" className="h-8 rounded-md border border-gray-200 px-3 text-sm text-gray-700 hover:bg-gray-50" onClick={doClear}>清除</button>
               </div>
             </div>
-          </div>
-        )}
+          </div>, mountNode)
+        }
       </div>
       {helper && <span className={helperText}>{helper}</span>}
     </label>

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import type { CSSProperties } from "react";
 import { inputBase, fieldLabel, helperText, inputStatus, Status } from "../formStyles";
 import { X, Check, ChevronDown } from "lucide-react";
 
@@ -28,6 +30,8 @@ export default function Select({ label, helper, options, placeholder, clearable,
   const [open, setOpen] = useState(false);
   const anchor = useRef<HTMLDivElement>(null);
   const pop = useRef<HTMLDivElement>(null);
+  const [mountNode, setMountNode] = useState<Element | null>(null);
+  const [pos, setPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 0 });
 
   const canClear = clearable && !!val;
   const commit = (v: string) => { if (!isControlled) setInternal(v); onChange?.(v); setOpen(false); };
@@ -43,6 +47,28 @@ export default function Select({ label, helper, options, placeholder, clearable,
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
 
+  // mount portal node
+  useEffect(() => {
+    if (typeof document !== 'undefined') setMountNode(document.getElementById('layout-body') || document.body);
+  }, []);
+
+  // position popup on open/resize/scroll
+  useEffect(() => {
+    if (!open) return;
+    const update = () => {
+      const el = anchor.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const top = r.bottom + 4 + window.scrollY;
+      const left = r.left + window.scrollX;
+      setPos({ top, left, width: r.width });
+    };
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    return () => { window.removeEventListener('resize', update); window.removeEventListener('scroll', update, true); };
+  }, [open]);
+
   const labelText = val ? options.find(o => o.value === val)?.label ?? '' : '';
 
   return (
@@ -56,8 +82,13 @@ export default function Select({ label, helper, options, placeholder, clearable,
           </button>
         )}
         <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><ChevronDown size={16} aria-hidden /></span>
-        {open && (
-          <div ref={pop} role="listbox" className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-elevation-1">
+        {open && mountNode && createPortal(
+          <div
+            ref={pop}
+            role="listbox"
+            className="fixed z-[1200] max-h-56 overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-elevation-1"
+            style={{ top: pos.top, left: pos.left, minWidth: pos.width } as CSSProperties}
+          >
             {(placeholder && !required) && (
               <button type="button" role="option" aria-selected={!val} className="flex w-full items-center justify-between px-3 py-2 text-sm text-gray-500 hover:bg-gray-50" onClick={() => commit("")}> 
                 {placeholder}
@@ -78,7 +109,8 @@ export default function Select({ label, helper, options, placeholder, clearable,
                 {val === o.value && <Check size={16} className="text-primary" aria-hidden />}
               </button>
             ))}
-          </div>
+          </div>,
+          mountNode
         )}
       </div>
       {helper && <span className={helperText}>{helper}</span>}
