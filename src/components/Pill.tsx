@@ -12,19 +12,19 @@ type PillProps = {
 };
 
 const toneClasses: Record<PillTone, string> = {
-  neutral: 'bg-gray-100 text-gray-600',
-  primary: 'bg-primary/10 text-primary',
-  success: 'bg-success/10 text-success',
-  warning: 'bg-warning/10 text-warning',
-  danger: 'bg-error/10 text-error',
-  info: 'bg-info/10 text-info',
+  neutral: 'border border-gray-200 bg-gray-100 text-gray-700',
+  primary: 'border border-primary/20 bg-primary/10 text-primary',
+  success: 'border border-success/20 bg-success/10 text-success',
+  warning: 'border border-warning/20 bg-warning/10 text-warning',
+  danger: 'border border-error/20 bg-error/10 text-error',
+  info: 'border border-info/20 bg-info/10 text-info',
 };
 
 export default function Pill({ tone = 'neutral', icon, children, className = '' }: PillProps) {
   return (
     <span
       className={[
-        'inline-flex select-none items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium',
+        'inline-flex select-none items-center gap-1 rounded-full px-3 py-1 text-xs font-medium leading-none shadow-[0_1px_0_rgba(15,23,42,0.04)]',
         toneClasses[tone],
         className,
       ]

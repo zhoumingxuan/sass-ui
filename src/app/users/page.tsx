@@ -7,9 +7,11 @@ import Table, { Column } from '@/components/Table';
 import { TextInput } from '@/components/Input';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import Layout from '@/components/Layout';
+import Card from '@/components/Card';
 import Pill from '@/components/Pill';
 import ActionLink from '@/components/ActionLink';
 import { menuItems, footerItems } from '@/components/menuItems';
+import { Search, Plus } from 'lucide-react';
 
 interface Row {
   id: string;
@@ -138,7 +140,7 @@ export default function Users() {
     }
   };
 
-  const handleSearch = (value: string) => {
+  const handleSearchChange = (value: string) => {
     setQuery(value);
     setPage(1);
   };
@@ -157,33 +159,17 @@ export default function Users() {
       <Breadcrumbs />
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-800">用户管理</h2>
-        <Button onClick={() => setShowAdd(true)}>新增用户</Button>
+        <Button onClick={() => setShowAdd(true)} icon={<Plus />}>
+          新增用户
+        </Button>
       </div>
-      <Table<Row>
-        className="mt-4"
-        title="用户"
-        columns={columns}
-        data={paged}
-        page={page}
-        pageSize={pageSize}
-        total={total}
-        onPageChange={setPage}
-        onPageSizeChange={handlePageSize}
-        pageSizeOptions={[5, 10, 20]}
-        onSearch={handleSearch}
-        sortKey={sortKey}
-        sortDirection={sortDirection}
-        onSort={handleSort}
-        rowKey={(row) => row.id}
-        selection={{
-          selectedKeys,
-          onChange: (keys, rows) => {
-            setSelectedKeys(keys);
-            setSelectedRows(rows);
-          },
-          headerTitle: '选择用户',
-        }}
-        toolbar={
+
+      <Card>
+        <div className="flex items-center justify-between gap-3">
+          <div className="space-y-1">
+            <div className="text-base font-semibold text-gray-800">用户</div>
+            <div className="text-xs text-gray-500">账户权限与状态概览</div>
+          </div>
           <div className="flex items-center gap-2">
             <Button size="small" appearance="ghost" variant="default">
               导入
@@ -192,17 +178,54 @@ export default function Users() {
               导出
             </Button>
           </div>
-        }
-        footerExtra={
-          selectedRows.length > 0 ? (
-            <div className="flex items-center gap-2 text-gray-500">
-              <span>批量操作：</span>
-              <ActionLink onClick={() => console.log('disable', selectedRows.length)}>批量停用</ActionLink>
-              <ActionLink onClick={() => console.log('reset-password', selectedRows.length)}>重置密码</ActionLink>
-            </div>
-          ) : null
-        }
-      />
+        </div>
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <div className="relative w-full max-w-xs">
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="搜索用户"
+              className="h-9 w-full rounded-lg border border-gray-200 pl-8 pr-3 text-sm text-gray-700 placeholder:text-gray-400 transition-[box-shadow,border-color] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          </div>
+        </div>
+        <div className="mt-4">
+          <Table<Row>
+            card={false}
+            columns={columns}
+            data={paged}
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            onPageChange={setPage}
+            onPageSizeChange={handlePageSize}
+            pageSizeOptions={[5, 10, 20]}
+            sortKey={sortKey}
+            sortDirection={sortDirection}
+            onSort={handleSort}
+            rowKey={(row) => row.id}
+            selection={{
+              selectedKeys,
+              onChange: (keys, rows) => {
+                setSelectedKeys(keys);
+                setSelectedRows(rows);
+              },
+              headerTitle: '选择用户',
+            }}
+            footerExtra={
+              selectedRows.length > 0 ? (
+                <div className="flex items-center gap-2 text-gray-500">
+                  <span>批量操作：</span>
+                  <ActionLink onClick={() => console.log('disable', selectedRows.length)}>批量停用</ActionLink>
+                  <ActionLink onClick={() => console.log('reset-password', selectedRows.length)}>重置密码</ActionLink>
+                </div>
+              ) : null
+            }
+          />
+        </div>
+      </Card>
 
       <Modal open={showAdd} title="新增用户" onClose={() => setShowAdd(false)}>
         <form className="flex flex-col gap-3">

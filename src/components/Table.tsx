@@ -2,7 +2,6 @@
 
 import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react';
 import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import Pagination from './Pagination';
 import { controlRing } from './formStyles';
 
@@ -52,10 +51,6 @@ type TableProps<T> = {
   pageSize: number;
   total: number;
   onPageChange: (page: number) => void;
-  title?: ReactNode;
-  description?: ReactNode;
-  onSearch?: (value: string) => void;
-  searchPlaceholder?: string;
   sortKey?: Column<T>['key'];
   sortDirection?: SortDirection;
   onSort?: (key: Column<T>['key']) => void;
@@ -64,7 +59,6 @@ type TableProps<T> = {
   pageSizeOptions?: number[];
   onPageSizeChange?: (size: number) => void;
   stickyHeader?: boolean;
-  toolbar?: ReactNode;
   highlightOnHover?: boolean;
   zebra?: boolean;
   rowKey?: (row: T, index: number) => string | number;
@@ -98,14 +92,19 @@ function useIndeterminate(checked: boolean, indeterminate?: boolean) {
 }
 
 function SortIcon({ active, direction }: { active: boolean; direction?: SortDirection }) {
-  if (!active) {
-    return <ArrowUpDown className="h-4 w-4 text-gray-400" aria-hidden />;
-  }
-  const iconClass = 'h-4 w-4 text-gray-500';
-  return direction === 'asc' ? (
-    <ArrowUp className={iconClass} aria-hidden />
-  ) : (
-    <ArrowDown className={iconClass} aria-hidden />
+  const highlight = '#1e80ff';
+  const passive = '#d0d5dd';
+  const upFill = active && direction === 'asc' ? highlight : passive;
+  const downFill = active && direction === 'desc' ? highlight : passive;
+  return (
+    <span className="flex flex-col items-center gap-0.5 leading-none">
+      <svg viewBox="0 0 12 7" className="h-2 w-2" aria-hidden focusable="false">
+        <path d="M6 1L10.5 6H1.5L6 1Z" fill={upFill} />
+      </svg>
+      <svg viewBox="0 0 12 7" className="h-2 w-2" aria-hidden focusable="false">
+        <path d="M6 6L1.5 1H10.5L6 6Z" fill={downFill} />
+      </svg>
+    </span>
   );
 }
 
@@ -116,19 +115,14 @@ export default function Table<T extends Record<string, unknown>>({
   pageSize,
   total,
   onPageChange,
-  title,
-  description,
-  onSearch,
-  searchPlaceholder = '搜索',
   sortKey,
   sortDirection,
   onSort,
-  card = true,
+  card = false,
   loading = false,
   pageSizeOptions = [10, 20, 50],
   onPageSizeChange,
   stickyHeader = true,
-  toolbar,
   highlightOnHover = true,
   zebra = true,
   rowKey,
@@ -142,20 +136,13 @@ export default function Table<T extends Record<string, unknown>>({
   className = '',
   rounded = 'xl',
 }: TableProps<T>) {
-  const [keyword, setKeyword] = useState('');
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    if (!onSearch) return;
-    const id = setTimeout(() => onSearch(keyword.trim()), 260);
-    return () => clearTimeout(id);
-  }, [keyword, onSearch]);
-
-  useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
-    const handleScroll = () => setScrolled(el.scrollTop > 0);
+    const handleScroll = () => setScrolled(el.scrollTop > 0 || el.scrollLeft > 0);
     handleScroll();
     el.addEventListener('scroll', handleScroll);
     return () => el.removeEventListener('scroll', handleScroll);
@@ -415,47 +402,15 @@ export default function Table<T extends Record<string, unknown>>({
       <span className="text-sm text-primary">已选择 {selectionCount} 项</span>
     ) : null;
 
-  const cardClass = card
-    ? `flex flex-col ${roundedClass} border border-gray-200 bg-white shadow-sm`
-    : '';
+  const containerClass = [
+    card ? `flex flex-col ${roundedClass} border border-gray-200 bg-white shadow-sm` : '',
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
-    <div className={`${cardClass} ${className}`} role="region" aria-label={typeof title === 'string' ? title : '表格'}>
-      {(title || description || toolbar || onSearch) && (
-        <div className="border-b border-gray-200 bg-white px-5 py-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="min-w-0 space-y-1">
-              {title && <div className="truncate text-sm font-semibold text-gray-900">{title}</div>}
-              {description && <div className="text-xs text-gray-500">{description}</div>}
-            </div>
-            {(toolbar || onSearch) && (
-              <div className="flex flex-wrap items-center justify-end gap-2">
-                {toolbar}
-                {onSearch && (
-                  <div className="relative">
-                    <input
-                      type="search"
-                      value={keyword}
-                      onChange={(e) => setKeyword(e.target.value)}
-                      placeholder={searchPlaceholder}
-                      className="h-9 w-56 rounded-lg border border-gray-200 pl-8 pr-3 text-sm text-gray-700 placeholder:text-gray-400 transition-[box-shadow,border-color] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    />
-                    <svg
-                      aria-hidden
-                      className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path d="M12.9 14.32a6.5 6.5 0 111.414-1.414l3.386 3.387a1 1 0 01-1.414 1.414l-3.386-3.387zM13 8.5a4.5 4.5 0 10-9 0 4.5 4.5 0 009 0z" />
-                    </svg>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
+    <div className={containerClass} role="region">
       <div
         ref={scrollerRef}
         className={`relative overflow-x-auto ${stickyHeader ? 'overflow-y-auto' : 'overflow-y-visible'} nice-scrollbar ${scrollContainerClassName}`}
@@ -475,7 +430,7 @@ export default function Table<T extends Record<string, unknown>>({
             <tr>
               {selection && (
                 <th
-                  className={`${headerClass} ${stickyHeader ? 'bg-gray-50' : ''}`}
+                  className={`${headerClass} sticky left-0 z-30 bg-gray-50 ${stickyHeader ? 'shadow-[inset_-1px_0_0_rgba(15,23,42,0.06)]' : ''}`}
                   style={{ width: selection.columnWidth ?? 48 }}
                   scope="col"
                 >
@@ -508,7 +463,7 @@ export default function Table<T extends Record<string, unknown>>({
                     : col.align === 'center'
                     ? 'justify-center'
                     : 'justify-start';
-                const intentClass = col.intent === 'actions' ? 'whitespace-nowrap text-right' : '';
+                const intentClass = col.intent === 'actions' ? 'sticky right-0 z-30 bg-gray-50 pl-4 shadow-[inset_1px_0_0_rgba(15,23,42,0.06)]' : '';
                 return (
                   <th
                     key={String(col.key)}
@@ -519,7 +474,7 @@ export default function Table<T extends Record<string, unknown>>({
                     {sortable ? (
                       <button
                         type="button"
-                        className={`group inline-flex w-full items-center justify-between gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${justifyClass}`}
+                        className={`group inline-flex w-full items-center ${justifyClass} gap-1.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20`}
                         onClick={() => onSort?.(col.key)}
                       >
                         <span className="truncate text-xs font-medium text-gray-600 group-hover:text-gray-900">
@@ -541,7 +496,7 @@ export default function Table<T extends Record<string, unknown>>({
               Array.from({ length: Math.min(Math.max(pageSize, 4), 6) }).map((_, skeletonIndex) => (
                 <tr key={`skeleton-${skeletonIndex}`} className="h-12">
                   {selection && (
-                    <td className={bodyCellClass} style={{ width: selection.columnWidth ?? 48 }}>
+                    <td className={`${bodyCellClass} sticky left-0 z-20 bg-[#f8fafc]`} style={{ width: selection.columnWidth ?? 48 }}>
                       <div className="h-4 w-4 rounded border border-gray-100 bg-gray-100" />
                     </td>
                   )}
@@ -557,6 +512,8 @@ export default function Table<T extends Record<string, unknown>>({
                 const isSelected = selectedSet.has(rowItem.key);
                 const isFocused = activeFocusKey !== null && rowItem.key === activeFocusKey;
                 const tabIndex = rowItems.length === 0 ? -1 : rowIndex === rovingIndex ? 0 : -1;
+                const rowBg = zebra ? (rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50/60') : 'bg-white';
+                const selectedBg = isSelected ? 'bg-primary/5 hover:bg-primary/10' : '';
 
                 return (
                   <tr
@@ -564,12 +521,10 @@ export default function Table<T extends Record<string, unknown>>({
                     data-selected={isSelected ? 'true' : undefined}
                     data-focus={isFocused ? 'true' : undefined}
                     className={[
-                      zebra ? 'odd:bg-white even:bg-gray-50/60' : 'bg-white',
+                      'group transition-colors focus:outline-none',
+                      rowBg,
                       highlightOnHover ? 'hover:bg-gray-50' : '',
-                      'transition-colors',
-                      'focus:outline-none',
-                      'data-[selected=true]:bg-primary/5 data-[selected=true]:hover:bg-primary/10',
-                      'data-[focus=true]:outline data-[focus=true]:outline-2 data-[focus=true]:outline-primary/40 data-[focus=true]:outline-offset-[-2px]',
+                      selectedBg,
                     ].join(' ')}
                     tabIndex={tabIndex}
                     onFocus={() => updateFocus(rowItem.key)}
@@ -579,7 +534,10 @@ export default function Table<T extends Record<string, unknown>>({
                     role="row"
                   >
                     {selection && (
-                      <td className={bodyCellClass} style={{ width: selection.columnWidth ?? 48 }}>
+                      <td
+                        className={`${bodyCellClass} sticky left-0 z-20 bg-inherit backdrop-blur-[0.01px]`}
+                        style={{ width: selection.columnWidth ?? 48 }}
+                      >
                         <input
                           type="checkbox"
                           aria-label="选择行"
@@ -597,7 +555,9 @@ export default function Table<T extends Record<string, unknown>>({
                           : col.align === 'center'
                           ? 'text-center'
                           : 'text-left';
-                      const intentClass = col.intent === 'actions' ? 'whitespace-nowrap text-right' : '';
+                      const isAction = col.intent === 'actions';
+                      const stickyRightClass = isAction ? 'sticky right-0 z-20 bg-inherit backdrop-blur-[0.01px] pl-4 shadow-[inset_1px_0_0_rgba(15,23,42,0.04)]' : '';
+                      const intentClass = isAction ? 'whitespace-nowrap text-right' : '';
                       const value = col.render
                         ? col.render(rowItem.row, {
                             row: rowItem.row,
@@ -616,7 +576,15 @@ export default function Table<T extends Record<string, unknown>>({
                       return (
                         <td
                           key={String(col.key)}
-                          className={`${bodyCellClass} ${alignClass} ${intentClass} ${col.className ?? ''}`}
+                          className={[
+                            bodyCellClass,
+                            alignClass,
+                            intentClass,
+                            stickyRightClass,
+                            col.className ?? '',
+                          ]
+                            .filter(Boolean)
+                            .join(' ')}
                           style={columnLayouts[colIndex]}
                           title={titleValue as string | undefined}
                         >

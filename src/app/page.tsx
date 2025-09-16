@@ -231,13 +231,13 @@ export default function Home() {
     }
   };
 
-  const handleSearch = (value: string) => {
-    setQuery(value);
+  const handlePageSize = (nextSize: number) => {
+    setPageSize(nextSize);
     setPage(1);
   };
 
-  const handlePageSize = (nextSize: number) => {
-    setPageSize(nextSize);
+  const handleSearchChange = (value: string) => {
+    setQuery(value);
     setPage(1);
   };
 
@@ -285,32 +285,12 @@ export default function Home() {
         </div>
       </Card>
 
-      <Table<Row>
-        className="mt-6"
-        title="员工"
-        columns={columns}
-        data={paged}
-        page={page}
-        pageSize={pageSize}
-        total={total}
-        onPageChange={setPage}
-        onPageSizeChange={handlePageSize}
-        pageSizeOptions={[5, 10, 20]}
-        onSearch={handleSearch}
-        sortKey={sortKey}
-        sortDirection={sortDirection}
-        onSort={handleSort}
-        rowKey={(row) => row.id}
-        selection={{
-          selectedKeys,
-          onChange: (keys, rows) => {
-            setSelectedKeys(keys);
-            setSelectedRows(rows);
-          },
-          columnWidth: 48,
-          headerTitle: "选择全部成员",
-        }}
-        toolbar={
+      <Card>
+        <div className="flex items-center justify-between gap-3">
+          <div className="space-y-1">
+            <div className="text-base font-semibold text-gray-800">员工</div>
+            <div className="text-xs text-gray-500">团队成员示例数据</div>
+          </div>
           <div className="flex items-center gap-2">
             <Button size="small" variant="primary" icon={<Plus />}>
               新增成员
@@ -319,16 +299,54 @@ export default function Home() {
               导出
             </Button>
           </div>
-        }
-        footerExtra={
-          selectedRows.length > 0 ? (
-            <div className="flex items-center gap-2 text-gray-500">
-              <span>批量操作：</span>
-              <ActionLink onClick={() => console.log("export", selectedRows.length)}>导出选中</ActionLink>
-            </div>
-          ) : null
-        }
-      />
+        </div>
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <div className="relative w-full max-w-xs">
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="搜索员工"
+              className="h-9 w-full rounded-lg border border-gray-200 pl-8 pr-3 text-sm text-gray-700 placeholder:text-gray-400 transition-[box-shadow,border-color] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          </div>
+        </div>
+        <div className="mt-4">
+          <Table<Row>
+            card={false}
+            columns={columns}
+            data={paged}
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            onPageChange={setPage}
+            onPageSizeChange={handlePageSize}
+            pageSizeOptions={[5, 10, 20]}
+            sortKey={sortKey}
+            sortDirection={sortDirection}
+            onSort={handleSort}
+            rowKey={(row) => row.id}
+            selection={{
+              selectedKeys,
+              onChange: (keys, rows) => {
+                setSelectedKeys(keys);
+                setSelectedRows(rows);
+              },
+              columnWidth: 48,
+              headerTitle: "选择全部成员",
+            }}
+            footerExtra={
+              selectedRows.length > 0 ? (
+                <div className="flex items-center gap-2 text-gray-500">
+                  <span>批量操作：</span>
+                  <ActionLink onClick={() => console.log("export", selectedRows.length)}>导出选中</ActionLink>
+                </div>
+              ) : null
+            }
+          />
+        </div>
+      </Card>
 
       <Card title="提示">
         <div className="flex flex-col space-y-3">
