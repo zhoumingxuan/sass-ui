@@ -159,7 +159,6 @@ export default function Home() {
   const [pageSize, setPageSize] = useState(5);
   const [selectedKeys, setSelectedKeys] = useState<Array<string | number>>([]);
   const [selectedRows, setSelectedRows] = useState<Row[]>([]);
-  const [focusedMember, setFocusedMember] = useState<Row | null>(null);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -242,8 +241,6 @@ export default function Home() {
     setPage(1);
   };
 
-  const focusHint = focusedMember ? `当前聚焦成员：${focusedMember.name}` : "选择或使用上下键查看详情";
-
   return (
     <Layout
       menuItems={menuItems}
@@ -288,8 +285,8 @@ export default function Home() {
         </div>
       </Card>
 
-      <div className="mb-3 text-sm text-gray-500">{focusHint}</div>
       <Table<Row>
+        className="mt-6"
         title="员工"
         columns={columns}
         data={paged}
@@ -323,7 +320,6 @@ export default function Home() {
             </Button>
           </div>
         }
-        onFocusedRowChange={(_, row) => setFocusedMember(row)}
         footerExtra={
           selectedRows.length > 0 ? (
             <div className="flex items-center gap-2 text-gray-500">

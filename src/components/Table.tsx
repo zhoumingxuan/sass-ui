@@ -2,6 +2,7 @@
 
 import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react';
 import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import Pagination from './Pagination';
 import { controlRing } from './formStyles';
 
@@ -41,7 +42,6 @@ type RowSelection<T> = {
   isRowSelectable?: (row: T, index: number) => boolean;
   columnWidth?: number;
   headerTitle?: string;
-  controls?: ReactNode;
   enableSelectAll?: boolean;
 };
 
@@ -95,6 +95,18 @@ function useIndeterminate(checked: boolean, indeterminate?: boolean) {
     }
   }, [checked, indeterminate]);
   return ref;
+}
+
+function SortIcon({ active, direction }: { active: boolean; direction?: SortDirection }) {
+  if (!active) {
+    return <ArrowUpDown className="h-4 w-4 text-gray-400" aria-hidden />;
+  }
+  const iconClass = 'h-4 w-4 text-gray-500';
+  return direction === 'asc' ? (
+    <ArrowUp className={iconClass} aria-hidden />
+  ) : (
+    <ArrowDown className={iconClass} aria-hidden />
+  );
 }
 
 export default function Table<T extends Record<string, unknown>>({
@@ -297,11 +309,6 @@ export default function Table<T extends Record<string, unknown>>({
     selection.onChange(uniqueKeys, rows);
   };
 
-  const handleClearSelection = () => {
-    if (!selection) return;
-    selection.onChange([], []);
-  };
-
   const handleSelectionChange = (rowItem: (typeof rowItems)[number], nextChecked: boolean) => {
     if (!selection || !rowItem.selectable) return;
     if (selectionMode === 'single') {
@@ -403,32 +410,6 @@ export default function Table<T extends Record<string, unknown>>({
     );
 
   const selectionCount = selectedKeysRef?.length ?? 0;
-  const selectionControls = selection ? (
-    <div className="flex items-center gap-2 text-xs text-gray-500">
-      {enableSelectAll && selectableRows.length > 0 ? (
-        <button
-          type="button"
-          className="text-primary hover:text-primary/80 focus-visible:text-primary"
-          onClick={() => handleSelectAll(true)}
-        >
-          全选当前页
-        </button>
-      ) : null}
-      <button
-        type="button"
-        className={[
-          'hover:text-gray-700 focus-visible:text-gray-800',
-          selectionCount === 0 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-500',
-        ].join(' ')}
-        onClick={selectionCount === 0 ? undefined : handleClearSelection}
-        disabled={selectionCount === 0}
-      >
-        清空选择
-      </button>
-      {selection.controls}
-    </div>
-  ) : null;
-
   const selectionSummary =
     selection && selectionCount > 0 ? (
       <span className="text-sm text-primary">已选择 {selectionCount} 项</span>
@@ -444,12 +425,7 @@ export default function Table<T extends Record<string, unknown>>({
         <div className="border-b border-gray-200 bg-white px-5 py-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0 space-y-1">
-              {title && (
-                <div className="flex min-w-0 flex-wrap items-center gap-2 text-sm font-semibold text-gray-900">
-                  <div className="truncate">{title}</div>
-                  <span className="text-gray-500">· {total} 项</span>
-                </div>
-              )}
+              {title && <div className="truncate text-sm font-semibold text-gray-900">{title}</div>}
               {description && <div className="text-xs text-gray-500">{description}</div>}
             </div>
             {(toolbar || onSearch) && (
@@ -543,30 +519,13 @@ export default function Table<T extends Record<string, unknown>>({
                     {sortable ? (
                       <button
                         type="button"
-                        className={`group inline-flex w-full items-center gap-1 ${justifyClass} text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20`}
+                        className={`group inline-flex w-full items-center justify-between gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${justifyClass}`}
                         onClick={() => onSort?.(col.key)}
                       >
                         <span className="truncate text-xs font-medium text-gray-600 group-hover:text-gray-900">
                           {col.title}
                         </span>
-                        <svg
-                          viewBox="0 0 16 16"
-                          className={`h-3.5 w-3.5 text-gray-400 transition-colors group-hover:text-gray-500 ${
-                            active ? 'opacity-100' : 'opacity-60'
-                          }`}
-                          fill="currentColor"
-                          aria-hidden
-                        >
-                          {active ? (
-                            sortDirection === 'asc' ? (
-                              <path d="M8 3l4 5H4l4-5z" />
-                            ) : (
-                              <path d="M8 13l-4-5h8l-4 5z" />
-                            )
-                          ) : (
-                            <path d="M8 4l3.5 4.5h-7L8 4zm0 8l-3.5-4.5h7L8 12z" />
-                          )}
-                        </svg>
+                        <SortIcon active={active} direction={active ? (sortDirection as SortDirection | undefined) : undefined} />
                       </button>
                     ) : (
                       <span className="truncate text-xs font-medium text-gray-600">{col.title}</span>
@@ -693,7 +652,6 @@ export default function Table<T extends Record<string, unknown>>({
         <div className="flex flex-wrap items-center gap-3">
           <span>共 {total} 项</span>
           {selectionSummary}
-          {selectionControls}
           {onPageSizeChange ? (
             <div className="flex items-center gap-2 text-xs text-gray-500">
               <span className="hidden sm:inline">每页</span>

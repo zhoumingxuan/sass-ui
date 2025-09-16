@@ -44,40 +44,43 @@ export default function Users() {
   const [selectedKeys, setSelectedKeys] = useState<Array<string | number>>([]);
   const [selectedRows, setSelectedRows] = useState<Row[]>([]);
 
-  const columns: Column<Row>[] = useMemo(() => [
-    { key: 'username', title: '用户名', minWidth: 160, flex: 1.2, sortable: true },
-    {
-      key: 'email',
-      title: '邮箱',
-      minWidth: 220,
-      flex: 1.4,
-      tooltip: (row) => row.email,
-    },
-    { key: 'role', title: '角色', minWidth: 140, sortable: true },
-    {
-      key: 'status',
-      title: '状态',
-      minWidth: 140,
-      intent: 'status',
-      sortable: true,
-      render: (row) => <Pill tone={STATUS_META[row.status].tone}>{STATUS_META[row.status].label}</Pill>,
-    },
-    {
-      key: 'actions',
-      title: '操作',
-      intent: 'actions',
-      align: 'right',
-      minWidth: 220,
-      render: (row) => (
-        <div className="flex items-center justify-end gap-2" data-table-row-trigger="ignore">
-          <ActionLink emphasized onClick={() => setEditingUser(row)}>
-            修改
-          </ActionLink>
-          <ActionLink onClick={() => setDeletingUser(row)}>删除</ActionLink>
-        </div>
-      ),
-    },
-  ], []);
+  const columns: Column<Row>[] = useMemo(
+    () => [
+      { key: 'username', title: '用户名', minWidth: 160, flex: 1.2, sortable: true },
+      {
+        key: 'email',
+        title: '邮箱',
+        minWidth: 220,
+        flex: 1.4,
+        tooltip: (row) => row.email,
+      },
+      { key: 'role', title: '角色', minWidth: 140, sortable: true },
+      {
+        key: 'status',
+        title: '状态',
+        minWidth: 140,
+        intent: 'status',
+        sortable: true,
+        render: (row) => <Pill tone={STATUS_META[row.status].tone}>{STATUS_META[row.status].label}</Pill>,
+      },
+      {
+        key: 'actions',
+        title: '操作',
+        intent: 'actions',
+        align: 'right',
+        minWidth: 220,
+        render: (row) => (
+          <div className="flex items-center justify-end gap-2" data-table-row-trigger="ignore">
+            <ActionLink emphasized onClick={() => setEditingUser(row)}>
+              修改
+            </ActionLink>
+            <ActionLink onClick={() => setDeletingUser(row)}>删除</ActionLink>
+          </div>
+        ),
+      },
+    ],
+    [],
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -116,7 +119,10 @@ export default function Users() {
   }, [filtered]);
 
   const total = filtered.length;
-  const paged = useMemo(() => filtered.slice((page - 1) * pageSize, page * pageSize), [filtered, page, pageSize]);
+  const paged = useMemo(
+    () => filtered.slice((page - 1) * pageSize, page * pageSize),
+    [filtered, page, pageSize],
+  );
 
   const sortableFields: Array<keyof Row> = ['username', 'role', 'status'];
   const handleSort = (key: Column<Row>['key']) => {
@@ -154,6 +160,7 @@ export default function Users() {
         <Button onClick={() => setShowAdd(true)}>新增用户</Button>
       </div>
       <Table<Row>
+        className="mt-4"
         title="用户"
         columns={columns}
         data={paged}
@@ -175,9 +182,6 @@ export default function Users() {
             setSelectedRows(rows);
           },
           headerTitle: '选择用户',
-          controls: selectedRows.length ? (
-            <ActionLink onClick={() => console.log('disable', selectedRows.length)}>批量停用</ActionLink>
-          ) : null,
         }}
         toolbar={
           <div className="flex items-center gap-2">
@@ -193,6 +197,7 @@ export default function Users() {
           selectedRows.length > 0 ? (
             <div className="flex items-center gap-2 text-gray-500">
               <span>批量操作：</span>
+              <ActionLink onClick={() => console.log('disable', selectedRows.length)}>批量停用</ActionLink>
               <ActionLink onClick={() => console.log('reset-password', selectedRows.length)}>重置密码</ActionLink>
             </div>
           ) : null

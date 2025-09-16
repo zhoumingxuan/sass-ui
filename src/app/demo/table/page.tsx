@@ -200,7 +200,6 @@ export default function TableDemo() {
   const [pageSize, setPageSize] = useState(5);
   const [selectedKeys, setSelectedKeys] = useState<Array<string | number>>([]);
   const [selectedRows, setSelectedRows] = useState<Row[]>([]);
-  const [focusedRow, setFocusedRow] = useState<Row | null>(null);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -288,8 +287,8 @@ export default function TableDemo() {
       </Card>
 
       <Table<Row>
+        className="mt-6"
         title="项目工单"
-        description={focusedRow ? `聚焦项目：${focusedRow.project}` : '选择行或使用键盘上下键以浏览详情'}
         columns={columns}
         data={paged}
         page={page}
@@ -310,13 +309,6 @@ export default function TableDemo() {
             setSelectedRows(rows);
           },
           headerTitle: '选择全部项目',
-          controls: selectedRows.length
-            ? (
-                <ActionLink onClick={() => console.log('archive', selectedRows.length)}>
-                  批量归档
-                </ActionLink>
-              )
-            : null,
         }}
         toolbar={
           <div className="flex items-center gap-2">
@@ -331,7 +323,6 @@ export default function TableDemo() {
             </Button>
           </div>
         }
-        onFocusedRowChange={(_, row) => setFocusedRow(row)}
         footerExtra={
           selectedRows.length > 0 ? (
             <div className="flex items-center gap-2 text-gray-500">
