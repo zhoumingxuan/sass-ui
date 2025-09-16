@@ -92,17 +92,27 @@ function useIndeterminate(checked: boolean, indeterminate?: boolean) {
 }
 
 function SortIcon({ active, direction }: { active: boolean; direction?: SortDirection }) {
-  const highlight = '#1e80ff';
-  const passive = '#d0d5dd';
-  const upFill = active && direction === 'asc' ? highlight : passive;
-  const downFill = active && direction === 'desc' ? highlight : passive;
+  const isAsc = active && direction === 'asc';
+  const isDesc = active && direction === 'desc';
   return (
-    <span className="flex flex-col items-center gap-0.5 leading-none">
-      <svg viewBox="0 0 12 7" className="h-2 w-2" aria-hidden focusable="false">
-        <path d="M6 1L10.5 6H1.5L6 1Z" fill={upFill} />
+    <span className="flex flex-col items-center gap-[2px] leading-none">
+      <svg
+        viewBox="0 0 12 6"
+        className={["h-2 w-2", isAsc ? 'text-primary' : 'text-slate-300'].join(' ')}
+        aria-hidden
+        focusable="false"
+        fill="currentColor"
+      >
+        <path d="M6 0L11 6H1L6 0Z" />
       </svg>
-      <svg viewBox="0 0 12 7" className="h-2 w-2" aria-hidden focusable="false">
-        <path d="M6 6L1.5 1H10.5L6 6Z" fill={downFill} />
+      <svg
+        viewBox="0 0 12 6"
+        className={["h-2 w-2", isDesc ? 'text-primary' : 'text-slate-300'].join(' ')}
+        aria-hidden
+        focusable="false"
+        fill="currentColor"
+      >
+        <path d="M6 6L1 0h10L6 6Z" />
       </svg>
     </span>
   );
