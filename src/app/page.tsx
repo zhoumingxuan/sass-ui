@@ -15,7 +15,9 @@ import {
 } from "@/components/Input";
 import Table, { Column } from "@/components/Table";
 import Alert from "@/components/Alert";
-import { Plus, Search, Check, AlertTriangle, Info, ArrowRight, Download } from "lucide-react";
+import Pill from "@/components/Pill";
+import ActionLink from "@/components/ActionLink";
+import { Plus, Search, Info, ArrowRight, Download } from "lucide-react";
 
 type Row = {
   id: string;
@@ -33,6 +35,13 @@ const STATUS_TEXT: Record<Row["status"], string> = {
   trial: "试用期",
   leave: "离岗",
   suspended: "停用",
+};
+
+const STATUS_TONE: Record<Row["status"], Parameters<typeof Pill>[0]["tone"]> = {
+  active: "success",
+  trial: "primary",
+  leave: "warning",
+  suspended: "danger",
 };
 
 const MEMBERS: Row[] = [
@@ -108,22 +117,9 @@ export default function Home() {
         key: "status",
         title: "状态",
         minWidth: 140,
+        intent: "status",
         sortable: true,
-        render: (row) => (
-          <span
-            className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
-              row.status === "active"
-                ? "bg-success/10 text-success"
-                : row.status === "trial"
-                ? "bg-primary/10 text-primary"
-                : row.status === "leave"
-                ? "bg-warning/10 text-warning"
-                : "bg-gray-200 text-gray-600"
-            }`}
-          >
-            {STATUS_TEXT[row.status]}
-          </span>
-        ),
+        render: (row) => <Pill tone={STATUS_TONE[row.status]}>{STATUS_TEXT[row.status]}</Pill>,
       },
       { key: "age", title: "年龄", align: "right", minWidth: 80, sortable: true },
       {
@@ -138,7 +134,6 @@ export default function Home() {
         title: "最近更新",
         minWidth: 180,
         sortable: true,
-        render: (row) => row.updatedAt,
       },
       {
         key: "actions",
@@ -146,14 +141,10 @@ export default function Home() {
         intent: "actions",
         align: "right",
         minWidth: 200,
-        render: () => (
-          <div className="flex items-center justify-end gap-2" data-table-row-trigger="ignore">
-            <Button size="small" appearance="ghost" variant="default">
-              查看
-            </Button>
-            <Button size="small" appearance="ghost" variant="primary">
-              编辑
-            </Button>
+        render: (row) => (
+          <div className="flex items-center gap-2" data-table-row-trigger="ignore">
+            <ActionLink emphasized>查看档案</ActionLink>
+            <ActionLink onClick={() => console.log("edit", row.id)}>编辑</ActionLink>
           </div>
         ),
       },
@@ -217,14 +208,8 @@ export default function Home() {
   }, [query, sortDirection, sortKey]);
 
   useEffect(() => {
-    setSelectedKeys((keys) => {
-      const next = keys.filter((key) => filtered.some((row) => row.id === key));
-      return next.length === keys.length ? keys : next;
-    });
-    setSelectedRows((rows) => {
-      const next = rows.filter((row) => filtered.some((item) => item.id === row.id));
-      return next.length === rows.length ? rows : next;
-    });
+    setSelectedKeys((keys) => keys.filter((key) => filtered.some((row) => row.id === key)));
+    setSelectedRows((rows) => rows.filter((row) => filtered.some((item) => item.id === row.id)));
   }, [filtered]);
 
   const total = filtered.length;
@@ -268,41 +253,24 @@ export default function Home() {
       <Card title="按钮">
         <div className="flex flex-col gap-4">
           <div className="flex flex-wrap gap-3">
-            <Button size="large" variant="primary">大按钮</Button>
-            <Button size="large" variant="default">大按钮</Button>
-            <Button size="large" variant="success">大按钮</Button>
-            <Button size="large" variant="warning">大按钮</Button>
-            <Button size="large" variant="error">大按钮</Button>
-            <Button size="large" variant="info">大按钮</Button>
+            <Button size="large" variant="primary">主要操作</Button>
+            <Button size="large" variant="success">成功</Button>
+            <Button size="large" variant="warning">警告</Button>
+            <Button size="large" variant="error">危险</Button>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Button variant="primary">中按钮</Button>
-            <Button variant="default">中按钮</Button>
-            <Button variant="success">中按钮</Button>
-            <Button variant="warning">中按钮</Button>
-            <Button variant="error">中按钮</Button>
-            <Button variant="info">中按钮</Button>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Button size="small" variant="primary">小按钮</Button>
-            <Button size="small" variant="default">小按钮</Button>
-            <Button size="small" variant="success">小按钮</Button>
-            <Button size="small" variant="warning">小按钮</Button>
-            <Button size="small" variant="error">小按钮</Button>
-            <Button size="small" variant="info">小按钮</Button>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Button variant="primary" icon={<Plus />}>新增</Button>
-            <Button appearance="ghost" variant="default" icon={<Search />}>搜索</Button>
-            <Button variant="success" icon={<Check />}>提交</Button>
-            <Button variant="warning" icon={<AlertTriangle />}>警告</Button>
-            <Button variant="error" icon={<AlertTriangle />}>错误</Button>
+            <Button variant="primary">主按钮</Button>
+            <Button variant="default">次按钮</Button>
+            <Button appearance="ghost" variant="default" icon={<Search />}>检索</Button>
             <Button variant="info" icon={<Info />}>信息</Button>
           </div>
           <div className="flex flex-wrap gap-3 items-center">
             <Button variant="primary" icon={<ArrowRight />} iconPosition="right">下一步</Button>
+            <Button appearance="glass" variant="default" icon={<Plus />}>弱强调</Button>
             <Button variant="primary" aria-label="新增" icon={<Plus />} />
-            <Button variant="primary" icon={<Plus />} disabled>禁用</Button>
+            <Button variant="primary" icon={<Plus />} disabled>
+              禁用
+            </Button>
           </div>
         </div>
       </Card>
@@ -360,9 +328,7 @@ export default function Home() {
           selectedRows.length > 0 ? (
             <div className="flex items-center gap-2 text-gray-500">
               <span>批量操作：</span>
-              <Button size="small" appearance="ghost" variant="default">
-                导出选中
-              </Button>
+              <ActionLink onClick={() => console.log("export", selectedRows.length)}>导出选中</ActionLink>
             </div>
           ) : null
         }

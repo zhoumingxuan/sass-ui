@@ -15,6 +15,7 @@ import {
   HelpingHand,
   FolderOpenDot,
   Search,
+  Sparkles,
 } from 'lucide-react';
 
 export const menuItems: MenuItem[] = [
@@ -32,15 +33,16 @@ export const menuItems: MenuItem[] = [
     icon: <FlaskConical />,
     children: [
       { label: '按钮', href: '/demo/buttons', icon: <FolderOpenDot /> },
+      { label: '界面元素', href: '/demo/elements', icon: <Sparkles /> },
       { label: '表格', href: '/demo/table', icon: <TableIcon /> },
       { label: '表单', href: '/demo/form', icon: <FormInput /> },
       { label: '卡片', href: '/demo/card', icon: <CreditCard /> },
       { label: '选项卡', href: '/demo/tabs', icon: <LayoutList /> },
       { label: '模态框', href: '/demo/modal', icon: <PanelsTopLeft /> },
-      { label: '树', href: '/demo/tree', icon: <LayoutList /> },
+      { label: '树组件', href: '/demo/tree', icon: <LayoutList /> },
       { label: '抽屉', href: '/demo/drawer', icon: <PanelsTopLeft /> },
       { label: '消息提示', href: '/demo/message', icon: <MessageSquareText /> },
-      { label: '超级搜索框', href: '/demo/supersearch', icon: <Search /> },
+      { label: '超级搜索', href: '/demo/supersearch', icon: <Search /> },
     ],
   },
 ];

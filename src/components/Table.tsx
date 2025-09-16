@@ -41,6 +41,8 @@ type RowSelection<T> = {
   isRowSelectable?: (row: T, index: number) => boolean;
   columnWidth?: number;
   headerTitle?: string;
+  controls?: ReactNode;
+  enableSelectAll?: boolean;
 };
 
 type TableProps<T> = {
@@ -82,15 +84,7 @@ const checkboxClass = [
   'hover:border-gray-300 hover:bg-gray-50 disabled:hover:border-gray-200 disabled:hover:bg-white',
   'accent-primary checked:border-primary/60 checked:hover:border-primary checked:hover:bg-primary/5 disabled:accent-gray-300',
   controlRing,
-  'transition-[border-color,box-shadow,background-color]',
-].join(' ');
-
-const radioClass = [
-  'h-4 w-4 shrink-0 rounded-full border border-gray-200 bg-white',
-  'hover:border-gray-300 hover:bg-gray-50 disabled:hover:border-gray-200 disabled:hover:bg-white',
-  'accent-primary disabled:accent-gray-300',
-  controlRing,
-  'transition-[border-color,box-shadow,background-color]',
+  'transition-[border-color,box-shadow,background-color] focus-visible:ring-primary/40',
 ].join(' ');
 
 function useIndeterminate(checked: boolean, indeterminate?: boolean) {
@@ -142,7 +136,7 @@ export default function Table<T extends Record<string, unknown>>({
 
   useEffect(() => {
     if (!onSearch) return;
-    const id = setTimeout(() => onSearch(keyword.trim()), 300);
+    const id = setTimeout(() => onSearch(keyword.trim()), 260);
     return () => clearTimeout(id);
   }, [keyword, onSearch]);
 
@@ -155,10 +149,7 @@ export default function Table<T extends Record<string, unknown>>({
     return () => el.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const visibleColumns = useMemo(
-    () => columns.filter((col) => !col.hidden),
-    [columns],
-  );
+  const visibleColumns = useMemo(() => columns.filter((col) => !col.hidden), [columns]);
 
   const hasFlexibleColumn = useMemo(
     () => visibleColumns.some((col) => typeof col.width === 'undefined'),
@@ -167,14 +158,16 @@ export default function Table<T extends Record<string, unknown>>({
 
   const flexibleWeight = useMemo(() => {
     if (!hasFlexibleColumn) return 1;
-    return visibleColumns.reduce((total, col) => {
-      if (typeof col.width !== 'undefined') return total;
-      return total + (col.flex ?? 1);
-    }, 0) || 1;
+    return (
+      visibleColumns.reduce((totalFlex, col) => {
+        if (typeof col.width !== 'undefined') return totalFlex;
+        return totalFlex + (col.flex ?? 1);
+      }, 0) || 1
+    );
   }, [visibleColumns, hasFlexibleColumn]);
 
-  const columnStyles = useMemo(() => {
-    return visibleColumns.map<CSSProperties>((col) => {
+  const columnLayouts = useMemo(() => {
+    return visibleColumns.map((col) => {
       const style: CSSProperties = {};
       if (typeof col.minWidth === 'number') {
         style.minWidth = `${col.minWidth}px`;
@@ -193,9 +186,16 @@ export default function Table<T extends Record<string, unknown>>({
     });
   }, [visibleColumns, hasFlexibleColumn, flexibleWeight]);
 
+  const columnWidthStyles = useMemo(
+    () => columnLayouts.map((layout) => layout.width),
+    [columnLayouts],
+  );
+
+  const selectionMode = selection?.mode === 'single' ? 'single' : 'multiple';
   const selectedKeysRef = selection?.selectedKeys;
   const selectedSet = useMemo(() => new Set<string | number>(selectedKeysRef ?? []), [selectedKeysRef]);
   const selectOnRowClick = selection?.selectOnRowClick ?? true;
+  const enableSelectAll = selectionMode === 'multiple' && (selection?.enableSelectAll ?? true);
 
   const rowItems = useMemo(() => {
     return data.map((row, index) => {
@@ -222,11 +222,11 @@ export default function Table<T extends Record<string, unknown>>({
   );
 
   const allSelected =
-    selection?.mode === 'multiple' &&
+    enableSelectAll &&
     selectableRows.length > 0 &&
     selectableRows.every((item) => selectedSet.has(item.key));
   const partiallySelected =
-    selection?.mode === 'multiple' &&
+    enableSelectAll &&
     selectableRows.length > 0 &&
     !allSelected &&
     selectableRows.some((item) => selectedSet.has(item.key));
@@ -272,10 +272,17 @@ export default function Table<T extends Record<string, unknown>>({
   const roundedClass =
     rounded === '2xl' ? 'rounded-2xl' : rounded === 'lg' ? 'rounded-lg' : rounded === 'md' ? 'rounded-md' : 'rounded-xl';
 
-  const handleSelectAll = (checked: boolean) => {
-    if (!selection || selection.mode !== 'multiple') return;
-    if (!checked) {
+  const handleSelectAll = (nextChecked: boolean) => {
+    if (!selection) return;
+    if (!nextChecked) {
       selection.onChange([], []);
+      return;
+    }
+    if (selectionMode === 'single') {
+      const first = selectableRows[0];
+      if (first) {
+        selection.onChange([first.key], [first.row]);
+      }
       return;
     }
     const uniqueKeys: Array<string | number> = [];
@@ -290,13 +297,20 @@ export default function Table<T extends Record<string, unknown>>({
     selection.onChange(uniqueKeys, rows);
   };
 
+  const handleClearSelection = () => {
+    if (!selection) return;
+    selection.onChange([], []);
+  };
+
   const handleSelectionChange = (rowItem: (typeof rowItems)[number], nextChecked: boolean) => {
     if (!selection || !rowItem.selectable) return;
-    if (selection.mode === 'single') {
-      selection.onChange(nextChecked ? [rowItem.key] : [], nextChecked ? [rowItem.row] : []);
+    if (selectionMode === 'single') {
+      const keys = nextChecked ? [rowItem.key] : [];
+      const rows = nextChecked ? [rowItem.row] : [];
+      selection.onChange(keys, rows);
       return;
     }
-    const baseKeys = new Set<string | number>(selection.selectedKeys ?? []);
+    const baseKeys = new Set<string | number>(selectedKeysRef ?? []);
     if (nextChecked) {
       baseKeys.add(rowItem.key);
     } else {
@@ -348,7 +362,7 @@ export default function Table<T extends Record<string, unknown>>({
       event.preventDefault();
       if (!rowItem.selectable) return;
       const currentlySelected = selectedSet.has(rowItem.key);
-      const nextChecked = selection.mode === 'multiple' ? !currentlySelected : true;
+      const nextChecked = !currentlySelected;
       handleSelectionChange(rowItem, nextChecked);
     }
   };
@@ -359,15 +373,13 @@ export default function Table<T extends Record<string, unknown>>({
   ) => {
     if (selection && selectOnRowClick && rowItem.selectable) {
       const target = event.target as HTMLElement;
-      if (
-        target.closest('button, a, [role="button"], input, label, [data-table-row-trigger="ignore"]')
-      ) {
+      if (target.closest('button, a, [role="button"], input, label, [data-table-row-trigger="ignore"]')) {
         updateFocus(rowItem.key);
-        return;
+      } else {
+        const currentlySelected = selectedSet.has(rowItem.key);
+        const nextChecked = !currentlySelected;
+        handleSelectionChange(rowItem, nextChecked);
       }
-      const currentlySelected = selectedSet.has(rowItem.key);
-      const nextChecked = selection.mode === 'multiple' ? !currentlySelected : !currentlySelected;
-      handleSelectionChange(rowItem, nextChecked);
     }
     updateFocus(rowItem.key);
   };
@@ -375,13 +387,11 @@ export default function Table<T extends Record<string, unknown>>({
   const focusIndex = activeFocusKey === null ? -1 : rowItems.findIndex((item) => item.key === activeFocusKey);
   const rovingIndex = focusIndex >= 0 ? focusIndex : 0;
 
-  const headerClass =
-    'px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500';
+  const headerClass = 'px-4 py-3 text-xs font-medium text-gray-600';
   const bodyCellClass = 'px-4 py-3 text-sm text-gray-900 align-middle';
 
   const emptyNode =
-    emptyState ??
-    (
+    emptyState ?? (
       <div className="py-16 text-center text-sm text-gray-500">
         <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-400">
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden>
@@ -392,11 +402,36 @@ export default function Table<T extends Record<string, unknown>>({
       </div>
     );
 
+  const selectionCount = selectedKeysRef?.length ?? 0;
+  const selectionControls = selection ? (
+    <div className="flex items-center gap-2 text-xs text-gray-500">
+      {enableSelectAll && selectableRows.length > 0 ? (
+        <button
+          type="button"
+          className="text-primary hover:text-primary/80 focus-visible:text-primary"
+          onClick={() => handleSelectAll(true)}
+        >
+          全选当前页
+        </button>
+      ) : null}
+      <button
+        type="button"
+        className={[
+          'hover:text-gray-700 focus-visible:text-gray-800',
+          selectionCount === 0 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-500',
+        ].join(' ')}
+        onClick={selectionCount === 0 ? undefined : handleClearSelection}
+        disabled={selectionCount === 0}
+      >
+        清空选择
+      </button>
+      {selection.controls}
+    </div>
+  ) : null;
+
   const selectionSummary =
-    selection && selection.selectedKeys.length > 0 ? (
-      <span className="text-sm text-primary">
-        已选择 {selection.selectedKeys.length} 项
-      </span>
+    selection && selectionCount > 0 ? (
+      <span className="text-sm text-primary">已选择 {selectionCount} 项</span>
     ) : null;
 
   const cardClass = card
@@ -410,7 +445,7 @@ export default function Table<T extends Record<string, unknown>>({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0 space-y-1">
               {title && (
-                <div className="flex min-w-0 flex-wrap items-center gap-2 text-sm font-medium text-gray-900">
+                <div className="flex min-w-0 flex-wrap items-center gap-2 text-sm font-semibold text-gray-900">
                   <div className="truncate">{title}</div>
                   <span className="text-gray-500">· {total} 项</span>
                 </div>
@@ -450,6 +485,12 @@ export default function Table<T extends Record<string, unknown>>({
         className={`relative overflow-x-auto ${stickyHeader ? 'overflow-y-auto' : 'overflow-y-visible'} nice-scrollbar ${scrollContainerClassName}`}
       >
         <table className="w-full table-auto border-separate border-spacing-0 text-left" role="grid">
+          <colgroup>
+            {selection ? <col style={{ width: selection.columnWidth ?? 48 }} /> : null}
+            {columnWidthStyles.map((width, index) => (
+              <col key={`col-${index}`} style={width ? { width } : undefined} />
+            ))}
+          </colgroup>
           <thead
             className={`bg-gray-50 text-gray-600 ${stickyHeader ? 'sticky top-0 z-10' : ''} ${
               scrolled ? 'shadow-[0_2px_8px_rgba(15,23,42,0.08)]' : ''
@@ -459,10 +500,10 @@ export default function Table<T extends Record<string, unknown>>({
               {selection && (
                 <th
                   className={`${headerClass} ${stickyHeader ? 'bg-gray-50' : ''}`}
-                  style={{ width: selection.columnWidth ?? 44 }}
+                  style={{ width: selection.columnWidth ?? 48 }}
                   scope="col"
                 >
-                  {selection.mode === 'multiple' ? (
+                  {enableSelectAll ? (
                     <input
                       ref={headerCheckboxRef}
                       type="checkbox"
@@ -479,27 +520,33 @@ export default function Table<T extends Record<string, unknown>>({
               {visibleColumns.map((col, index) => {
                 const active = sortKey === col.key;
                 const sortable = col.sortable ?? Boolean(onSort);
-                const align =
+                const alignClass =
                   col.align === 'right'
                     ? 'text-right'
                     : col.align === 'center'
                     ? 'text-center'
                     : 'text-left';
+                const justifyClass =
+                  col.align === 'right'
+                    ? 'justify-end'
+                    : col.align === 'center'
+                    ? 'justify-center'
+                    : 'justify-start';
                 const intentClass = col.intent === 'actions' ? 'whitespace-nowrap text-right' : '';
                 return (
                   <th
                     key={String(col.key)}
                     scope="col"
-                    className={`${headerClass} ${align} ${intentClass} ${col.headerClassName ?? ''}`}
-                    style={columnStyles[index]}
+                    className={`${headerClass} ${alignClass} ${intentClass} ${col.headerClassName ?? ''}`}
+                    style={columnLayouts[index]}
                   >
                     {sortable ? (
                       <button
                         type="button"
-                        className="group flex w-full items-center gap-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+                        className={`group inline-flex w-full items-center gap-1 ${justifyClass} text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20`}
                         onClick={() => onSort?.(col.key)}
                       >
-                        <span className="truncate text-xs font-semibold text-gray-600 group-hover:text-gray-900">
+                        <span className="truncate text-xs font-medium text-gray-600 group-hover:text-gray-900">
                           {col.title}
                         </span>
                         <svg
@@ -522,7 +569,7 @@ export default function Table<T extends Record<string, unknown>>({
                         </svg>
                       </button>
                     ) : (
-                      <span className="truncate text-xs font-semibold text-gray-600">{col.title}</span>
+                      <span className="truncate text-xs font-medium text-gray-600">{col.title}</span>
                     )}
                   </th>
                 );
@@ -535,12 +582,12 @@ export default function Table<T extends Record<string, unknown>>({
               Array.from({ length: Math.min(Math.max(pageSize, 4), 6) }).map((_, skeletonIndex) => (
                 <tr key={`skeleton-${skeletonIndex}`} className="h-12">
                   {selection && (
-                    <td className={`${bodyCellClass}`} style={{ width: selection.columnWidth ?? 44 }}>
+                    <td className={bodyCellClass} style={{ width: selection.columnWidth ?? 48 }}>
                       <div className="h-4 w-4 rounded border border-gray-100 bg-gray-100" />
                     </td>
                   )}
                   {visibleColumns.map((col) => (
-                    <td key={String(col.key)} className={`${bodyCellClass}`}>
+                    <td key={String(col.key)} className={bodyCellClass}>
                       <div className="h-3 w-3/4 animate-pulse rounded bg-gray-200" />
                     </td>
                   ))}
@@ -573,34 +620,19 @@ export default function Table<T extends Record<string, unknown>>({
                     role="row"
                   >
                     {selection && (
-                      <td
-                        className={`${bodyCellClass}`}
-                        style={{ width: selection.columnWidth ?? 44 }}
-                      >
-                        {selection.mode === 'multiple' ? (
-                          <input
-                            type="checkbox"
-                            aria-label="选择行"
-                            checked={isSelected}
-                            disabled={!rowItem.selectable}
-                            onChange={(e) => handleSelectionChange(rowItem, e.target.checked)}
-                            className={checkboxClass}
-                          />
-                        ) : (
-                          <input
-                            type="radio"
-                            name="table-row"
-                            aria-label="选择行"
-                            checked={isSelected}
-                            disabled={!rowItem.selectable}
-                            onChange={() => handleSelectionChange(rowItem, true)}
-                            className={radioClass}
-                          />
-                        )}
+                      <td className={bodyCellClass} style={{ width: selection.columnWidth ?? 48 }}>
+                        <input
+                          type="checkbox"
+                          aria-label="选择行"
+                          checked={isSelected}
+                          disabled={!rowItem.selectable}
+                          onChange={(e) => handleSelectionChange(rowItem, e.target.checked)}
+                          className={checkboxClass}
+                        />
                       </td>
                     )}
                     {visibleColumns.map((col, colIndex) => {
-                      const align =
+                      const alignClass =
                         col.align === 'right'
                           ? 'text-right'
                           : col.align === 'center'
@@ -625,11 +657,19 @@ export default function Table<T extends Record<string, unknown>>({
                       return (
                         <td
                           key={String(col.key)}
-                          className={`${bodyCellClass} ${align} ${intentClass} ${col.className ?? ''}`}
-                          style={columnStyles[colIndex]}
+                          className={`${bodyCellClass} ${alignClass} ${intentClass} ${col.className ?? ''}`}
+                          style={columnLayouts[colIndex]}
                           title={titleValue as string | undefined}
                         >
-                          <div className={col.intent === 'actions' ? 'flex items-center justify-end gap-2 whitespace-nowrap' : 'truncate'}>
+                          <div
+                            className={
+                              col.intent === 'actions'
+                                ? 'flex items-center justify-end gap-2 whitespace-nowrap'
+                                : col.intent === 'status'
+                                ? 'flex items-center gap-2'
+                                : 'truncate'
+                            }
+                          >
                             {value}
                           </div>
                         </td>
@@ -640,10 +680,7 @@ export default function Table<T extends Record<string, unknown>>({
               })
             ) : (
               <tr>
-                <td
-                  colSpan={visibleColumns.length + (selection ? 1 : 0)}
-                  className="px-6 text-center"
-                >
+                <td colSpan={visibleColumns.length + (selection ? 1 : 0)} className="px-6 text-center">
                   {emptyNode}
                 </td>
               </tr>
@@ -652,13 +689,14 @@ export default function Table<T extends Record<string, unknown>>({
         </table>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm text-gray-700">
+      <div className="flex flex-wrap items-start justify-between gap-3 px-5 py-3 text-sm text-gray-700">
         <div className="flex flex-wrap items-center gap-3">
           <span>共 {total} 项</span>
           {selectionSummary}
-          {onPageSizeChange && (
-            <div className="flex items-center gap-2 text-gray-600">
-              <span className="hidden sm:inline text-gray-500">每页</span>
+          {selectionControls}
+          {onPageSizeChange ? (
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <span className="hidden sm:inline">每页</span>
               <select
                 aria-label="每页条数"
                 className="h-9 rounded-md border border-gray-300 px-2 text-sm transition-[box-shadow,border-color] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -671,9 +709,9 @@ export default function Table<T extends Record<string, unknown>>({
                   </option>
                 ))}
               </select>
-              <span className="hidden sm:inline text-gray-500">条</span>
+              <span className="hidden sm:inline">条</span>
             </div>
-          )}
+          ) : null}
           {footerExtra}
         </div>
 

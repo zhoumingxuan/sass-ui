@@ -5,6 +5,9 @@ import Layout from '@/components/Layout';
 import Card from '@/components/Card';
 import Table, { Column } from '@/components/Table';
 import Button from '@/components/Button';
+import Pill from '@/components/Pill';
+import ProgressBar from '@/components/ProgressBar';
+import ActionLink from '@/components/ActionLink';
 import { menuItems, footerItems } from '@/components/menuItems';
 import { Plus, Filter, RefreshCw } from 'lucide-react';
 
@@ -20,18 +23,18 @@ type Row = {
   risk: 'low' | 'medium' | 'high';
 };
 
-const STATUS_META: Record<Row['status'], { label: string; tone: string }> = {
-  planning: { label: '规划中', tone: 'bg-gray-100 text-gray-600' },
-  design: { label: '设计评审', tone: 'bg-primary/10 text-primary' },
-  developing: { label: '研发中', tone: 'bg-info/10 text-info' },
-  review: { label: '验收中', tone: 'bg-warning/10 text-warning' },
-  launched: { label: '已上线', tone: 'bg-success/10 text-success' },
+const STATUS_META: Record<Row['status'], { label: string; tone: Parameters<typeof Pill>[0]['tone'] }> = {
+  planning: { label: '规划中', tone: 'neutral' },
+  design: { label: '设计评审', tone: 'primary' },
+  developing: { label: '研发中', tone: 'info' },
+  review: { label: '验收中', tone: 'warning' },
+  launched: { label: '已上线', tone: 'success' },
 };
 
-const RISK_META: Record<Row['risk'], { label: string; tone: string }> = {
-  low: { label: '低', tone: 'bg-success/10 text-success' },
-  medium: { label: '中', tone: 'bg-warning/10 text-warning' },
-  high: { label: '高', tone: 'bg-error/10 text-error' },
+const RISK_META: Record<Row['risk'], { label: string; tone: Parameters<typeof Pill>[0]['tone'] }> = {
+  low: { label: '低', tone: 'success' },
+  medium: { label: '中', tone: 'warning' },
+  high: { label: '高', tone: 'danger' },
 };
 
 const PROJECTS: Row[] = [
@@ -146,11 +149,8 @@ export default function TableDemo() {
         key: 'status',
         title: '状态',
         minWidth: 140,
-        render: (row) => (
-          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_META[row.status].tone}`}>
-            {STATUS_META[row.status].label}
-          </span>
-        ),
+        intent: 'status',
+        render: (row) => <Pill tone={STATUS_META[row.status].tone}>{STATUS_META[row.status].label}</Pill>,
       },
       {
         key: 'progress',
@@ -159,14 +159,8 @@ export default function TableDemo() {
         minWidth: 160,
         sortable: true,
         render: (row) => (
-          <div className="flex items-center justify-end gap-2">
-            <div className="relative h-1.5 w-24 rounded-full bg-gray-200">
-              <div
-                className="absolute left-0 top-0 h-1.5 rounded-full bg-primary"
-                style={{ width: `${row.progress}%` }}
-              />
-            </div>
-            <span className="tabular-nums text-sm text-gray-700">{row.progress}%</span>
+          <div className="flex items-center justify-end gap-3">
+            <ProgressBar value={row.progress} showValue className="w-28" tone={row.progress >= 80 ? 'success' : 'primary'} />
           </div>
         ),
       },
@@ -177,11 +171,8 @@ export default function TableDemo() {
         key: 'risk',
         title: '风险',
         minWidth: 120,
-        render: (row) => (
-          <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${RISK_META[row.risk].tone}`}>
-            {RISK_META[row.risk].label}
-          </span>
-        ),
+        intent: 'status',
+        render: (row) => <Pill tone={RISK_META[row.risk].tone}>{RISK_META[row.risk].label}</Pill>,
       },
       {
         key: 'actions',
@@ -191,12 +182,10 @@ export default function TableDemo() {
         minWidth: 220,
         render: (row) => (
           <div className="flex items-center justify-end gap-2" data-table-row-trigger="ignore">
-            <Button size="small" appearance="ghost" variant="default">
-              详情
-            </Button>
-            <Button size="small" appearance="ghost" variant={row.status === 'launched' ? 'default' : 'primary'}>
+            <ActionLink emphasized>详情</ActionLink>
+            <ActionLink onClick={() => console.log('promote', row.id)}>
               {row.status === 'launched' ? '归档' : '推进'}
-            </Button>
+            </ActionLink>
           </div>
         ),
       },
@@ -241,9 +230,7 @@ export default function TableDemo() {
         case 'endAt':
           return (new Date(a[sortKey]).getTime() - new Date(b[sortKey]).getTime()) * dir;
         default:
-          return (
-            String(a[sortKey]).localeCompare(String(b[sortKey]), 'zh', { numeric: true }) * dir
-          );
+          return String(a[sortKey]).localeCompare(String(b[sortKey]), 'zh', { numeric: true }) * dir;
       }
     });
 
@@ -251,14 +238,8 @@ export default function TableDemo() {
   }, [query, sortDirection, sortKey]);
 
   useEffect(() => {
-    setSelectedKeys((keys) => {
-      const next = keys.filter((key) => filtered.some((row) => row.id === key));
-      return next.length === keys.length ? keys : next;
-    });
-    setSelectedRows((rows) => {
-      const next = rows.filter((row) => filtered.some((item) => item.id === row.id));
-      return next.length === rows.length ? rows : next;
-    });
+    setSelectedKeys((keys) => keys.filter((key) => filtered.some((row) => row.id === key)));
+    setSelectedRows((rows) => rows.filter((row) => filtered.some((item) => item.id === row.id)));
   }, [filtered]);
 
   const total = filtered.length;
@@ -329,6 +310,13 @@ export default function TableDemo() {
             setSelectedRows(rows);
           },
           headerTitle: '选择全部项目',
+          controls: selectedRows.length
+            ? (
+                <ActionLink onClick={() => console.log('archive', selectedRows.length)}>
+                  批量归档
+                </ActionLink>
+              )
+            : null,
         }}
         toolbar={
           <div className="flex items-center gap-2">
@@ -348,9 +336,7 @@ export default function TableDemo() {
           selectedRows.length > 0 ? (
             <div className="flex items-center gap-2 text-gray-500">
               <span>批量操作：</span>
-              <Button size="small" appearance="ghost" variant="default">
-                归档选中
-              </Button>
+              <ActionLink onClick={() => console.log('export', selectedRows.length)}>导出选中</ActionLink>
             </div>
           ) : null
         }

@@ -7,6 +7,8 @@ import Table, { Column } from '@/components/Table';
 import { TextInput } from '@/components/Input';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import Layout from '@/components/Layout';
+import Pill from '@/components/Pill';
+import ActionLink from '@/components/ActionLink';
 import { menuItems, footerItems } from '@/components/menuItems';
 
 interface Row {
@@ -17,10 +19,10 @@ interface Row {
   status: 'active' | 'pending' | 'disabled';
 }
 
-const STATUS_META: Record<Row['status'], { label: string; tone: string }> = {
-  active: { label: '已激活', tone: 'bg-success/10 text-success' },
-  pending: { label: '待激活', tone: 'bg-warning/10 text-warning' },
-  disabled: { label: '已停用', tone: 'bg-gray-200 text-gray-600' },
+const STATUS_META: Record<Row['status'], { label: string; tone: Parameters<typeof Pill>[0]['tone'] }> = {
+  active: { label: '已激活', tone: 'success' },
+  pending: { label: '待激活', tone: 'warning' },
+  disabled: { label: '已停用', tone: 'neutral' },
 };
 
 const USERS: Row[] = [
@@ -42,48 +44,40 @@ export default function Users() {
   const [selectedKeys, setSelectedKeys] = useState<Array<string | number>>([]);
   const [selectedRows, setSelectedRows] = useState<Row[]>([]);
 
-  const columns: Column<Row>[] = useMemo(
-    () => [
-      { key: 'username', title: '用户名', minWidth: 160, flex: 1.2, sortable: true },
-      {
-        key: 'email',
-        title: '邮箱',
-        minWidth: 220,
-        flex: 1.4,
-        tooltip: (row) => row.email,
-      },
-      { key: 'role', title: '角色', minWidth: 140, sortable: true },
-      {
-        key: 'status',
-        title: '状态',
-        minWidth: 140,
-        sortable: true,
-        render: (row) => (
-          <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_META[row.status].tone}`}>
-            {STATUS_META[row.status].label}
-          </span>
-        ),
-      },
-      {
-        key: 'actions',
-        title: '操作',
-        intent: 'actions',
-        align: 'right',
-        minWidth: 220,
-        render: (row) => (
-          <div className="flex items-center justify-end gap-2" data-table-row-trigger="ignore">
-            <Button size="small" appearance="ghost" variant="default" onClick={() => setEditingUser(row)}>
-              修改
-            </Button>
-            <Button size="small" variant="error" onClick={() => setDeletingUser(row)}>
-              删除
-            </Button>
-          </div>
-        ),
-      },
-    ],
-    [],
-  );
+  const columns: Column<Row>[] = useMemo(() => [
+    { key: 'username', title: '用户名', minWidth: 160, flex: 1.2, sortable: true },
+    {
+      key: 'email',
+      title: '邮箱',
+      minWidth: 220,
+      flex: 1.4,
+      tooltip: (row) => row.email,
+    },
+    { key: 'role', title: '角色', minWidth: 140, sortable: true },
+    {
+      key: 'status',
+      title: '状态',
+      minWidth: 140,
+      intent: 'status',
+      sortable: true,
+      render: (row) => <Pill tone={STATUS_META[row.status].tone}>{STATUS_META[row.status].label}</Pill>,
+    },
+    {
+      key: 'actions',
+      title: '操作',
+      intent: 'actions',
+      align: 'right',
+      minWidth: 220,
+      render: (row) => (
+        <div className="flex items-center justify-end gap-2" data-table-row-trigger="ignore">
+          <ActionLink emphasized onClick={() => setEditingUser(row)}>
+            修改
+          </ActionLink>
+          <ActionLink onClick={() => setDeletingUser(row)}>删除</ActionLink>
+        </div>
+      ),
+    },
+  ], []);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -109,9 +103,7 @@ export default function Users() {
           return (order[a.status] - order[b.status]) * dir;
         }
         default:
-          return (
-            String(a[sortKey]).localeCompare(String(b[sortKey]), 'zh', { numeric: true }) * dir
-          );
+          return String(a[sortKey]).localeCompare(String(b[sortKey]), 'zh', { numeric: true }) * dir;
       }
     });
 
@@ -119,21 +111,12 @@ export default function Users() {
   }, [query, sortDirection, sortKey]);
 
   useEffect(() => {
-    setSelectedKeys((keys) => {
-      const next = keys.filter((key) => filtered.some((row) => row.id === key));
-      return next.length === keys.length ? keys : next;
-    });
-    setSelectedRows((rows) => {
-      const next = rows.filter((row) => filtered.some((item) => item.id === row.id));
-      return next.length === rows.length ? rows : next;
-    });
+    setSelectedKeys((keys) => keys.filter((key) => filtered.some((row) => row.id === key)));
+    setSelectedRows((rows) => rows.filter((row) => filtered.some((item) => item.id === row.id)));
   }, [filtered]);
 
   const total = filtered.length;
-  const paged = useMemo(
-    () => filtered.slice((page - 1) * pageSize, page * pageSize),
-    [filtered, page, pageSize],
-  );
+  const paged = useMemo(() => filtered.slice((page - 1) * pageSize, page * pageSize), [filtered, page, pageSize]);
 
   const sortableFields: Array<keyof Row> = ['username', 'role', 'status'];
   const handleSort = (key: Column<Row>['key']) => {
@@ -192,6 +175,9 @@ export default function Users() {
             setSelectedRows(rows);
           },
           headerTitle: '选择用户',
+          controls: selectedRows.length ? (
+            <ActionLink onClick={() => console.log('disable', selectedRows.length)}>批量停用</ActionLink>
+          ) : null,
         }}
         toolbar={
           <div className="flex items-center gap-2">
@@ -207,9 +193,7 @@ export default function Users() {
           selectedRows.length > 0 ? (
             <div className="flex items-center gap-2 text-gray-500">
               <span>批量操作：</span>
-              <Button size="small" appearance="ghost" variant="default">
-                批量停用
-              </Button>
+              <ActionLink onClick={() => console.log('reset-password', selectedRows.length)}>重置密码</ActionLink>
             </div>
           ) : null
         }
