@@ -149,16 +149,26 @@ export default function Table<T extends Record<string, unknown>>({
   rounded = 'xl',
 }: TableProps<T>) {
   const scrollerRef = useRef<HTMLDivElement>(null);
-  const [scrolled, setScrolled] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const [scrollState, setScrollState] = useState({ atStart: true, atEnd: false, canScroll: false });
 
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
-    const handleScroll = () => setScrolled(el.scrollTop > 0 || el.scrollLeft > 0);
-    handleScroll();
-    el.addEventListener('scroll', handleScroll);
-    return () => el.removeEventListener('scroll', handleScroll);
+    const compute = () => {
+      const canScroll = el.scrollWidth > el.clientWidth + 1;
+      const atStart = el.scrollLeft <= 1;
+      const atEnd = el.scrollLeft >= el.scrollWidth - el.clientWidth - 1;
+      setScrollState({ atStart, atEnd, canScroll });
+    };
+    compute();
+    el.addEventListener('scroll', compute);
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(compute) : null;
+    if (ro) ro.observe(el);
+    return () => {
+      el.removeEventListener('scroll', compute);
+      if (ro) ro.disconnect();
+    };
   }, []);
 
   const visibleColumns = useMemo(() => columns.filter((col) => !col.hidden), [columns]);
@@ -209,6 +219,7 @@ export default function Table<T extends Record<string, unknown>>({
   const columnWidthStyles = useMemo(() => columnLayouts.map((layout) => layout.width), [columnLayouts]);
 
   const resolveAlign = (col: Column<T>): 'left' | 'center' | 'right' => {
+    if (col.intent === 'actions') return 'center';
     if (col.align) return col.align;
     switch (col.semantic) {
       case 'number':
@@ -447,6 +458,29 @@ export default function Table<T extends Record<string, unknown>>({
         onPointerCancel={() => setDragging(false)}
         onPointerLeave={() => setDragging(false)}
       >
+        {/* Unified column-edge shadows for sticky columns */}
+        {(() => {
+          const hasLeftSticky = Boolean(selection);
+          const hasRightSticky = visibleColumns.some((c) => c.intent === 'actions');
+          const showLeft = scrollState.canScroll && !scrollState.atStart && hasLeftSticky;
+          const showRight = scrollState.canScroll && !scrollState.atEnd && hasRightSticky;
+          const leftClass = dragging ? 'from-gray-400/50' : 'from-gray-400/25';
+          const rightClass = dragging ? 'from-gray-400/50' : 'from-gray-400/25';
+          return (
+            <>
+              <div
+                aria-hidden
+                className={`pointer-events-none absolute inset-y-0 left-0 z-50 w-6 bg-gradient-to-r to-transparent transition-opacity ${leftClass}`}
+                style={{ opacity: showLeft ? 1 : 0 }}
+              />
+              <div
+                aria-hidden
+                className={`pointer-events-none absolute inset-y-0 right-0 z-50 w-6 bg-gradient-to-l to-transparent transition-opacity ${rightClass}`}
+                style={{ opacity: showRight ? 1 : 0 }}
+              />
+            </>
+          );
+        })()}
         <table className="w-full table-auto border-separate border-spacing-0 text-left" role="grid">
           <colgroup>
             {selection ? <col style={{ width: 'var(--table-select-col-width)' }} /> : null}
@@ -460,7 +494,7 @@ export default function Table<T extends Record<string, unknown>>({
             <tr>
               {selection && (
                 <th
-                  className={`${headerClass} sticky left-0 z-30 bg-gray-50 border-r border-gray-200 ${dragging ? 'shadow-elevation-2' : ''}`}
+                  className={`${headerClass} sticky left-0 z-30 bg-inherit border-r border-gray-200`}
                   style={{ width: 'var(--table-select-col-width)' }}
                   scope="col"
                 >
@@ -489,7 +523,7 @@ export default function Table<T extends Record<string, unknown>>({
                   resolvedAlign === 'right' ? 'justify-end' : resolvedAlign === 'center' ? 'justify-center' : 'justify-start';
                 const intentClass =
                   col.intent === 'actions'
-                    ? `sticky right-0 z-30 bg-gray-50 pl-4 border-l border-gray-200 ${dragging ? 'shadow-elevation-2-left' : ''}`
+                    ? `sticky right-0 z-30 bg-inherit pl-4 border-l border-gray-200`
                     : '';
                 const semanticHeaderClass = getSemanticClass(col);
                 return (
@@ -524,7 +558,7 @@ export default function Table<T extends Record<string, unknown>>({
                 <tr key={`skeleton-${skeletonIndex}`} className="h-12">
                   {selection && (
                     <td
-                      className={`${bodyCellClass} sticky left-0 z-20 bg-white border-r border-gray-100 ${dragging ? 'shadow-elevation-2' : ''}`}
+                      className={`${bodyCellClass} sticky left-0 z-20 bg-inherit border-r border-gray-100`}
                       style={{ width: 'var(--table-select-col-width)' }}
                     >
                       <div className="h-4 w-4 rounded border border-gray-100 bg-gray-100" />
@@ -535,7 +569,7 @@ export default function Table<T extends Record<string, unknown>>({
                     const alignClass =
                       resolvedAlign === 'right' ? 'text-right' : resolvedAlign === 'center' ? 'text-center' : 'text-left';
                     const stickyRightClass = col.intent === 'actions'
-                      ? `sticky right-0 z-20 bg-white pl-4 border-l border-gray-100 ${dragging ? 'shadow-elevation-2-left' : ''}`
+                      ? `sticky right-0 z-20 bg-inherit pl-4 border-l border-gray-100`
                       : '';
                     const semanticClass = getSemanticClass(col);
                     const barAlignClass = resolvedAlign === 'right' ? 'ml-auto' : resolvedAlign === 'center' ? 'mx-auto' : '';
@@ -582,7 +616,7 @@ export default function Table<T extends Record<string, unknown>>({
                   >
                     {selection && (
                       <td
-                        className={`${bodyCellClass} sticky left-0 z-20 bg-white border-r border-gray-100 ${dragging ? 'shadow-elevation-2' : ''}`}
+                        className={`${bodyCellClass} sticky left-0 z-20 bg-inherit border-r border-gray-100`}
                         style={{ width: 'var(--table-select-col-width)' }}
                       >
                         <input
@@ -601,9 +635,9 @@ export default function Table<T extends Record<string, unknown>>({
                         resolvedAlign === 'right' ? 'text-right' : resolvedAlign === 'center' ? 'text-center' : 'text-left';
                       const isAction = col.intent === 'actions';
                       const stickyRightClass = isAction
-                        ? `sticky right-0 z-20 bg-white pl-4 border-l border-gray-100 ${dragging ? 'shadow-elevation-2-left' : ''}`
+                        ? `sticky right-0 z-20 bg-inherit pl-4 border-l border-gray-100`
                         : '';
-                      const intentClass = isAction ? 'whitespace-nowrap text-right' : '';
+                      const intentClass = isAction ? 'whitespace-nowrap text-center' : '';
                       const semanticClass = getSemanticClass(col);
                       const value = col.render
                         ? col.render(rowItem.row, {
@@ -640,7 +674,7 @@ export default function Table<T extends Record<string, unknown>>({
                           <div
                             className={
                               col.intent === 'actions'
-                                ? 'flex items-center justify-end gap-2 whitespace-nowrap'
+                                ? 'flex items-center justify-center gap-2 whitespace-nowrap'
                                 : col.intent === 'status'
                                 ? 'flex items-center gap-2'
                                 : col.semantic === 'number' ||
