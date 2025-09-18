@@ -32,6 +32,10 @@
   --sb-thumb: var(--color-sb-thumb, color-mix(in srgb, var(--color-gray-400) 55%, transparent));
   --sb-thumb-hover: var(--color-sb-thumb-hover, color-mix(in srgb, var(--color-gray-500) 65%, transparent));
   --sb-thumb-active: var(--color-sb-thumb-active, color-mix(in srgb, var(--color-gray-700) 75%, transparent));
+
+  /* Table tokens */
+  --table-select-col-width: 3rem; /* 48px via spacing scale */
+  --table-empty-min-h: 12rem;     /* ensures empty overlay centers nicely */
 }
 
 /* Firefox */
@@ -110,6 +114,9 @@ html::-webkit-scrollbar-thumb:active {
 }
 .nice-scrollbar:hover::-webkit-scrollbar-thumb { background-color: var(--sb-thumb-hover); }
 .nice-scrollbar::-webkit-scrollbar-thumb:active { background-color: var(--sb-thumb-active); }
+
+/* Table helpers */
+.table-empty { min-height: var(--table-empty-min-h); }
 
 /* Prevent layout shift when the scrollbar appears */
 .scrollbar-stable { scrollbar-gutter: stable both-edges; }

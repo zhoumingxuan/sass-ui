@@ -97,10 +97,10 @@ function SortIcon({ active, direction }: { active: boolean; direction?: SortDire
   const isAsc = active && direction === 'asc';
   const isDesc = active && direction === 'desc';
   return (
-    <span className="flex flex-col items-center gap-px leading-none">
+    <span className="flex flex-col items-center gap-0.5 leading-none">
       <svg
         viewBox="0 0 12 6"
-        className={["h-2 w-2", isAsc ? 'text-primary' : 'text-slate-300'].join(' ')}
+        className={["h-1.5 w-1.5", isAsc ? 'text-primary' : 'text-slate-300'].join(' ')}
         aria-hidden
         focusable="false"
         fill="currentColor"
@@ -109,7 +109,7 @@ function SortIcon({ active, direction }: { active: boolean; direction?: SortDire
       </svg>
       <svg
         viewBox="0 0 12 6"
-        className={["h-2 w-2", isDesc ? 'text-primary' : 'text-slate-300'].join(' ')}
+        className={["h-1.5 w-1.5", isDesc ? 'text-primary' : 'text-slate-300'].join(' ')}
         aria-hidden
         focusable="false"
         fill="currentColor"
@@ -150,6 +150,7 @@ export default function Table<T extends Record<string, unknown>>({
 }: TableProps<T>) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [scrolled, setScrolled] = useState(false);
+  const [dragging, setDragging] = useState(false);
 
   useEffect(() => {
     const el = scrollerRef.current;
@@ -176,14 +177,14 @@ export default function Table<T extends Record<string, unknown>>({
 
   const flexibleWeight = useMemo(() => {
     if (!hasFlexibleColumn) return 1;
-    const total = visibleColumns.reduce((totalFlex, col) => {
+    const totalFlex = visibleColumns.reduce((total, col) => {
       const sizing = col.sizing ?? (col.intent === 'actions' ? 'auto' : 'flex');
       if (sizing === 'auto' || typeof col.width !== 'undefined') {
-        return totalFlex;
+        return total;
       }
-      return totalFlex + (col.flex ?? 1);
+      return total + (col.flex ?? 1);
     }, 0);
-    return total || 1;
+    return totalFlex || 1;
   }, [visibleColumns, hasFlexibleColumn]);
 
   const columnLayouts = useMemo(() => {
@@ -210,9 +211,7 @@ export default function Table<T extends Record<string, unknown>>({
   const columnWidthStyles = useMemo(() => columnLayouts.map((layout) => layout.width), [columnLayouts]);
 
   const resolveAlign = (col: Column<T>): 'left' | 'center' | 'right' => {
-    if (col.align) {
-      return col.align;
-    }
+    if (col.align) return col.align;
     switch (col.semantic) {
       case 'number':
       case 'integer':
@@ -274,14 +273,9 @@ export default function Table<T extends Record<string, unknown>>({
   );
 
   const allSelected =
-    enableSelectAll &&
-    selectableRows.length > 0 &&
-    selectableRows.every((item) => selectedSet.has(item.key));
+    enableSelectAll && selectableRows.length > 0 && selectableRows.every((item) => selectedSet.has(item.key));
   const partiallySelected =
-    enableSelectAll &&
-    selectableRows.length > 0 &&
-    !allSelected &&
-    selectableRows.some((item) => selectedSet.has(item.key));
+    enableSelectAll && selectableRows.length > 0 && !allSelected && selectableRows.some((item) => selectedSet.has(item.key));
   const headerCheckboxRef = useIndeterminate(Boolean(allSelected), partiallySelected);
 
   const isFocusControlled = typeof focusedRowKey !== 'undefined';
@@ -291,9 +285,7 @@ export default function Table<T extends Record<string, unknown>>({
   const activeFocusKey = (isFocusControlled ? focusedRowKey : internalFocusKey) ?? null;
 
   useEffect(() => {
-    if (isFocusControlled || typeof defaultFocusedRow === 'undefined') {
-      return;
-    }
+    if (isFocusControlled || typeof defaultFocusedRow === 'undefined') return;
     setInternalFocusKey(defaultFocusedRow);
   }, [defaultFocusedRow, isFocusControlled]);
 
@@ -306,13 +298,9 @@ export default function Table<T extends Record<string, unknown>>({
       }
       return;
     }
-    if (internalFocusKey !== null && rowItems.some((item) => item.key === internalFocusKey)) {
-      return;
-    }
+    if (internalFocusKey !== null && rowItems.some((item) => item.key === internalFocusKey)) return;
     const preferredKey =
-      typeof defaultFocusedRow !== 'undefined'
-        ? rowItems.find((item) => item.key === defaultFocusedRow)?.key
-        : undefined;
+      typeof defaultFocusedRow !== 'undefined' ? rowItems.find((item) => item.key === defaultFocusedRow)?.key : undefined;
     const fallback = preferredKey ?? rowItems[0]?.key ?? null;
     if (fallback !== internalFocusKey) {
       setInternalFocusKey(fallback);
@@ -332,9 +320,7 @@ export default function Table<T extends Record<string, unknown>>({
     }
     if (selectionMode === 'single') {
       const first = selectableRows[0];
-      if (first) {
-        selection.onChange([first.key], [first.row]);
-      }
+      if (first) selection.onChange([first.key], [first.row]);
       return;
     }
     const uniqueKeys: Array<string | number> = [];
@@ -358,11 +344,8 @@ export default function Table<T extends Record<string, unknown>>({
       return;
     }
     const baseKeys = new Set<string | number>(selectedKeysRef ?? []);
-    if (nextChecked) {
-      baseKeys.add(rowItem.key);
-    } else {
-      baseKeys.delete(rowItem.key);
-    }
+    if (nextChecked) baseKeys.add(rowItem.key);
+    else baseKeys.delete(rowItem.key);
     const nextKeys = rowItems.filter((item) => baseKeys.has(item.key)).map((item) => item.key);
     const nextRows = nextKeys.map((key) => rowMap.get(key)).filter(Boolean) as T[];
     selection.onChange(nextKeys, nextRows);
@@ -370,9 +353,7 @@ export default function Table<T extends Record<string, unknown>>({
 
   const updateFocus = (key: string | number | null) => {
     const nextRow = key === null ? null : rowMap.get(key) ?? null;
-    if (!isFocusControlled) {
-      setInternalFocusKey(key);
-    }
+    if (!isFocusControlled) setInternalFocusKey(key);
     onFocusedRowChange?.(key, nextRow);
   };
 
@@ -384,27 +365,19 @@ export default function Table<T extends Record<string, unknown>>({
     if (event.key === 'ArrowDown') {
       event.preventDefault();
       const next = index < rowItems.length - 1 ? rowItems[index + 1] : rowItems[rowItems.length - 1];
-      if (next) {
-        updateFocus(next.key);
-      }
+      if (next) updateFocus(next.key);
     } else if (event.key === 'ArrowUp') {
       event.preventDefault();
       const prev = index > 0 ? rowItems[index - 1] : rowItems[0];
-      if (prev) {
-        updateFocus(prev.key);
-      }
+      if (prev) updateFocus(prev.key);
     } else if (event.key === 'Home') {
       event.preventDefault();
       const first = rowItems[0];
-      if (first) {
-        updateFocus(first.key);
-      }
+      if (first) updateFocus(first.key);
     } else if (event.key === 'End') {
       event.preventDefault();
       const last = rowItems[rowItems.length - 1];
-      if (last) {
-        updateFocus(last.key);
-      }
+      if (last) updateFocus(last.key);
     } else if ((event.key === ' ' || event.key === 'Spacebar') && selection) {
       event.preventDefault();
       if (!rowItem.selectable) return;
@@ -450,10 +423,9 @@ export default function Table<T extends Record<string, unknown>>({
     );
 
   const selectionCount = selectedKeysRef?.length ?? 0;
-  const selectionSummary =
-    selection && selectionCount > 0 ? (
-      <span className="text-sm text-primary">已选择 {selectionCount} 项</span>
-    ) : null;
+  const selectionSummary = selection && selectionCount > 0 ? (
+    <span className="text-sm text-primary">已选择 {selectionCount} 项</span>
+  ) : null;
 
   const containerClass = [
     card ? `flex flex-col ${roundedClass} border border-gray-200 bg-white shadow-sm` : '',
@@ -462,29 +434,38 @@ export default function Table<T extends Record<string, unknown>>({
     .filter(Boolean)
     .join(' ');
 
+  const containerStyle: React.CSSProperties | undefined = selection?.columnWidth
+    ? ({ ['--table-select-col-width' as any]:
+          typeof selection.columnWidth === 'number' ? `${selection.columnWidth}px` : String(selection.columnWidth) } as React.CSSProperties)
+    : undefined;
+
   return (
-    <div className={containerClass} role="region">
+    <div className={containerClass} role="region" style={containerStyle}>
       <div
         ref={scrollerRef}
         className={`relative overflow-x-auto ${stickyHeader ? 'overflow-y-auto' : 'overflow-y-visible'} nice-scrollbar ${scrollContainerClassName}`}
+        onPointerDown={() => setDragging(true)}
+        onPointerUp={() => setDragging(false)}
+        onPointerCancel={() => setDragging(false)}
+        onPointerLeave={() => setDragging(false)}
       >
         <table className="w-full table-auto border-separate border-spacing-0 text-left" role="grid">
           <colgroup>
-            {selection ? <col style={{ width: selection.columnWidth ?? 48 }} /> : null}
+            {selection ? <col style={{ width: 'var(--table-select-col-width)' }} /> : null}
             {columnWidthStyles.map((width, index) => (
               <col key={`col-${index}`} style={width ? { width } : undefined} />
             ))}
           </colgroup>
           <thead
             className={`bg-gray-50 text-gray-600 ${stickyHeader ? 'sticky top-0 z-10' : ''} ${
-              scrolled ? 'shadow-[0_2px_8px_rgba(15,23,42,0.08)]' : ''
+              scrolled ? 'shadow-elevation-1' : ''
             }`}
           >
             <tr>
               {selection && (
                 <th
-                  className={`${headerClass} sticky left-0 z-30 bg-gray-50 border-r border-gray-200 ${stickyHeader ? 'shadow-[inset_-1px_0_0_rgba(15,23,42,0.06)]' : ''}`}
-                  style={{ width: selection.columnWidth ?? 48 }}
+                  className={`${headerClass} sticky left-0 z-30 bg-gray-50 border-r border-gray-200 ${dragging ? 'shadow-elevation-2' : ''}`}
+                  style={{ width: 'var(--table-select-col-width)' }}
                   scope="col"
                 >
                   {enableSelectAll ? (
@@ -502,24 +483,17 @@ export default function Table<T extends Record<string, unknown>>({
                 </th>
               )}
               {visibleColumns.map((col, index) => {
-                const active = sortKey === col.key;
-                const sortable = col.sortable ?? Boolean(onSort);
+                const effectiveSortKey = (col.sortKey ?? col.key) as Column<T>['key'];
+                const active = sortKey === effectiveSortKey;
+                const sortable = (col.sortable ?? false) && col.intent !== 'actions';
                 const resolvedAlign = resolveAlign(col);
                 const alignClass =
-                  resolvedAlign === 'right'
-                    ? 'text-right'
-                    : resolvedAlign === 'center'
-                    ? 'text-center'
-                    : 'text-left';
+                  resolvedAlign === 'right' ? 'text-right' : resolvedAlign === 'center' ? 'text-center' : 'text-left';
                 const justifyClass =
-                  resolvedAlign === 'right'
-                    ? 'justify-end'
-                    : resolvedAlign === 'center'
-                    ? 'justify-center'
-                    : 'justify-start';
+                  resolvedAlign === 'right' ? 'justify-end' : resolvedAlign === 'center' ? 'justify-center' : 'justify-start';
                 const intentClass =
                   col.intent === 'actions'
-                    ? 'sticky right-0 z-30 bg-gray-50 pl-4 shadow-[inset_1px_0_0_rgba(15,23,42,0.06)]'
+                    ? `sticky right-0 z-30 bg-gray-50 pl-4 border-l border-gray-200 ${dragging ? 'shadow-elevation-2' : ''}`
                     : '';
                 const semanticHeaderClass = getSemanticClass(col);
                 return (
@@ -536,9 +510,7 @@ export default function Table<T extends Record<string, unknown>>({
                         className={`group inline-flex w-full items-center ${justifyClass} gap-1.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20`}
                         onClick={() => onSort?.(col.key)}
                       >
-                        <span className="truncate text-xs font-medium text-gray-600 group-hover:text-gray-900">
-                          {col.title}
-                        </span>
+                        <span className="truncate text-xs font-medium text-gray-600 group-hover:text-gray-900">{col.title}</span>
                         <SortIcon active={active} direction={active ? (sortDirection as SortDirection | undefined) : undefined} />
                       </button>
                     ) : (
@@ -556,8 +528,8 @@ export default function Table<T extends Record<string, unknown>>({
                 <tr key={`skeleton-${skeletonIndex}`} className="h-12">
                   {selection && (
                     <td
-                      className={`${bodyCellClass} sticky left-0 z-20 bg-[#f8fafc] border-r border-gray-100`}
-                      style={{ width: selection.columnWidth ?? 48 }}
+                      className={`${bodyCellClass} sticky left-0 z-20 bg-white border-r border-gray-100 ${dragging ? 'shadow-elevation-2' : ''}`}
+                      style={{ width: 'var(--table-select-col-width)' }}
                     >
                       <div className="h-4 w-4 rounded border border-gray-100 bg-gray-100" />
                     </td>
@@ -565,13 +537,9 @@ export default function Table<T extends Record<string, unknown>>({
                   {visibleColumns.map((col, colIndex) => {
                     const resolvedAlign = resolveAlign(col);
                     const alignClass =
-                      resolvedAlign === 'right'
-                        ? 'text-right'
-                        : resolvedAlign === 'center'
-                        ? 'text-center'
-                        : 'text-left';
+                      resolvedAlign === 'right' ? 'text-right' : resolvedAlign === 'center' ? 'text-center' : 'text-left';
                     const stickyRightClass = col.intent === 'actions'
-                      ? 'sticky right-0 z-20 bg-[#f8fafc] pl-4 shadow-[inset_1px_0_0_rgba(15,23,42,0.04)]'
+                      ? `sticky right-0 z-20 bg-white pl-4 border-l border-gray-100 ${dragging ? 'shadow-elevation-2' : ''}`
                       : '';
                     const semanticClass = getSemanticClass(col);
                     const barAlignClass = resolvedAlign === 'right' ? 'ml-auto' : resolvedAlign === 'center' ? 'mx-auto' : '';
@@ -618,8 +586,8 @@ export default function Table<T extends Record<string, unknown>>({
                   >
                     {selection && (
                       <td
-                        className={`${bodyCellClass} sticky left-0 z-20 bg-inherit backdrop-blur-[0.01px] border-r border-gray-100`}
-                        style={{ width: selection.columnWidth ?? 48 }}
+                        className={`${bodyCellClass} sticky left-0 z-20 bg-white border-r border-gray-100 ${dragging ? 'shadow-elevation-2' : ''}`}
+                        style={{ width: 'var(--table-select-col-width)' }}
                       >
                         <input
                           type="checkbox"
@@ -634,14 +602,10 @@ export default function Table<T extends Record<string, unknown>>({
                     {visibleColumns.map((col, colIndex) => {
                       const resolvedAlign = resolveAlign(col);
                       const alignClass =
-                        resolvedAlign === 'right'
-                          ? 'text-right'
-                          : resolvedAlign === 'center'
-                          ? 'text-center'
-                          : 'text-left';
+                        resolvedAlign === 'right' ? 'text-right' : resolvedAlign === 'center' ? 'text-center' : 'text-left';
                       const isAction = col.intent === 'actions';
                       const stickyRightClass = isAction
-                        ? 'sticky right-0 z-20 bg-inherit backdrop-blur-[0.01px] pl-4 shadow-[inset_1px_0_0_rgba(15,23,42,0.04)]'
+                        ? `sticky right-0 z-20 bg-white pl-4 border-l border-gray-100 ${dragging ? 'shadow-elevation-2' : ''}`
                         : '';
                       const intentClass = isAction ? 'whitespace-nowrap text-right' : '';
                       const semanticClass = getSemanticClass(col);
@@ -712,11 +676,16 @@ export default function Table<T extends Record<string, unknown>>({
             )}
           </tbody>
         </table>
+        {!loading && rowItems.length === 0 ? (
+          <div className="pointer-events-none absolute inset-0 grid place-items-center">
+            <div className="table-empty flex flex-col items-center justify-center text-center">{emptyNode}</div>
+          </div>
+        ) : null}
       </div>
 
       <div className="flex flex-wrap items-start justify-between gap-3 px-5 py-3 text-sm text-gray-700">
         <div className="flex flex-wrap items-center gap-3">
-          <span>共 {total} 项</span>
+          <span>共 {total} 条</span>
           {selectionSummary}
           {onPageSizeChange ? (
             <div className="flex items-center gap-2 text-xs text-gray-500">
