@@ -166,10 +166,8 @@ export default function Table<T extends Record<string, unknown>>({
   const hasFlexibleColumn = useMemo(
     () =>
       visibleColumns.some((col) => {
-        const sizing = col.sizing ?? (col.intent === 'actions' ? 'auto' : 'flex');
-        if (sizing === 'auto') {
-          return false;
-        }
+        const sizing = col.sizing ?? 'auto';
+        if (sizing === 'auto') return false;
         return typeof col.width === 'undefined';
       }),
     [visibleColumns],
@@ -178,7 +176,7 @@ export default function Table<T extends Record<string, unknown>>({
   const flexibleWeight = useMemo(() => {
     if (!hasFlexibleColumn) return 1;
     const totalFlex = visibleColumns.reduce((total, col) => {
-      const sizing = col.sizing ?? (col.intent === 'actions' ? 'auto' : 'flex');
+      const sizing = col.sizing ?? 'auto';
       if (sizing === 'auto' || typeof col.width !== 'undefined') {
         return total;
       }
@@ -189,7 +187,7 @@ export default function Table<T extends Record<string, unknown>>({
 
   const columnLayouts = useMemo(() => {
     return visibleColumns.map((col) => {
-      const sizing = col.sizing ?? (col.intent === 'actions' ? 'auto' : 'flex');
+      const sizing = col.sizing ?? 'auto';
       const style: CSSProperties = {};
       if (typeof col.minWidth === 'number') {
         style.minWidth = `${col.minWidth}px`;
@@ -457,9 +455,7 @@ export default function Table<T extends Record<string, unknown>>({
             ))}
           </colgroup>
           <thead
-            className={`bg-gray-50 text-gray-600 ${stickyHeader ? 'sticky top-0 z-10' : ''} ${
-              scrolled ? 'shadow-elevation-1' : ''
-            }`}
+            className={`bg-gray-50 text-gray-600 ${stickyHeader ? 'sticky top-0 z-10 border-b border-gray-200' : ''}`}
           >
             <tr>
               {selection && (
@@ -493,7 +489,7 @@ export default function Table<T extends Record<string, unknown>>({
                   resolvedAlign === 'right' ? 'justify-end' : resolvedAlign === 'center' ? 'justify-center' : 'justify-start';
                 const intentClass =
                   col.intent === 'actions'
-                    ? `sticky right-0 z-30 bg-gray-50 pl-4 border-l border-gray-200 ${dragging ? 'shadow-elevation-2' : ''}`
+                    ? `sticky right-0 z-30 bg-gray-50 pl-4 border-l border-gray-200 ${dragging ? 'shadow-elevation-2-left' : ''}`
                     : '';
                 const semanticHeaderClass = getSemanticClass(col);
                 return (
@@ -539,7 +535,7 @@ export default function Table<T extends Record<string, unknown>>({
                     const alignClass =
                       resolvedAlign === 'right' ? 'text-right' : resolvedAlign === 'center' ? 'text-center' : 'text-left';
                     const stickyRightClass = col.intent === 'actions'
-                      ? `sticky right-0 z-20 bg-white pl-4 border-l border-gray-100 ${dragging ? 'shadow-elevation-2' : ''}`
+                      ? `sticky right-0 z-20 bg-white pl-4 border-l border-gray-100 ${dragging ? 'shadow-elevation-2-left' : ''}`
                       : '';
                     const semanticClass = getSemanticClass(col);
                     const barAlignClass = resolvedAlign === 'right' ? 'ml-auto' : resolvedAlign === 'center' ? 'mx-auto' : '';
@@ -605,7 +601,7 @@ export default function Table<T extends Record<string, unknown>>({
                         resolvedAlign === 'right' ? 'text-right' : resolvedAlign === 'center' ? 'text-center' : 'text-left';
                       const isAction = col.intent === 'actions';
                       const stickyRightClass = isAction
-                        ? `sticky right-0 z-20 bg-white pl-4 border-l border-gray-100 ${dragging ? 'shadow-elevation-2' : ''}`
+                        ? `sticky right-0 z-20 bg-white pl-4 border-l border-gray-100 ${dragging ? 'shadow-elevation-2-left' : ''}`
                         : '';
                       const intentClass = isAction ? 'whitespace-nowrap text-right' : '';
                       const semanticClass = getSemanticClass(col);
