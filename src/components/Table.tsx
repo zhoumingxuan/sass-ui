@@ -30,6 +30,8 @@ export type Column<T> = {
   className?: string;
   headerClassName?: string;
   intent?: 'data' | 'actions' | 'status' | 'meta';
+  semantic?: 'text' | 'number' | 'integer' | 'currency' | 'percent' | 'date' | 'time' | 'datetime';
+  sizing?: 'auto' | 'flex';
   hidden?: boolean;
 };
 
@@ -95,7 +97,7 @@ function SortIcon({ active, direction }: { active: boolean; direction?: SortDire
   const isAsc = active && direction === 'asc';
   const isDesc = active && direction === 'desc';
   return (
-    <span className="flex flex-col items-center gap-[2px] leading-none">
+    <span className="flex flex-col items-center gap-px leading-none">
       <svg
         viewBox="0 0 12 6"
         className={["h-2 w-2", isAsc ? 'text-primary' : 'text-slate-300'].join(' ')}
@@ -161,22 +163,32 @@ export default function Table<T extends Record<string, unknown>>({
   const visibleColumns = useMemo(() => columns.filter((col) => !col.hidden), [columns]);
 
   const hasFlexibleColumn = useMemo(
-    () => visibleColumns.some((col) => typeof col.width === 'undefined'),
+    () =>
+      visibleColumns.some((col) => {
+        const sizing = col.sizing ?? (col.intent === 'actions' ? 'auto' : 'flex');
+        if (sizing === 'auto') {
+          return false;
+        }
+        return typeof col.width === 'undefined';
+      }),
     [visibleColumns],
   );
 
   const flexibleWeight = useMemo(() => {
     if (!hasFlexibleColumn) return 1;
-    return (
-      visibleColumns.reduce((totalFlex, col) => {
-        if (typeof col.width !== 'undefined') return totalFlex;
-        return totalFlex + (col.flex ?? 1);
-      }, 0) || 1
-    );
+    const total = visibleColumns.reduce((totalFlex, col) => {
+      const sizing = col.sizing ?? (col.intent === 'actions' ? 'auto' : 'flex');
+      if (sizing === 'auto' || typeof col.width !== 'undefined') {
+        return totalFlex;
+      }
+      return totalFlex + (col.flex ?? 1);
+    }, 0);
+    return total || 1;
   }, [visibleColumns, hasFlexibleColumn]);
 
   const columnLayouts = useMemo(() => {
     return visibleColumns.map((col) => {
+      const sizing = col.sizing ?? (col.intent === 'actions' ? 'auto' : 'flex');
       const style: CSSProperties = {};
       if (typeof col.minWidth === 'number') {
         style.minWidth = `${col.minWidth}px`;
@@ -186,7 +198,7 @@ export default function Table<T extends Record<string, unknown>>({
       }
       if (typeof col.width !== 'undefined') {
         style.width = typeof col.width === 'number' ? `${col.width}px` : col.width;
-      } else if (hasFlexibleColumn) {
+      } else if (sizing === 'flex' && hasFlexibleColumn) {
         const weight = col.flex ?? 1;
         const percent = Math.max((weight / flexibleWeight) * 100, 0);
         style.width = `${percent}%`;
@@ -195,10 +207,41 @@ export default function Table<T extends Record<string, unknown>>({
     });
   }, [visibleColumns, hasFlexibleColumn, flexibleWeight]);
 
-  const columnWidthStyles = useMemo(
-    () => columnLayouts.map((layout) => layout.width),
-    [columnLayouts],
-  );
+  const columnWidthStyles = useMemo(() => columnLayouts.map((layout) => layout.width), [columnLayouts]);
+
+  const resolveAlign = (col: Column<T>): 'left' | 'center' | 'right' => {
+    if (col.align) {
+      return col.align;
+    }
+    switch (col.semantic) {
+      case 'number':
+      case 'integer':
+      case 'currency':
+      case 'percent':
+        return 'right';
+      case 'date':
+      case 'time':
+      case 'datetime':
+        return 'center';
+      default:
+        return 'left';
+    }
+  };
+
+  const getSemanticClass = (col: Column<T>) => {
+    switch (col.semantic) {
+      case 'number':
+      case 'integer':
+      case 'currency':
+      case 'percent':
+      case 'date':
+      case 'time':
+      case 'datetime':
+        return 'tabular-nums';
+      default:
+        return '';
+    }
+  };
 
   const selectionMode = selection?.mode === 'single' ? 'single' : 'multiple';
   const selectedKeysRef = selection?.selectedKeys;
@@ -266,14 +309,14 @@ export default function Table<T extends Record<string, unknown>>({
     if (internalFocusKey !== null && rowItems.some((item) => item.key === internalFocusKey)) {
       return;
     }
-    const fallback =
-      (typeof defaultFocusedRow !== 'undefined' &&
-        rowItems.find((item) => item.key === defaultFocusedRow)?.key) ??
-      rowItems[0]?.key ??
-      null;
+    const preferredKey =
+      typeof defaultFocusedRow !== 'undefined'
+        ? rowItems.find((item) => item.key === defaultFocusedRow)?.key
+        : undefined;
+    const fallback = preferredKey ?? rowItems[0]?.key ?? null;
     if (fallback !== internalFocusKey) {
       setInternalFocusKey(fallback);
-      const fallbackRow = typeof fallback === 'undefined' || fallback === null ? null : rowMap.get(fallback) ?? null;
+      const fallbackRow = fallback === null ? null : rowMap.get(fallback) ?? null;
       onFocusedRowChange?.(fallback, fallbackRow);
     }
   }, [rowItems, internalFocusKey, isFocusControlled, defaultFocusedRow, onFocusedRowChange, rowMap]);
@@ -440,7 +483,7 @@ export default function Table<T extends Record<string, unknown>>({
             <tr>
               {selection && (
                 <th
-                  className={`${headerClass} sticky left-0 z-30 bg-gray-50 ${stickyHeader ? 'shadow-[inset_-1px_0_0_rgba(15,23,42,0.06)]' : ''}`}
+                  className={`${headerClass} sticky left-0 z-30 bg-gray-50 border-r border-gray-200 ${stickyHeader ? 'shadow-[inset_-1px_0_0_rgba(15,23,42,0.06)]' : ''}`}
                   style={{ width: selection.columnWidth ?? 48 }}
                   scope="col"
                 >
@@ -461,24 +504,30 @@ export default function Table<T extends Record<string, unknown>>({
               {visibleColumns.map((col, index) => {
                 const active = sortKey === col.key;
                 const sortable = col.sortable ?? Boolean(onSort);
+                const resolvedAlign = resolveAlign(col);
                 const alignClass =
-                  col.align === 'right'
+                  resolvedAlign === 'right'
                     ? 'text-right'
-                    : col.align === 'center'
+                    : resolvedAlign === 'center'
                     ? 'text-center'
                     : 'text-left';
                 const justifyClass =
-                  col.align === 'right'
+                  resolvedAlign === 'right'
                     ? 'justify-end'
-                    : col.align === 'center'
+                    : resolvedAlign === 'center'
                     ? 'justify-center'
                     : 'justify-start';
-                const intentClass = col.intent === 'actions' ? 'sticky right-0 z-30 bg-gray-50 pl-4 shadow-[inset_1px_0_0_rgba(15,23,42,0.06)]' : '';
+                const intentClass =
+                  col.intent === 'actions'
+                    ? 'sticky right-0 z-30 bg-gray-50 pl-4 shadow-[inset_1px_0_0_rgba(15,23,42,0.06)]'
+                    : '';
+                const semanticHeaderClass = getSemanticClass(col);
                 return (
                   <th
                     key={String(col.key)}
                     scope="col"
-                    className={`${headerClass} ${alignClass} ${intentClass} ${col.headerClassName ?? ''}`}
+                    data-semantic={col.semantic ?? undefined}
+                    className={`${headerClass} ${alignClass} ${intentClass} ${semanticHeaderClass} ${col.headerClassName ?? ''}`}
                     style={columnLayouts[index]}
                   >
                     {sortable ? (
@@ -506,15 +555,39 @@ export default function Table<T extends Record<string, unknown>>({
               Array.from({ length: Math.min(Math.max(pageSize, 4), 6) }).map((_, skeletonIndex) => (
                 <tr key={`skeleton-${skeletonIndex}`} className="h-12">
                   {selection && (
-                    <td className={`${bodyCellClass} sticky left-0 z-20 bg-[#f8fafc]`} style={{ width: selection.columnWidth ?? 48 }}>
+                    <td
+                      className={`${bodyCellClass} sticky left-0 z-20 bg-[#f8fafc] border-r border-gray-100`}
+                      style={{ width: selection.columnWidth ?? 48 }}
+                    >
                       <div className="h-4 w-4 rounded border border-gray-100 bg-gray-100" />
                     </td>
                   )}
-                  {visibleColumns.map((col) => (
-                    <td key={String(col.key)} className={bodyCellClass}>
-                      <div className="h-3 w-3/4 animate-pulse rounded bg-gray-200" />
-                    </td>
-                  ))}
+                  {visibleColumns.map((col, colIndex) => {
+                    const resolvedAlign = resolveAlign(col);
+                    const alignClass =
+                      resolvedAlign === 'right'
+                        ? 'text-right'
+                        : resolvedAlign === 'center'
+                        ? 'text-center'
+                        : 'text-left';
+                    const stickyRightClass = col.intent === 'actions'
+                      ? 'sticky right-0 z-20 bg-[#f8fafc] pl-4 shadow-[inset_1px_0_0_rgba(15,23,42,0.04)]'
+                      : '';
+                    const semanticClass = getSemanticClass(col);
+                    const barAlignClass = resolvedAlign === 'right' ? 'ml-auto' : resolvedAlign === 'center' ? 'mx-auto' : '';
+                    return (
+                      <td
+                        key={String(col.key)}
+                        data-semantic={col.semantic ?? undefined}
+                        className={[bodyCellClass, alignClass, stickyRightClass, semanticClass, col.className ?? '']
+                          .filter(Boolean)
+                          .join(' ')}
+                        style={columnLayouts[colIndex]}
+                      >
+                        <div className={`h-3 w-3/4 animate-pulse rounded bg-gray-200 ${barAlignClass}`} />
+                      </td>
+                    );
+                  })}
                 </tr>
               ))
             ) : rowItems.length > 0 ? (
@@ -545,7 +618,7 @@ export default function Table<T extends Record<string, unknown>>({
                   >
                     {selection && (
                       <td
-                        className={`${bodyCellClass} sticky left-0 z-20 bg-inherit backdrop-blur-[0.01px]`}
+                        className={`${bodyCellClass} sticky left-0 z-20 bg-inherit backdrop-blur-[0.01px] border-r border-gray-100`}
                         style={{ width: selection.columnWidth ?? 48 }}
                       >
                         <input
@@ -559,15 +632,19 @@ export default function Table<T extends Record<string, unknown>>({
                       </td>
                     )}
                     {visibleColumns.map((col, colIndex) => {
+                      const resolvedAlign = resolveAlign(col);
                       const alignClass =
-                        col.align === 'right'
+                        resolvedAlign === 'right'
                           ? 'text-right'
-                          : col.align === 'center'
+                          : resolvedAlign === 'center'
                           ? 'text-center'
                           : 'text-left';
                       const isAction = col.intent === 'actions';
-                      const stickyRightClass = isAction ? 'sticky right-0 z-20 bg-inherit backdrop-blur-[0.01px] pl-4 shadow-[inset_1px_0_0_rgba(15,23,42,0.04)]' : '';
+                      const stickyRightClass = isAction
+                        ? 'sticky right-0 z-20 bg-inherit backdrop-blur-[0.01px] pl-4 shadow-[inset_1px_0_0_rgba(15,23,42,0.04)]'
+                        : '';
                       const intentClass = isAction ? 'whitespace-nowrap text-right' : '';
+                      const semanticClass = getSemanticClass(col);
                       const value = col.render
                         ? col.render(rowItem.row, {
                             row: rowItem.row,
@@ -586,11 +663,13 @@ export default function Table<T extends Record<string, unknown>>({
                       return (
                         <td
                           key={String(col.key)}
+                          data-semantic={col.semantic ?? undefined}
                           className={[
                             bodyCellClass,
                             alignClass,
                             intentClass,
                             stickyRightClass,
+                            semanticClass,
                             col.className ?? '',
                           ]
                             .filter(Boolean)
@@ -604,6 +683,15 @@ export default function Table<T extends Record<string, unknown>>({
                                 ? 'flex items-center justify-end gap-2 whitespace-nowrap'
                                 : col.intent === 'status'
                                 ? 'flex items-center gap-2'
+                                : col.semantic === 'number' ||
+                                  col.semantic === 'integer' ||
+                                  col.semantic === 'currency' ||
+                                  col.semantic === 'percent'
+                                ? 'flex items-center justify-end gap-2'
+                                : col.semantic === 'date' ||
+                                  col.semantic === 'time' ||
+                                  col.semantic === 'datetime'
+                                ? 'flex items-center justify-center gap-2'
                                 : 'truncate'
                             }
                           >

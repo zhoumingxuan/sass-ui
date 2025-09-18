@@ -13,7 +13,7 @@ import ActionLink from '@/components/ActionLink';
 import { menuItems, footerItems } from '@/components/menuItems';
 import { Search, Plus } from 'lucide-react';
 
-interface Row {
+interface Row extends Record<string, unknown> {
   id: string;
   username: string;
   email: string;
