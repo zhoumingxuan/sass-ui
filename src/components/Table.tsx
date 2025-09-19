@@ -151,6 +151,7 @@ export default function Table<T extends Record<string, unknown>>({
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const [scrollState, setScrollState] = useState({ atStart: true, atEnd: false, canScroll: false });
+  const [hoveredRowKey, setHoveredRowKey] = useState<string | number | null>(null);
 
   useEffect(() => {
     const el = scrollerRef.current;
@@ -464,18 +465,18 @@ export default function Table<T extends Record<string, unknown>>({
           const hasRightSticky = visibleColumns.some((c) => c.intent === 'actions');
           const showLeft = scrollState.canScroll && !scrollState.atStart && hasLeftSticky;
           const showRight = scrollState.canScroll && !scrollState.atEnd && hasRightSticky;
-          const leftClass = dragging ? 'from-gray-400/50' : 'from-gray-400/25';
-          const rightClass = dragging ? 'from-gray-400/50' : 'from-gray-400/25';
+          const leftClass = dragging ? 'from-black/40 via-black/10' : 'from-black/20 via-black/5';
+          const rightClass = dragging ? 'from-black/40 via-black/10' : 'from-black/20 via-black/5';
           return (
             <>
               <div
                 aria-hidden
-                className={`pointer-events-none absolute inset-y-0 left-0 z-50 w-6 bg-gradient-to-r to-transparent transition-opacity ${leftClass}`}
+                className={`pointer-events-none absolute inset-y-0 left-0 z-50 w-10 bg-gradient-to-r to-transparent transition-opacity ${leftClass}`}
                 style={{ opacity: showLeft ? 1 : 0 }}
               />
               <div
                 aria-hidden
-                className={`pointer-events-none absolute inset-y-0 right-0 z-50 w-6 bg-gradient-to-l to-transparent transition-opacity ${rightClass}`}
+                className={`pointer-events-none absolute inset-y-0 right-0 z-50 w-10 bg-gradient-to-l to-transparent transition-opacity ${rightClass}`}
                 style={{ opacity: showRight ? 1 : 0 }}
               />
             </>
@@ -494,7 +495,7 @@ export default function Table<T extends Record<string, unknown>>({
             <tr>
               {selection && (
                 <th
-                  className={`${headerClass} sticky left-0 z-30 bg-inherit border-r border-gray-200`}
+                  className={`${headerClass} sticky left-0 z-30 bg-gray-50 border-r border-gray-200`}
                   style={{ width: 'var(--table-select-col-width)' }}
                   scope="col"
                 >
@@ -523,7 +524,7 @@ export default function Table<T extends Record<string, unknown>>({
                   resolvedAlign === 'right' ? 'justify-end' : resolvedAlign === 'center' ? 'justify-center' : 'justify-start';
                 const intentClass =
                   col.intent === 'actions'
-                    ? `sticky right-0 z-30 bg-inherit pl-4 border-l border-gray-200`
+                    ? `sticky right-0 z-30 bg-gray-50 pl-4 border-l border-gray-200`
                     : '';
                 const semanticHeaderClass = getSemanticClass(col);
                 return (
@@ -593,31 +594,42 @@ export default function Table<T extends Record<string, unknown>>({
                 const isSelected = selectedSet.has(rowItem.key);
                 const isFocused = activeFocusKey !== null && rowItem.key === activeFocusKey;
                 const tabIndex = rowItems.length === 0 ? -1 : rowIndex === rovingIndex ? 0 : -1;
-                const rowBg = zebra ? (rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50/60') : 'bg-white';
-                const selectedBg = isSelected ? 'bg-primary/5 hover:bg-primary/10' : '';
+                const isHovered = highlightOnHover && hoveredRowKey === rowItem.key;
+                const baseRowColor = zebra ? (rowIndex % 2 === 0 ? '#ffffff' : '#f8fafc') : '#ffffff';
+                const hoverRowColor = highlightOnHover ? '#f3f4f6' : baseRowColor;
+                const selectedColor = 'rgba(30, 128, 255, 0.12)';
+                const selectedHoverColor = 'rgba(30, 128, 255, 0.18)';
+                const rowBackgroundColor = isSelected
+                  ? isHovered
+                    ? selectedHoverColor
+                    : selectedColor
+                  : isHovered
+                  ? hoverRowColor
+                  : baseRowColor;
 
                 return (
                   <tr
                     key={rowItem.key}
                     data-selected={isSelected ? 'true' : undefined}
                     data-focus={isFocused ? 'true' : undefined}
-                    className={[
-                      'group transition-colors focus:outline-none',
-                      rowBg,
-                      highlightOnHover ? 'hover:bg-gray-50' : '',
-                      selectedBg,
-                    ].join(' ')}
+                    className="group transition-colors focus:outline-none"
+                    style={{ backgroundColor: rowBackgroundColor }}
                     tabIndex={tabIndex}
                     onFocus={() => updateFocus(rowItem.key)}
                     onKeyDown={(event) => handleRowKeyDown(event, rowItem)}
                     onClick={(event) => handleRowClick(event, rowItem)}
+                    onMouseEnter={() => setHoveredRowKey(rowItem.key)}
+                    onMouseLeave={() => setHoveredRowKey((current) => (current === rowItem.key ? null : current))}
                     aria-selected={selection ? isSelected : undefined}
                     role="row"
                   >
                     {selection && (
                       <td
-                        className={`${bodyCellClass} sticky left-0 z-20 bg-inherit border-r border-gray-100`}
-                        style={{ width: 'var(--table-select-col-width)' }}
+                        className={`${bodyCellClass} sticky left-0 z-20 border-r border-gray-100`}
+                        style={{
+                          width: 'var(--table-select-col-width)',
+                          backgroundColor: rowBackgroundColor,
+                        }}
                       >
                         <input
                           type="checkbox"
@@ -635,7 +647,7 @@ export default function Table<T extends Record<string, unknown>>({
                         resolvedAlign === 'right' ? 'text-right' : resolvedAlign === 'center' ? 'text-center' : 'text-left';
                       const isAction = col.intent === 'actions';
                       const stickyRightClass = isAction
-                        ? `sticky right-0 z-20 bg-inherit pl-4 border-l border-gray-100`
+                        ? `sticky right-0 z-20 pl-4 border-l border-gray-100`
                         : '';
                       const intentClass = isAction ? 'whitespace-nowrap text-center' : '';
                       const semanticClass = getSemanticClass(col);
@@ -668,7 +680,11 @@ export default function Table<T extends Record<string, unknown>>({
                           ]
                             .filter(Boolean)
                             .join(' ')}
-                          style={columnLayouts[colIndex]}
+                          style={
+                            isAction
+                              ? { ...columnLayouts[colIndex], backgroundColor: rowBackgroundColor }
+                              : columnLayouts[colIndex]
+                          }
                           title={titleValue as string | undefined}
                         >
                           <div

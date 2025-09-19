@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Layout from '@/components/Layout';
 import Card from '@/components/Card';
 import Table, { Column } from '@/components/Table';
+import GridTable, { GridColumn } from '@/components/GridTable';
 import Button from '@/components/Button';
 import Pill from '@/components/Pill';
 import ProgressBar from '@/components/ProgressBar';
@@ -381,6 +382,242 @@ export default function TableDemo() {
     [],
   );
 
+  const gridColumns: GridColumn<Row>[] = useMemo(
+    () => [
+      {
+        key: 'id',
+        title: '编号',
+        fixed: 'left',
+        width: 140,
+        render: (row) => <span className="font-medium text-gray-900">{row.id}</span>,
+      },
+      {
+        key: 'project',
+        title: '项目',
+        width: 280,
+        render: (row) => (
+          <div className="min-w-0">
+            <div className="truncate font-medium text-gray-900">{row.project}</div>
+            <div className="mt-0.5 flex items-center gap-2 text-xs text-gray-500">
+              <span>{row.team}</span>
+              <span className="inline-flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary/60" />
+                {STATUS_META[row.status].label}
+              </span>
+            </div>
+          </div>
+        ),
+      },
+      {
+        key: 'owner',
+        title: '负责人',
+        width: 140,
+      },
+      {
+        key: 'priority',
+        title: '优先级',
+        width: 120,
+        intent: 'status',
+        render: (row) => <Pill tone={PRIORITY_META[row.priority].tone}>{PRIORITY_META[row.priority].label}</Pill>,
+      },
+      {
+        key: 'progress',
+        title: '进度',
+        width: 200,
+        semantic: 'number',
+        render: (row) => (
+          <div className="flex items-center justify-end gap-3">
+            <ProgressBar
+              value={row.progress}
+              showValue
+              className="w-32"
+              tone={row.progress >= 80 ? 'success' : 'primary'}
+            />
+          </div>
+        ),
+      },
+      {
+        key: 'budgetUsed',
+        title: '已使用预算',
+        width: 160,
+        semantic: 'currency',
+        render: (row) => <span>{currencyFormatter.format(row.budgetUsed)}</span>,
+      },
+      {
+        key: 'lastUpdated',
+        title: '最新更新时间',
+        width: 200,
+        semantic: 'datetime',
+        render: (row) => dateTimeFormatter.format(new Date(row.lastUpdated)),
+      },
+      {
+        key: 'risk',
+        title: '风险',
+        width: 120,
+        intent: 'status',
+        render: (row) => <Pill tone={RISK_META[row.risk].tone}>{RISK_META[row.risk].label}</Pill>,
+      },
+      {
+        key: 'actions',
+        title: '操作',
+        intent: 'actions',
+        fixed: 'right',
+        width: 160,
+        render: (row) => (
+          <div className="flex items-center justify-center gap-2" data-table-row-trigger="ignore">
+            <ActionLink emphasized>详情</ActionLink>
+            <ActionLink onClick={() => console.log('plan', row.id)}>安排</ActionLink>
+          </div>
+        ),
+      },
+    ],
+    [],
+  );
+
+  const virtualRows = useMemo(() => {
+    const multiplier = 60;
+    const statuses: Row['status'][] = ['planning', 'design', 'developing', 'review', 'launched'];
+    const priorities: Row['priority'][] = ['low', 'medium', 'high', 'urgent'];
+    const risks: Row['risk'][] = ['low', 'medium', 'high'];
+    const items: Row[] = [];
+    const baseSize = PROJECTS.length;
+    for (let i = 0; i < baseSize * multiplier; i += 1) {
+      const source = PROJECTS[i % baseSize];
+      const batch = Math.floor(i / baseSize);
+      const variant = i % baseSize;
+      const id = `${source.id}-G${(batch + 1).toString().padStart(2, '0')}-${(variant + 1)
+        .toString()
+        .padStart(2, '0')}`;
+      const status = statuses[(batch + variant) % statuses.length];
+      const priority = priorities[(variant + batch * 2) % priorities.length];
+      const risk = risks[(batch + variant * 3) % risks.length];
+      const progressSeed = (source.progress + batch * 11 + variant * 7) % 101;
+      const progress = progressSeed === 0 ? 5 : progressSeed;
+      const completedTasks = Math.min(
+        source.totalTasks,
+        Math.max(
+          source.completedTasks,
+          Math.round((progress / 100) * source.totalTasks),
+        ),
+      );
+      const usageRatio = Math.min(1.25, 0.55 + ((batch % 12) * 0.05));
+      const budgetUsed = Math.round(source.budgetPlanned * usageRatio);
+      const startAtDate = new Date(source.startAt);
+      startAtDate.setDate(startAtDate.getDate() + batch * 2);
+      const endAtDate = new Date(source.endAt);
+      endAtDate.setDate(endAtDate.getDate() + batch * 2 + (variant % 5));
+      const updatedAt = new Date(source.lastUpdated);
+      updatedAt.setHours(updatedAt.getHours() + batch * 6 + (variant % 3));
+
+      items.push({
+        ...source,
+        id,
+        project: `${source.project} · 第${batch + 1}批`,
+        status,
+        priority,
+        risk,
+        progress,
+        completedTasks,
+        budgetUsed,
+        startAt: startAtDate.toISOString().slice(0, 10),
+        endAt: endAtDate.toISOString().slice(0, 10),
+        lastUpdated: updatedAt.toISOString(),
+      });
+    }
+    return items;
+  }, []);
+
+  const [gridRows, setGridRows] = useState<Row[]>(virtualRows);
+  const [gridLoading, setGridLoading] = useState(false);
+  const [gridSelectedKeys, setGridSelectedKeys] = useState<Array<string | number>>([]);
+  const [gridSelectedRows, setGridSelectedRows] = useState<Row[]>([]);
+  const gridTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+
+  useEffect(() => {
+    setGridRows(virtualRows);
+  }, [virtualRows]);
+
+  useEffect(() => {
+    if (gridRows.length === 0) {
+      setGridSelectedKeys([]);
+      setGridSelectedRows([]);
+      return;
+    }
+    setGridSelectedKeys((keys) => keys.filter((key) => gridRows.some((row) => row.id === key)));
+    setGridSelectedRows((rows) => rows.filter((row) => gridRows.some((item) => item.id === row.id)));
+  }, [gridRows]);
+
+  const gridSelectedBudget = useMemo(
+    () => gridSelectedRows.reduce((total, row) => total + row.budgetUsed, 0),
+    [gridSelectedRows],
+  );
+
+  const handleGridRefresh = () => {
+    if (gridTimerRef.current) {
+      window.clearTimeout(gridTimerRef.current);
+    }
+    setGridLoading(true);
+    gridTimerRef.current = window.setTimeout(() => {
+      setGridRows((rows) =>
+        rows.map((row, index) => {
+          if (index % 37 !== 0) {
+            return row;
+          }
+          const drift = Math.max(-0.08, Math.min(0.12, (Math.random() - 0.5) * 0.2));
+          const progress = Math.min(100, Math.max(0, row.progress + Math.round(drift * 100)));
+          const budgetRatio = Math.min(
+            1.2,
+            Math.max(0.35, row.budgetUsed / row.budgetPlanned + drift * 0.6),
+          );
+          const budgetUsed = Math.round(row.budgetPlanned * budgetRatio);
+          const completedTasks = Math.min(
+            row.totalTasks,
+            Math.max(0, Math.round((progress / 100) * row.totalTasks)),
+          );
+          return {
+            ...row,
+            progress,
+            completedTasks,
+            budgetUsed,
+            lastUpdated: new Date().toISOString(),
+          };
+        }),
+      );
+      setGridLoading(false);
+      gridTimerRef.current = null;
+    }, 680);
+  };
+
+  const handleGridClear = () => {
+    if (gridTimerRef.current) {
+      window.clearTimeout(gridTimerRef.current);
+      gridTimerRef.current = null;
+    }
+    setGridLoading(false);
+    setGridRows([]);
+    setGridSelectedKeys([]);
+    setGridSelectedRows([]);
+  };
+
+  const handleGridReset = () => {
+    if (gridTimerRef.current) {
+      window.clearTimeout(gridTimerRef.current);
+      gridTimerRef.current = null;
+    }
+    setGridLoading(false);
+    setGridRows(virtualRows);
+    setGridSelectedKeys([]);
+    setGridSelectedRows([]);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (gridTimerRef.current) {
+        window.clearTimeout(gridTimerRef.current);
+      }
+    };
+  }, []);
+
   const [query, setQuery] = useState('');
   const [sortKey, setSortKey] = useState<Column<Row>['key']>('progress');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
@@ -618,6 +855,82 @@ export default function TableDemo() {
                   </span>
                 </div>
               ) : null
+            }
+          />
+        </div>
+      </Card>
+
+      <Card>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="space-y-1">
+            <div className="text-base font-semibold text-gray-800">虚拟滚动栅格表</div>
+            <div className="text-xs text-gray-500">用于超大数据集的滚动、固定列与快捷选择演示。</div>
+          </div>
+          <div className="text-xs text-gray-500">
+            总计 {integerFormatter.format(gridRows.length)} 行
+          </div>
+        </div>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Button
+              size="small"
+              appearance="ghost"
+              variant="default"
+              icon={<RefreshCw />}
+              onClick={handleGridRefresh}
+            >
+              批量刷新
+            </Button>
+            <Button size="small" appearance="ghost" variant="default" onClick={handleGridClear}>
+              清空数据
+            </Button>
+            <Button size="small" appearance="ghost" variant="default" onClick={handleGridReset}>
+              恢复数据
+            </Button>
+          </div>
+          {gridSelectedRows.length > 0 ? (
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <span>已选 {gridSelectedRows.length} 项</span>
+              <span className="hidden sm:inline text-gray-400">
+                预算合计 {currencyFormatter.format(gridSelectedBudget)}
+              </span>
+              <ActionLink
+                onClick={() => {
+                  setGridSelectedKeys([]);
+                  setGridSelectedRows([]);
+                }}
+              >
+                清除选择
+              </ActionLink>
+            </div>
+          ) : (
+            <div className="text-xs text-gray-400">支持虚拟滚动、固定列、快捷点击选中</div>
+          )}
+        </div>
+        <div className="mt-4 h-[520px]">
+          <GridTable<Row>
+            columns={gridColumns}
+            data={gridRows}
+            height={520}
+            rowHeight={56}
+            overscan={6}
+            rowKey={(row) => row.id}
+            loading={gridLoading}
+            selection={{
+              selectedKeys: gridSelectedKeys,
+              onChange: (keys, rows) => {
+                setGridSelectedKeys(keys);
+                setGridSelectedRows(rows);
+              },
+              selectOnRowClick: true,
+              headerTitle: '选择所有项目',
+              enableSelectAll: true,
+            }}
+            emptyState={
+              <div className="py-12 text-center text-sm text-gray-500">
+                <p className="text-base font-medium text-gray-700">暂无栅格数据</p>
+                <p className="mt-1 text-xs text-gray-400">可以点击“恢复数据”重新装载示例。</p>
+              </div>
             }
           />
         </div>
