@@ -34,7 +34,7 @@ export type GridColumn<T> = {
 
 type SelectionMode = 'single' | 'multiple';
 
-type GridSelection<T> = {
+export type GridSelection<T> = {
   mode?: SelectionMode;
   selectedKeys: Array<string | number>;
   onChange: (keys: Array<string | number>, rows: T[]) => void;
@@ -90,9 +90,10 @@ type ColumnMeta<T> = {
   semanticClass: string;
 };
 
+const MIN_COLUMN_WIDTH = 96;
 const ZEBRA_EVEN_COLOR = '#ffffff';
 const ZEBRA_ODD_COLOR = '#f8fafc';
-const HOVER_COLOR = '#f3f4f6';
+const HOVER_COLOR = '#f2f5ff';
 const SELECTED_COLOR = 'rgba(30, 128, 255, 0.12)';
 const SELECTED_HOVER_COLOR = 'rgba(30, 128, 255, 0.18)';
 
@@ -136,6 +137,7 @@ function SelectionCheckbox({
       className={checkboxClass}
       checked={checked}
       disabled={disabled}
+      onClick={(event) => event.stopPropagation()}
       onChange={(event) => {
         event.stopPropagation();
         onChange(event.target.checked);
@@ -145,15 +147,19 @@ function SelectionCheckbox({
 }
 
 function shouldIgnoreRowToggle(target: EventTarget | null) {
-  if (!(target instanceof HTMLElement)) return false;
-  return Boolean(
-    target.closest('button, a, [role="button"], input, label, [data-table-row-trigger="ignore"]'),
-  );
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+  return Boolean(target.closest('button, a, [role="button"], input, label, [data-table-row-trigger="ignore"]'));
 }
 
 function resolveAlign<T>(col: GridColumn<T>): 'left' | 'center' | 'right' {
-  if (col.intent === 'actions') return 'center';
-  if (col.align) return col.align;
+  if (col.intent === 'actions') {
+    return 'center';
+  }
+  if (col.align) {
+    return col.align;
+  }
   switch (col.semantic) {
     case 'number':
     case 'integer':
@@ -185,33 +191,43 @@ function getSemanticClass<T>(col: GridColumn<T>): string {
 }
 
 function resolveColumnWidth<T>(col: GridColumn<T>): number {
-  if (typeof col.width === 'number') return col.width;
+  if (typeof col.width === 'number') {
+    return col.width;
+  }
   if (typeof col.width === 'string') {
     const pxMatch = col.width.trim().match(/^([0-9]+(?:\.[0-9]+)?)px$/i);
-    if (pxMatch) return parseFloat(pxMatch[1]);
+    if (pxMatch) {
+      return parseFloat(pxMatch[1]);
+    }
   }
-  if (typeof col.minWidth === 'number') return col.minWidth;
-  if (typeof col.maxWidth === 'number') return col.maxWidth;
-  if (col.flex) return col.flex * 160;
+  if (typeof col.minWidth === 'number') {
+    return col.minWidth;
+  }
+  if (typeof col.maxWidth === 'number') {
+    return col.maxWidth;
+  }
+  if (col.flex) {
+    return col.flex * 160;
+  }
   return 160;
 }
 
 function buildTemplate<T>(metas: ColumnMeta<T>[]): string {
-  return metas
-    .map((meta) => `${Math.max(meta.width, 80)}px`)
-    .join(' ');
+  return metas.map((meta) => `${Math.max(meta.width, MIN_COLUMN_WIDTH)}px`).join(' ');
 }
 
-function resolveRowKey<T>(
-  row: T,
-  index: number,
-  fallback?: GridTableProps<T>['rowKey'],
-): string | number {
-  if (fallback) return fallback(row, index);
+function resolveRowKey<T>(row: T, index: number, fallback?: GridTableProps<T>['rowKey']): string | number {
+  if (fallback) {
+    return fallback(row, index);
+  }
   const fromId = (row as { id?: string | number })?.id;
-  if (typeof fromId !== 'undefined') return fromId;
+  if (typeof fromId !== 'undefined') {
+    return fromId;
+  }
   const fromKey = (row as { key?: string | number })?.key;
-  if (typeof fromKey !== 'undefined') return fromKey;
+  if (typeof fromKey !== 'undefined') {
+    return fromKey;
+  }
   return index;
 }
 
@@ -248,10 +264,13 @@ export default function GridTable<T extends Record<string, unknown>>({
 
   useEffect(() => {
     const el = containerRef.current;
-    if (!el) return;
+    if (!el) {
+      return undefined;
+    }
 
     let frame = 0;
     const readSnapshot = () => {
+      frame = 0;
       setScrollState({
         scrollTop: el.scrollTop,
         scrollLeft: el.scrollLeft,
@@ -262,24 +281,28 @@ export default function GridTable<T extends Record<string, unknown>>({
       });
     };
 
-    readSnapshot();
-
-    const handleScroll = () => {
-      if (frame) cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(readSnapshot);
+    const schedule = () => {
+      if (frame) {
+        return;
+      }
+      frame = window.requestAnimationFrame(readSnapshot);
     };
 
-    el.addEventListener('scroll', handleScroll);
+    readSnapshot();
 
-    const resizeObserver = new ResizeObserver(handleScroll);
+    el.addEventListener('scroll', schedule, { passive: true });
+
+    const resizeObserver = new ResizeObserver(schedule);
     resizeObserver.observe(el);
 
     return () => {
-      el.removeEventListener('scroll', handleScroll);
-      if (frame) cancelAnimationFrame(frame);
+      el.removeEventListener('scroll', schedule);
+      if (frame) {
+        window.cancelAnimationFrame(frame);
+      }
       resizeObserver.disconnect();
     };
-  }, [height, data.length, columns.length]);
+  }, [columns.length, data.length, height]);
 
   const visibleColumns = useMemo(
     () => columns.filter((col) => !col.hidden),
@@ -303,10 +326,12 @@ export default function GridTable<T extends Record<string, unknown>>({
   const selectionMode = selection?.mode ?? 'multiple';
   const selectOnRowClick = selection?.selectOnRowClick ?? false;
   const enableSelectAll = selection?.enableSelectAll ?? true;
-  const selectionColumnWidth = selection ? Math.max(selection.columnWidth ?? 52, 44) : 0;
+  const selectionColumnWidth = selection ? Math.max(selection.columnWidth ?? 56, 44) : 0;
 
   const selectionMeta = useMemo<ColumnMeta<T> | null>(() => {
-    if (!selection) return null;
+    if (!selection) {
+      return null;
+    }
     return {
       column: {
         key: '__selection__',
@@ -324,11 +349,11 @@ export default function GridTable<T extends Record<string, unknown>>({
   }, [selection, selectionColumnWidth]);
 
   const leftMeta = useMemo(() => {
-    const base = columnMeta.filter((meta) => meta.column.fixed === 'left');
+    const fixed = columnMeta.filter((meta) => meta.column.fixed === 'left');
     if (selectionMeta) {
-      return [selectionMeta, ...base];
+      return [selectionMeta, ...fixed];
     }
-    return base;
+    return fixed;
   }, [columnMeta, selectionMeta]);
 
   const rightMeta = useMemo(
@@ -343,23 +368,14 @@ export default function GridTable<T extends Record<string, unknown>>({
 
   const leftWidth = useMemo(() => leftMeta.reduce((sum, meta) => sum + meta.width, 0), [leftMeta]);
   const rightWidth = useMemo(() => rightMeta.reduce((sum, meta) => sum + meta.width, 0), [rightMeta]);
-  const centerWidth = useMemo(
-    () => centerMeta.reduce((sum, meta) => sum + meta.width, 0),
-    [centerMeta],
-  );
+  const centerWidth = useMemo(() => centerMeta.reduce((sum, meta) => sum + meta.width, 0), [centerMeta]);
 
-  const centerMinWidth = centerMeta.length > 0 ? Math.max(centerWidth, centerMeta.length * 120) : 0;
-
-  const contentWidth = Math.max(leftWidth + centerWidth + rightWidth, scrollState.viewportWidth, 320);
-
-  const centerTemplate = centerMeta.length > 0 ? buildTemplate(centerMeta) : 'minmax(160px, 1fr)';
+  const centerTemplate = centerMeta.length > 0 ? buildTemplate(centerMeta) : `minmax(${MIN_COLUMN_WIDTH}px, 1fr)`;
   const leftTemplate = leftMeta.length > 0 ? buildTemplate(leftMeta) : '';
   const rightTemplate = rightMeta.length > 0 ? buildTemplate(rightMeta) : '';
 
-  const viewportHeight = scrollState.viewportHeight || height;
-  const bodyViewportHeight = Math.max(0, viewportHeight - headerHeight);
-  const scrollOffset = Math.max(0, scrollState.scrollTop - headerHeight);
-  const visibleBaseCount = bodyViewportHeight > 0 ? Math.ceil(bodyViewportHeight / rowHeight) : overscan;
+  const contentWidth = Math.max(leftWidth + centerWidth + rightWidth, scrollState.viewportWidth || 0, 320);
+  const centerMinWidth = centerMeta.length > 0 ? Math.max(centerWidth, centerMeta.length * MIN_COLUMN_WIDTH) : 0;
 
   const getRowKey = useCallback(
     (row: T, index: number) => resolveRowKey(row, index, rowKey),
@@ -374,24 +390,39 @@ export default function GridTable<T extends Record<string, unknown>>({
     }));
   }, [data, getRowKey]);
 
+  useEffect(() => {
+    if (hoveredRowKey === null) {
+      return;
+    }
+    if (!keyedRows.some((item) => item.key === hoveredRowKey)) {
+      setHoveredRowKey(null);
+    }
+  }, [hoveredRowKey, keyedRows]);
+
   const totalRows = keyedRows.length;
-  const startIndex = Math.max(0, Math.floor(scrollOffset / rowHeight) - overscan);
-  const endIndex = Math.min(totalRows, startIndex + visibleBaseCount + overscan * 2);
+  const totalHeight = totalRows * rowHeight;
+
+  const viewportHeight = scrollState.viewportHeight || height;
+  const bodyViewportHeight = Math.max(0, viewportHeight - headerHeight);
+  const fallbackBodyHeight = Math.max(bodyViewportHeight || height - headerHeight, rowHeight);
+  const bodyScrollTop = Math.max(0, scrollState.scrollTop - headerHeight);
+
+  const baseVisibleCount = bodyViewportHeight > 0 ? Math.ceil(bodyViewportHeight / rowHeight) : overscan;
+  const startIndex = Math.max(0, Math.floor(bodyScrollTop / rowHeight) - overscan);
+  const endIndex = Math.min(totalRows, startIndex + baseVisibleCount + overscan * 2);
+  const offsetY = startIndex * rowHeight;
 
   const rowsToRender = useMemo(
     () => keyedRows.slice(startIndex, endIndex),
     [keyedRows, startIndex, endIndex],
   );
 
-  const totalHeight = totalRows * rowHeight;
-  const scrollContentHeight = headerHeight + totalHeight;
-  const offsetY = startIndex * rowHeight;
-  const translateY = headerHeight + offsetY - scrollState.scrollTop;
-
   const showLeftShadow = leftMeta.length > 0 && scrollState.scrollLeft > 0;
   const maxHorizontalScroll = Math.max(scrollState.scrollWidth - scrollState.viewportWidth, 0);
-  const showRightShadow =
-    rightMeta.length > 0 && scrollState.scrollLeft < maxHorizontalScroll - 1;
+  const showRightShadow = rightMeta.length > 0 && scrollState.scrollLeft < maxHorizontalScroll - 1;
+
+  const emptyContent =
+    emptyState ?? <div className="py-16 text-center text-sm text-gray-500">暂无数据</div>;
 
   const selectedKeySet = useMemo(
     () => new Set<string | number>(selection?.selectedKeys ?? []),
@@ -399,9 +430,11 @@ export default function GridTable<T extends Record<string, unknown>>({
   );
 
   const selectableRows = useMemo(() => {
-    if (!selection) return [];
-    const predicate = selection.isRowSelectable ?? (() => true);
-    return keyedRows.filter((item) => predicate(item.row, item.index));
+    if (!selection) {
+      return [];
+    }
+    const canSelect = selection.isRowSelectable ?? (() => true);
+    return keyedRows.filter((item) => canSelect(item.row, item.index));
   }, [keyedRows, selection]);
 
   const totalSelectable = selection ? selectableRows.length : 0;
@@ -409,14 +442,15 @@ export default function GridTable<T extends Record<string, unknown>>({
     ? selectableRows.reduce((count, item) => (selectedKeySet.has(item.key) ? count + 1 : count), 0)
     : 0;
 
-  const allSelectableChecked =
-    Boolean(selection) && totalSelectable > 0 && selectedSelectableCount === totalSelectable;
+  const allSelectableChecked = Boolean(selection) && totalSelectable > 0 && selectedSelectableCount === totalSelectable;
   const partiallySelected =
     Boolean(selection) && selectedSelectableCount > 0 && selectedSelectableCount < totalSelectable;
   const selectionHeaderDisabled = !selection || totalSelectable === 0;
 
   const toggleAllSelection = () => {
-    if (!selection || selectionMode === 'single') return;
+    if (!selection || selectionMode === 'single') {
+      return;
+    }
     if (allSelectableChecked) {
       selection.onChange([], []);
     } else {
@@ -427,9 +461,13 @@ export default function GridTable<T extends Record<string, unknown>>({
   };
 
   const toggleRowSelection = (item: RowItem<T>) => {
-    if (!selection) return;
+    if (!selection) {
+      return;
+    }
     const canSelect = selection.isRowSelectable ? selection.isRowSelectable(item.row, item.index) : true;
-    if (!canSelect) return;
+    if (!canSelect) {
+      return;
+    }
 
     if (selectionMode === 'single') {
       selection.onChange([item.key], [item.row]);
@@ -456,13 +494,11 @@ export default function GridTable<T extends Record<string, unknown>>({
     selection.onChange(nextKeys, nextRows);
   };
 
-  const emptyContent =
-    emptyState ?? <div className="py-16 text-center text-sm text-gray-500">暂无数据</div>;
-
   const renderHeaderCells = (metas: ColumnMeta<T>[]) =>
     metas.map((meta) => {
       const col = meta.column;
       const key = String(col.key);
+
       if (selection && key === '__selection__') {
         return (
           <div
@@ -472,16 +508,14 @@ export default function GridTable<T extends Record<string, unknown>>({
           >
             {selectionMode === 'multiple' && enableSelectAll ? (
               <SelectionCheckbox
+                ariaLabel={selection.headerTitle ?? '选择全部行'}
                 checked={allSelectableChecked}
                 indeterminate={partiallySelected}
                 disabled={selectionHeaderDisabled}
-                ariaLabel={selection.headerTitle ?? '选择全部行'}
                 onChange={toggleAllSelection}
               />
             ) : (
-              <span className="truncate text-xs text-gray-400">
-                {selection.headerTitle ?? ''}
-              </span>
+              <span className="truncate text-xs text-gray-400">{selection.headerTitle ?? ''}</span>
             )}
           </div>
         );
@@ -501,28 +535,22 @@ export default function GridTable<T extends Record<string, unknown>>({
   const renderBodyCells = (
     metas: ColumnMeta<T>[],
     item: RowItem<T>,
-    baseBackground: string,
+    rowBackground: string,
     context: GridCellRenderContext<T>,
   ) =>
     metas.map((meta) => {
       const col = meta.column;
       const key = String(col.key);
       const stickyStyle: CSSProperties | undefined =
-        col.fixed === 'right' || col.fixed === 'left'
-          ? { backgroundColor: baseBackground }
-          : undefined;
+        col.fixed === 'left' || col.fixed === 'right' ? { backgroundColor: rowBackground } : undefined;
 
       if (selection && key === '__selection__') {
         const canSelect = selection.isRowSelectable ? selection.isRowSelectable(item.row, item.index) : true;
         return (
-          <div
-            key={key}
-            className="flex h-full items-center justify-center px-3"
-            style={stickyStyle}
-          >
+          <div key={key} className="flex h-full items-center justify-center px-3" style={stickyStyle}>
             <SelectionCheckbox
-              checked={context.isSelected}
               ariaLabel="选择行"
+              checked={context.isSelected}
               disabled={!canSelect}
               onChange={() => toggleRowSelection(item)}
             />
@@ -530,9 +558,7 @@ export default function GridTable<T extends Record<string, unknown>>({
         );
       }
 
-      const value = col.render
-        ? col.render(item.row, context)
-        : (item.row[col.key as keyof T] as ReactNode);
+      const value = col.render ? col.render(item.row, context) : (item.row[col.key as keyof T] as ReactNode);
 
       const titleValue = col.tooltip
         ? col.tooltip(item.row)
@@ -573,19 +599,26 @@ export default function GridTable<T extends Record<string, unknown>>({
     const isHovered = highlightOnHover && hoveredRowKey === item.key;
     const isSelected = selection ? selectedKeySet.has(item.key) : false;
 
+    const customRowStyle = rowStyle ? rowStyle(item.row, item.index, item.key) : undefined;
+
     const baseColor = zebra
       ? item.index % 2 === 0
         ? ZEBRA_EVEN_COLOR
         : ZEBRA_ODD_COLOR
       : ZEBRA_EVEN_COLOR;
 
-    const rowBackground = selection && isSelected
+    const derivedBackground = selection && isSelected
       ? isHovered
         ? SELECTED_HOVER_COLOR
         : SELECTED_COLOR
       : isHovered
       ? HOVER_COLOR
       : baseColor;
+
+    const rowBackground =
+      customRowStyle && typeof customRowStyle.backgroundColor !== 'undefined'
+        ? (customRowStyle.backgroundColor as string)
+        : derivedBackground;
 
     const context: GridCellRenderContext<T> = {
       row: item.row,
@@ -607,8 +640,12 @@ export default function GridTable<T extends Record<string, unknown>>({
     const inlineStyle: CSSProperties = {
       height: rowHeight,
       backgroundColor: rowBackground,
-      ...(rowStyle ? rowStyle(item.row, item.index, item.key) : undefined),
+      ...(customRowStyle ?? {}),
     };
+
+    if (!customRowStyle || typeof customRowStyle.backgroundColor === 'undefined') {
+      inlineStyle.backgroundColor = rowBackground;
+    }
 
     return (
       <div
@@ -671,8 +708,11 @@ export default function GridTable<T extends Record<string, unknown>>({
   };
 
   const headerNode = (
-    <div className="relative border-b border-gray-200 bg-gray-50" style={{ height: headerHeight }}>
-      <div className="absolute inset-0 flex">
+    <div
+      className="border-b border-gray-200 bg-gray-50"
+      style={{ height: headerHeight }}
+    >
+      <div className="flex h-full">
         {leftMeta.length > 0 ? (
           <div
             className="sticky left-0 z-30 flex-shrink-0 border-r border-gray-200 bg-gray-50"
@@ -710,29 +750,23 @@ export default function GridTable<T extends Record<string, unknown>>({
     </div>
   );
 
-  const bodyNode = totalRows > 0 ? (
-    <div
-      className="relative flex-1 overflow-hidden bg-white"
-      style={{ height: Math.max(bodyViewportHeight, rowHeight) }}
-    >
-      <div
-        style={{
-          height: totalHeight,
-          position: 'relative',
-          minWidth: centerMeta.length > 0 ? centerMinWidth : undefined,
-        }}
-      >
-        <div
-          className="absolute left-0 right-0"
-          style={{ transform: `translateY(${translateY}px)` }}
-        >
+  const virtualHeight = Math.max(totalHeight, fallbackBodyHeight);
+
+  const bodyNode =
+    totalRows > 0 ? (
+      <div className="relative" style={{ height: virtualHeight }}>
+        <div className="absolute inset-x-0" style={{ top: offsetY }}>
           {rowsToRender.map(renderRow)}
         </div>
       </div>
-    </div>
-  ) : (
-    <div className="flex flex-1 items-center justify-center bg-white">{emptyContent}</div>
-  );
+    ) : (
+      <div
+        className="flex items-center justify-center bg-white"
+        style={{ height: fallbackBodyHeight }}
+      >
+        {emptyContent}
+      </div>
+    );
 
   const defaultLoading = (
     <div className="flex flex-col items-center gap-3 text-sm text-gray-500">
@@ -747,39 +781,34 @@ export default function GridTable<T extends Record<string, unknown>>({
     </div>
   ) : null;
 
+  const wrapperClassName = [
+    'relative flex h-full w-full overflow-hidden rounded-xl border border-gray-200 bg-white',
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
-    <div
-      ref={containerRef}
-      className={`relative flex h-full w-full overflow-auto rounded-xl border border-gray-200 bg-white ${className}`.trim()}
-      style={{ height }}
-      role="grid"
-    >
-      <div className="pointer-events-none" style={{ height: scrollContentHeight, minWidth: contentWidth }} />
-      <div
-        className="pointer-events-none sticky top-0 left-0 right-0 z-40 relative"
-        style={{ minWidth: contentWidth, height: viewportHeight }}
-      >
-        <div className="pointer-events-auto flex h-full flex-col bg-white">
-          {headerNode}
+    <div className={wrapperClassName} style={{ height }} role="grid">
+      <div ref={containerRef} className="relative h-full w-full overflow-auto">
+        <div style={{ minWidth: contentWidth }}>
+          <div className="sticky top-0 z-40 bg-white">{headerNode}</div>
           {bodyNode}
         </div>
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-y-0 left-0 z-50 w-8 bg-gradient-to-r from-black/20 via-black/5 to-transparent transition-opacity"
-          style={{ opacity: showLeftShadow ? 1 : 0 }}
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-y-0 right-0 z-50 w-8 bg-gradient-to-l from-black/20 via-black/5 to-transparent transition-opacity"
-          style={{ opacity: showRightShadow ? 1 : 0 }}
-        />
       </div>
+
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-y-0 left-0 z-50 w-9 bg-gradient-to-r from-black/15 via-black/5 to-transparent transition-opacity"
+        style={{ opacity: showLeftShadow ? 1 : 0 }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-y-0 right-0 z-50 w-9 bg-gradient-to-l from-black/15 via-black/5 to-transparent transition-opacity"
+        style={{ opacity: showRightShadow ? 1 : 0 }}
+      />
+
       {loadingNode}
     </div>
   );
 }
-
-
-
-
-
