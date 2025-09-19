@@ -388,7 +388,6 @@ export default function TableDemo() {
         key: 'id',
         title: '编号',
         fixed: 'left',
-        width: 140,
         render: (row) => <span className="font-medium text-gray-900">{row.id}</span>,
       },
       {
