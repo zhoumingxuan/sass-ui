@@ -107,7 +107,6 @@ export default function DateRangePicker({
 
   useEffect(() => { if (typeof document !== 'undefined') setMountNode(document.getElementById('layout-body') || document.body); }, []);
   useEffect(() => {
-    if (!open) return;
     const update = () => {
       const el = anchor.current; if (!el) return;
       const r = el.getBoundingClientRect();
