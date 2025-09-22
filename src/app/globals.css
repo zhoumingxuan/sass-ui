@@ -155,8 +155,35 @@ html::-webkit-scrollbar-thumb:active {
 .nice-scrollbar:hover::-webkit-scrollbar-thumb { background-color: var(--sb-thumb-hover); }
 .nice-scrollbar::-webkit-scrollbar-thumb:active { background-color: var(--sb-thumb-active); }
 
+/* GridTable 专用滚动条配色（避免白色轨道） */
+.grid-table {
+  /* 轨道用轻灰蒙层；thumb 稍深一点 */
+  --sb-track: color-mix(in srgb, var(--color-gray-900) 4%, transparent);
+  --sb-thumb: color-mix(in srgb, var(--color-gray-500) 62%, transparent);
+  --sb-thumb-hover: color-mix(in srgb, var(--color-gray-600) 70%, transparent);
+  --sb-thumb-active: color-mix(in srgb, var(--color-gray-700) 80%, transparent);
+  scrollbar-color: var(--sb-thumb) var(--sb-track);
+}
+
+/* 悬停/交互时略微加深，提升可见性 */
+.grid-table:hover,
+.grid-table:focus-within{
+  --sb-track: color-mix(in srgb, var(--color-gray-900) 8%, transparent);
+}
+
+/* 右下角拐角防止发白（你已加过也无妨再覆盖一次） */
+.grid-table.nice-scrollbar::-webkit-scrollbar-corner{
+  background: var(--sb-track);
+}
+
 /* Table helpers */
 .table-empty { min-height: var(--table-empty-min-h); }
 
 /* Prevent layout shift when the scrollbar appears */
 .scrollbar-stable { scrollbar-gutter: stable both-edges; }
+
+
+
+
+
+
