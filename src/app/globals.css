@@ -36,7 +36,47 @@
   /* Table tokens */
   --table-select-col-width: 3rem; /* 48px via spacing scale */
   --table-empty-min-h: 12rem;     /* ensures empty overlay centers nicely */
+
+  --gt-row-h: 36px;
+  --gt-header-h: 33px;
+
+  --gt-zebra-even: #fff;
+  --gt-zebra-odd: #f8fafc;
+  --gt-hover: #f3f4f6;
+  --gt-selected: rgba(30,128,255,.12);
+  --gt-selected-hover: rgba(30,128,255,.18);
+
+  /* 左右固定列的阴影（当可横向滚动时启用） */
+  --gt-shadow-right: 4px 0 6px -4px rgba(0,0,0,.12);  /* 加在左区右侧 */
+  --gt-shadow-left:  -4px 0 6px -4px rgba(0,0,0,.12); /* 加在右区左侧 */
+
+  /* 分层 */
+  --gt-z-left: 30;
+  --gt-z-center: 20;
+  --gt-z-right: 25;
+  --gt-z-head: 40;
 }
+
+/* === 组件级样式（类名尽量语义化） === */
+.grid-table { position: relative; }
+
+.grid-table .gt-region--left  { z-index: var(--gt-z-left);  }
+.grid-table .gt-region--center{ z-index: var(--gt-z-center);}
+.grid-table .gt-region--right { z-index: var(--gt-z-right); }
+
+.grid-table .gt-head-cell{
+  position: sticky; top: 0;
+  z-index: var(--gt-z-head);
+  height: var(--gt-header-h);
+  background: #f8fafc;
+  border-bottom: 1px solid #e5e7eb; /* border-gray-200 */
+}
+
+.grid-table .gt-cell{ height: var(--gt-row-h); }
+
+/* 横向可滚动时的左右阴影（由容器类开关） */
+.grid-table.has-left-shadow  .gt-region--left { box-shadow: var(--gt-shadow-right); }
+.grid-table.has-right-shadow .gt-region--right{ box-shadow: var(--gt-shadow-left); }
 
 /* Firefox */
 html {
