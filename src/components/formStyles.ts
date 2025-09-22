@@ -2,9 +2,9 @@
 
 // Unified form control styles for consistent UX across inputs
 export const inputBase = [
-  'w-full h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm placeholder-gray-400',
+  'w-full h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm placeholder:text-gray-400 transition-[box-shadow,border-color]',
   'hover:border-gray-300',
-  'focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary/60',
+  'focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20',
   'shadow-none',
 ].join(' ');
 
@@ -21,8 +21,8 @@ export const controlDisabled = 'opacity-50 cursor-not-allowed';
 // Input status helpers for error/warning/success/info rings and borders
 export type Status = 'error' | 'warning' | 'success' | 'info';
 export const inputStatus: Record<Status, string> = {
-  error: 'border-error focus:ring-error/60',
-  warning: 'border-warning focus:ring-warning/60',
-  success: 'border-success focus:ring-success/60',
-  info: 'border-info focus:ring-info/60',
+  error: 'border-error focus:ring-error/20',
+  warning: 'border-warning focus:ring-warning/20',
+  success: 'border-success focus:ring-success/20',
+  info: 'border-info focus:ring-info/20',
 };
