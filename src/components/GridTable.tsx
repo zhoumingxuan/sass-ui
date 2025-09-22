@@ -292,7 +292,7 @@ export default function GridTable<T extends Record<string, unknown>>({
     }
     const visible = Math.max(viewHeight - headerHeight, 0);
     //先用总高度算出末尾索引
-    const endIndex=Math.floor((scrollTop+visible)/ rowHeight);
+    const endIndex=Math.floor((scrollTop+visible)/ rowHeight)+1;
     const startIndex=Math.max(Math.floor(scrollTop/ rowHeight)-1,0);
     return rows.slice(startIndex, endIndex);
 
@@ -544,7 +544,7 @@ const Region: React.FC<{
     let index=0;
     if(type==='center')
     {
-        index=1;
+        index=99;
     }
     else
     {
@@ -553,8 +553,10 @@ const Region: React.FC<{
     return (
         <div className={
             cx(
-                "grid gap-0 overflow-visible",type!=='center'?"sticky border-gray-200":"",type==='left'?"left-0":"right-0",type==='left'?"border-r":"",type==='right'?"border-l":""
-                
+                "w-auto grid gap-0 overflow-visible",
+                type!=='center'?"sticky border-gray-200":"",
+                type==='left'?"left-0":"right-0",type==='left'?"border-r":"",
+                type==='right'?"border-l":""
             )
         } style={{ gridTemplateColumns: template,zIndex:index }}>
             {/* 标题单元格（必须在开头） */}
@@ -564,7 +566,8 @@ const Region: React.FC<{
                     <div
                         key={`h-${String(m.column.key)}`}
                         className={cx(
-                            'sticky top-0 border-b border-gray-200 bg-gray-50  whitespace-nowrap',
+                            'sticky top-0 border-b border-gray-200 bg-gray-50 whitespace-nowrap',
+                            type==='center'?"min-w-full":"",
                             'px-2 py-2 text-xs font-medium text-gray-600',
                             m.textAlignClass,
                             m.semanticClass,
@@ -733,7 +736,7 @@ const Region: React.FC<{
       tabIndex={0}                 // 允许接收键盘事件
       onKeyDown={handleKeyDown}    // 焦点行键盘控制
       className={cx(
-        'relative max-h-full overflow-y-auto overflow-x-auto nice-scrollbar',
+        'relative max-h-full overflow-y-auto overflow-x-auto nice-scrollbar outline-none focus:outline-none',
         'bg-white border border-gray-200',
         className,
       )}
@@ -742,7 +745,7 @@ const Region: React.FC<{
       <div className='w-auto' style={{ height: fullHeight }} >
 
         {/* 粘滞视图：三段布局 */}
-        <div className="sticky top-0 w-auto flex justify-start item-stretch overflow-auto" >
+       <div className="sticky w-max top-0 grid grid-cols-[max-content_auto_max-content] gap-0 overflow-visible">
           {/* 左：固定列（含选择列）不滚动水平条 */}
           <Region type='left' metas={metasLeft} template={templateLeft}  />
           {/* 中：未固定列，可水平滚动 */}
