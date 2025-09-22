@@ -17,8 +17,8 @@ type Props = {
   end?: string;
   min?: string;
   max?: string;
-  value?:[string,string],
-  defaultValue?:[string,string],
+  value?: [string, string],
+  defaultValue?: [string, string],
   disabledDate?: (d: Date) => boolean;
   disabledDates?: Array<string | Date>;
   disabledRanges?: DisabledRange[];
@@ -49,8 +49,8 @@ export default function DateRangePicker({
   className = '',
 }: Props) {
   const isControlled = typeof start !== 'undefined' || typeof end !== 'undefined';
-  const [s, setS] = useState<string | undefined>(defaultValue?defaultValue[0]:undefined);
-  const [e, setE] = useState<string | undefined>(defaultValue?defaultValue[1]:undefined);
+  const [s, setS] = useState<string | undefined>(defaultValue ? defaultValue[0] : undefined);
+  const [e, setE] = useState<string | undefined>(defaultValue ? defaultValue[1] : undefined);
   const sv = isControlled ? start : s;
   const ev = isControlled ? end : e;
 
@@ -64,10 +64,10 @@ export default function DateRangePicker({
   const anchor = useRef<HTMLDivElement>(null);
   const [mountNode, setMountNode] = useState<Element | null>(null);
   const [pos, setPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
-  const [active, setActive] = useState<'start'|'end'|'auto'>('auto');
-  const [focused, setFocused] = useState<'start'|'end'|undefined>(undefined);
+  const [active, setActive] = useState<'start' | 'end' | 'auto'>('auto');
+  const [focused, setFocused] = useState<'start' | 'end' | undefined>(undefined);
 
-  
+
 
   const [draftStart, setDraftStart] = useState<Date | undefined>(undefined);
   const [draftEnd, setDraftEnd] = useState<Date | undefined>(undefined);
@@ -77,8 +77,10 @@ export default function DateRangePicker({
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
+      if (!open) return; // 面板未打开时，不做任何收尾/提交
       if (!pop.current || !anchor.current) return;
       if (pop.current.contains(e.target as Node) || anchor.current.contains(e.target as Node)) return;
+
       // Outside click: commit drafts (clear only invalid typed side)
       const ps = draftStartInput.trim();
       const pe = draftEndInput.trim();
@@ -100,7 +102,8 @@ export default function DateRangePicker({
     };
     document.addEventListener('click', onDoc);
     return () => document.removeEventListener('click', onDoc);
-  }, [draftStartInput, draftEndInput, draftStart, draftEnd, sv, ev, isControlled, onChange]);
+  }, [open, draftStartInput, draftEndInput, draftStart, draftEnd, sv, ev, isControlled, onChange]);
+
 
   useEffect(() => { if (typeof document !== 'undefined') setMountNode(document.getElementById('layout-body') || document.body); }, []);
   useEffect(() => {
@@ -121,7 +124,7 @@ export default function DateRangePicker({
     return () => { window.removeEventListener('resize', update); window.removeEventListener('scroll', update, true); };
   }, [open]);
 
-  const openPanel = (focus: 'start'|'end') => {
+  const openPanel = (focus: 'start' | 'end') => {
     setFocused(focus);
     setActive(focus);
     const ps = sv ? parseDateStrict(sv) : undefined;
@@ -163,7 +166,7 @@ export default function DateRangePicker({
   const disabledAfterDate = useMemo(() => toDate(disabledAfter), [disabledAfter]);
   const minD = useMemo(() => parseDateStrict(min || ''), [min]);
   const maxD = useMemo(() => parseDateStrict(max || ''), [max]);
-  const disabledDatesSet = useMemo(() => new Set((disabledDates || []).map(d => formatISO(toDate(d)!) ).filter(Boolean)), [disabledDates]);
+  const disabledDatesSet = useMemo(() => new Set((disabledDates || []).map(d => formatISO(toDate(d)!)).filter(Boolean)), [disabledDates]);
   const ranges = useMemo(() => (disabledRanges || []).map(r => ({ start: toDate(r.start)!, end: toDate(r.end)!, reason: r.reason })), [disabledRanges]);
   const weekdayDisabled = (d: Date) => (disabledWeekdays || []).includes(d.getDay());
   const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -242,7 +245,7 @@ export default function DateRangePicker({
   };
 
   // When user types a valid date/time, auto-select and sync panel
-  const applyTyped = (side: 'start'|'end', raw: string) => {
+  const applyTyped = (side: 'start' | 'end', raw: string) => {
     const val = raw.trim();
     if (side === 'start') setDraftStartInput(raw);
     if (side === 'end') setDraftEndInput(raw);
@@ -281,11 +284,20 @@ export default function DateRangePicker({
   yForBtns.setDate(yForBtns.getDate() - 1);
   const yesterdayDay = new Date(yForBtns.getFullYear(), yForBtns.getMonth(), yForBtns.getDate());
   const canPickToday = focused === 'start' ? !isDisabledStartPick(todayDay)
-                     : focused === 'end' ? !isDisabledEndPick(todayDay)
-                     : true;
+    : focused === 'end' ? !isDisabledEndPick(todayDay)
+      : true;
   const canPickYesterday = focused === 'start' ? !isDisabledStartPick(yesterdayDay)
-                        : focused === 'end' ? !isDisabledEndPick(yesterdayDay)
-                        : true;
+    : focused === 'end' ? !isDisabledEndPick(yesterdayDay)
+      : true;
+
+  useEffect(() => {
+    if (!open) {
+      setActive('auto');
+      setFocused(undefined);
+      setHoverDate(undefined);
+      setFocusDate(undefined);
+    }
+  }, [open]);
 
   return (
     <label className="block">
@@ -298,7 +310,6 @@ export default function DateRangePicker({
               placeholder={'开始日期'}
               value={open ? draftStartInput : (sv ?? '')}
               onFocus={() => openPanel('start')}
-              onClick={() => openPanel('start')}
               onChange={(e) => { applyTyped('start', e.target.value); }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
@@ -322,7 +333,7 @@ export default function DateRangePicker({
                   setOpen(false);
                 }
               }}
-              className={`${inputBase} text-left pr-10 leading-none flex items-center h-10 ${active === 'start' ? 'ring-2 ring-primary/60 border-transparent' : ''} ${(open ? !draftStartInput : !sv) ? 'text-gray-400' : 'text-gray-700'}`}
+              className={`${inputBase} text-left pr-10 leading-none flex items-center h-10 ${(active === 'start' && open) ? 'ring-2 ring-primary/20 border-transparent' : ''} ${(open ? !draftStartInput : !sv) ? 'text-gray-400' : 'text-gray-700'}`}
             />
             <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><CalendarIcon size={18} aria-hidden /></span>
           </div>
@@ -333,7 +344,6 @@ export default function DateRangePicker({
               placeholder={'结束日期'}
               value={open ? draftEndInput : (ev ?? '')}
               onFocus={() => openPanel('end')}
-              onClick={() => openPanel('end')}
               onChange={(e) => { applyTyped('end', e.target.value); }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
@@ -357,14 +367,24 @@ export default function DateRangePicker({
                   setOpen(false);
                 }
               }}
-              className={`${inputBase} text-left pr-10 leading-none flex items-center h-10 ${active === 'end' ? 'ring-2 ring-primary/60 border-transparent' : ''} ${(open ? !draftEndInput : !ev) ? 'text-gray-400' : 'text-gray-700'}`}
+              className={`${inputBase} text-left pr-10 leading-none flex items-center h-10 ${(active === 'end' && open) ? 'ring-2 ring-primary/20 border-transparent' : ''} ${(open ? !draftEndInput : !ev) ? 'text-gray-400' : 'text-gray-700'}`}
             />
             <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><CalendarIcon size={18} aria-hidden /></span>
           </div>
         </div>
 
-        {open && mountNode && createPortal(
-          <div ref={pop} className="fixed z-[1200] w-[560px] rounded-lg border border-gray-200 bg-white p-2 shadow-elevation-1" style={{ top: pos.top, left: pos.left } as CSSProperties}>
+        {mountNode && createPortal(
+          <div
+            id="daterange-pop"
+            ref={pop}
+            role="dialog"
+            aria-modal={open ? true : undefined}
+            aria-hidden={!open}
+            className={`fixed z-[1200] w-[560px] rounded-lg border border-gray-200 bg-white p-2 shadow-elevation-1
+                transition-opacity duration-150
+                ${open ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}
+            style={{ top: pos.top, left: pos.left } as CSSProperties}
+          >
 
             <div className="flex gap-2 outline-none focus:outline-none" tabIndex={0} onKeyDown={(e) => {
               const base = focusDate || (active === 'start' ? (draftStart || left) : (draftEnd || right) || new Date());
