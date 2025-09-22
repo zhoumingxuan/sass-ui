@@ -75,7 +75,7 @@ type GridTableProps<T> = {
 
 type ColumnMeta<T> = {
   column: GridColumn<T>;
-  width: number;
+  width: number|string;
   align: 'left' | 'center' | 'right';
   textAlignClass: string;
   justifyClass: string;
@@ -98,8 +98,6 @@ function cssNumber(varName: string, fallback: number) {
   const n = parseFloat(v);
   return Number.isFinite(n) ? n : fallback;
 }
-
-const MIN_COLUMN_WIDTH = cssNumber('--gt-min-col-w', 96); // 仅数值，来源于 globals.css
 
 // ===== 语义列/对齐规则：参考 Table 组件 =====
 function resolveAlign<T>(col: GridColumn<T>): 'left' | 'center' | 'right' {
@@ -140,7 +138,7 @@ function parsePx(input: string): number | null {
   return m ? parseFloat(m[1]) : null;
 }
 
-function resolveColumnWidth<T>(col: GridColumn<T>): number {
+function resolveColumnWidth<T>(col: GridColumn<T>): string|number {
   if (typeof col.width === 'number') return col.width;
   if (typeof col.width === 'string') {
     const px = parsePx(col.width);
@@ -148,7 +146,7 @@ function resolveColumnWidth<T>(col: GridColumn<T>): number {
   }
   if (typeof col.minWidth === 'number') return col.minWidth;
   if (typeof col.maxWidth === 'number') return col.maxWidth;
-  return MIN_COLUMN_WIDTH; // 默认值：来自 CSS 变量
+  return 'auto'; // 默认值：来自 CSS 变量
 }
 
 function buildTemplate<T>(metas: ColumnMeta<T>[]): string {
@@ -163,9 +161,9 @@ function buildTemplate<T>(metas: ColumnMeta<T>[]): string {
         isSelection;
 
       if (!hasExplicit) return 'auto';
-      if (typeof col.width === 'number') return `${Math.max(col.width, MIN_COLUMN_WIDTH)}px`;
+      if (typeof col.width === 'number') return `${col.width}px`;
       if (typeof col.width === 'string') return col.width;
-      return `${Math.max(meta.width, MIN_COLUMN_WIDTH)}px`;
+      return `${meta.width}px`;
     })
     .join(' ');
 }
