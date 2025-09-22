@@ -70,7 +70,7 @@ function MessageHolder() {
             role="status" aria-live="polite"
           >
             <div className={`flex items-center gap-3 ${m.showClose ? 'pr-8' : ''}`}> 
-              <span className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${meta[m.type].iconBg} ring-2 ${meta[m.type].iconRing}`}>
+              <span className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full`}>
                 <Icon className={`h-4 w-4 ${meta[m.type].iconColor} ${m.type==='loading' ? 'animate-spin' : ''}`} aria-hidden />
               </span>
               <div className="flex-1 text-sm text-gray-800 whitespace-pre-line break-words leading-6">
