@@ -1,6 +1,11 @@
 'use client';
 
-import type { CSSProperties, ReactNode, MouseEvent as ReactMouseEvent } from 'react';
+import type {
+  CSSProperties,
+  ReactNode,
+  MouseEvent as ReactMouseEvent,
+  KeyboardEvent as ReactKeyboardEvent, // 新增：键盘事件类型
+} from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Checkbox } from './Checkbox';
 
@@ -67,8 +72,6 @@ type GridTableProps<T> = {
   selection?: GridSelection<T>;
   onRowClick?: (row: T, context: GridCellRenderContext<T>, event: ReactMouseEvent<HTMLDivElement>) => void;
   onRowDoubleClick?: (row: T, context: GridCellRenderContext<T>, event: ReactMouseEvent<HTMLDivElement>) => void;
-  rowClassName?: (row: T, index: number, key: string | number) => string;
-  rowStyle?: (row: T, index: number, key: string | number) => CSSProperties | undefined;
 };
 
 type ColumnMeta<T> = {
@@ -192,7 +195,7 @@ export default function GridTable<T extends Record<string, unknown>>({
   columns,
   data,
   rowHeight = 36,      // 和 Table 行高风格更接近
-  headerHeight =33,   // header 留白更接近 Table
+  headerHeight =33,    // header 留白更接近 Table
   overscan = 4,
   zebra = true,
   rowKey,
@@ -203,8 +206,6 @@ export default function GridTable<T extends Record<string, unknown>>({
   selection,
   onRowClick,
   onRowDoubleClick,
-  rowClassName,
-  rowStyle,
 }: GridTableProps<T>) {
   // ==== 视窗度量（自适应高度；无 height prop） ====
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -284,24 +285,39 @@ export default function GridTable<T extends Record<string, unknown>>({
   // ==== 虚拟滚动计算 ====
   const fullHeight = useMemo(() => headerHeight + rowHeight * rows.length, [headerHeight, rowHeight, rows.length]);
 
-  const viewRowCount = useMemo(() => {
+  const visibleRows = useMemo(() => {
+    if(viewHeight<headerHeight)
+    {
+        return [];
+    }
     const visible = Math.max(viewHeight - headerHeight, 0);
-    return Math.max(0, Math.ceil(visible / rowHeight) + 1 + overscan * 2);
-  }, [viewHeight, headerHeight, rowHeight, overscan]);
+    //先用总高度算出末尾索引
+    const endIndex=Math.floor((scrollTop+visible)/ rowHeight);
+    const startIndex=Math.max(Math.floor(scrollTop/ rowHeight)-1,0);
+    return rows.slice(startIndex, endIndex);
 
-  const startIndex = useMemo(() => Math.max(0, Math.min(rows.length, Math.floor(scrollTop / rowHeight) - overscan)), [
-    scrollTop,
-    rowHeight,
-    overscan,
-    rows.length,
-  ]);
-  const endIndex = useMemo(() => Math.min(rows.length, startIndex + viewRowCount), [rows.length, startIndex, viewRowCount]);
-  const visibleRows = useMemo(() => rows.slice(startIndex, endIndex), [rows, startIndex, endIndex]);
-  const translateY = useMemo(() => headerHeight + startIndex * rowHeight, [headerHeight, startIndex, rowHeight]);
+  }, [rows, scrollTop,viewHeight, headerHeight, rowHeight]);
 
   // ==== 选择/悬停/点击 ====
   const [hoverKey, setHoverKey] = useState<string | number | null>(null);
   const selectedSet = useMemo(() => new Set(selection?.selectedKeys ?? []), [selection?.selectedKeys]);
+
+  // ==== 焦点行（内部，仅实现功能，不动样式） ====
+  const [activeFocusKey, setActiveFocusKey] = useState<string | number | null>(null);
+
+  // 数据变化时维持或回落到第一行
+  useEffect(() => {
+    if (rows.length === 0) {
+      if (activeFocusKey !== null) setActiveFocusKey(null);
+      return;
+    }
+    if (activeFocusKey != null && rows.some((r) => r.key === activeFocusKey)) return;
+    setActiveFocusKey(rows[0]?.key ?? null);
+  }, [rows, activeFocusKey]);
+
+  const updateFocus = useCallback((key: string | number | null) => {
+    setActiveFocusKey(key);
+  }, []);
 
   const isRowSelectable = useCallback(
     (r: T, i: number) => (selection?.isRowSelectable ? selection.isRowSelectable(r, i) : true),
@@ -349,6 +365,34 @@ export default function GridTable<T extends Record<string, unknown>>({
     [selection, rows]
   );
 
+  // 键盘控制焦点（↑ ↓ Home End；空格在有 selection 时切换选中）
+  const handleKeyDown = useCallback(
+    (e: ReactKeyboardEvent<HTMLDivElement>) => {
+      if (rows.length === 0) return;
+      const idx = activeFocusKey == null ? -1 : rows.findIndex((it) => it.key === activeFocusKey);
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        const next = idx < rows.length - 1 ? rows[idx + 1] : rows[rows.length - 1];
+        updateFocus(next?.key ?? null);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const prev = idx > 0 ? rows[idx - 1] : rows[0];
+        updateFocus(prev?.key ?? null);
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        updateFocus(rows[0]?.key ?? null);
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        updateFocus(rows[rows.length - 1]?.key ?? null);
+      } else if ((e.key === ' ' || e.key === 'Spacebar') && selection && activeFocusKey != null) {
+        e.preventDefault();
+        const hit = rows.find((r) => r.key === activeFocusKey);
+        if (hit) toggleOne(hit);
+      }
+    },
+    [rows, activeFocusKey, selection, toggleOne, updateFocus]
+  );
+
   const onRowClickInternal = useCallback(
     (e: ReactMouseEvent<HTMLDivElement>, item: RowItem<T>) => {
       const isSelected = selectedSet.has(item.key);
@@ -383,7 +427,7 @@ export default function GridTable<T extends Record<string, unknown>>({
     [hoverKey, onRowDoubleClick, selectedSet]
   );
 
-  // ==== 渲染工具（对齐 Table 的类名/灰阶/留白） ====
+  // ==== 渲染工具（不改样式） ====
   const headerCellBase = 'px-4 py-3 text-xs font-medium text-gray-600';
   const bodyCellBase = 'px-4 py-3 text-sm text-gray-900';
   const headerRowClass = 'bg-gray-50 text-gray-600 sticky top-0 z-10 border-b border-gray-200';
@@ -391,7 +435,7 @@ export default function GridTable<T extends Record<string, unknown>>({
   const renderHeaderCells = (metas: ColumnMeta<T>[]) =>
     metas.map((m) => {
       const isSelection = m.column.key === '__selection__';
-      const justifyClass = m.justifyClass.replace('justify-', ''); // 仅用于文本，不改变 Checkbox 居中
+      const justifyClass = m.justifyClass.replace('justify-', '');
       return (
         <div
           key={`h-${String(m.column.key)}`}
@@ -407,7 +451,6 @@ export default function GridTable<T extends Record<string, unknown>>({
           {isSelection ? (
             selection?.enableSelectAll ? (
               <div className="flex items-center justify-center">
-                {/* 继续使用你的 CheckBox 组件；若支持 indeterminate，可自行在组件内部渲染 */}
                 <Checkbox
                   checked={Boolean(allSelected)}
                   aria-checked={partiallySelected ? 'mixed' : allSelected ? 'true' : 'false'}
@@ -474,7 +517,6 @@ export default function GridTable<T extends Record<string, unknown>>({
           ? m.column.render(item.row, ctx)
           : (item.row[m.column.key as keyof T] as ReactNode);
 
-      // intent=actions：居中且不截断；status：左侧贴图标时更顺手
       const contentClass =
         m.column.intent === 'actions'
           ? 'flex items-center justify-center gap-2 whitespace-nowrap'
@@ -493,215 +535,231 @@ export default function GridTable<T extends Record<string, unknown>>({
       );
     });
 
-// === 替换 Region 组件 ===
+// === Region 组件（不动结构样式，仅加焦点） ===
 const Region: React.FC<{
   metas: ColumnMeta<T>[];
+  type:'left'|'center'|'right';
   template: string;
-  allowXScroll?: boolean;
-}> = ({ metas, template, allowXScroll }) => {
-  return (
-    <div className={cx(allowXScroll ? 'overflow-x-auto overflow-y-hidden' : 'overflow-hidden')}>
-      {/* 单一容器：标题单元格在前，内容单元格在后（不分两个容器） */}
-      <div className="grid gap-0" style={{ gridTemplateColumns: template }}>
-        {/* 标题单元格（必须在开头） */}
-        {metas.map((m) => {
-          const isSelection = m.column.key === '__selection__';
-          return (
-            <div
-              key={`h-${String(m.column.key)}`}
-              className={cx(
-                'border-b border-gray-200 bg-gray-50',
-                'px-2 py-2 text-xs font-medium text-gray-600',
-                m.textAlignClass,
-                m.semanticClass,
-                m.column.headerClassName
-              )}
-              style={{ height: headerHeight }}
-            >
-              {isSelection ? (
-                selection?.enableSelectAll ? (
-                  <div className="flex items-center justify-center">
-                    <Checkbox
-                      checked={Boolean(
-                        selection &&
-                          rows.filter((it) => it.selectable).length > 0 &&
-                          rows.filter((it) => it.selectable).every((it) => selectedSet.has(it.key))
-                      )}
-                      aria-label={selection?.headerTitle ?? '全选'}
-                      onChange={() => {
-                        if (!selection?.enableSelectAll) return;
-                        const selectable = rows.filter((it) => it.selectable);
-                        const every = selectable.every((it) => selectedSet.has(it.key));
-                        if (every) selection.onChange([], []);
-                        else
-                          selection.onChange(
-                            selectable.map((it) => it.key),
-                            selectable.map((it) => it.row)
-                          );
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <span className="sr-only">选择</span>
-                )
-              ) : (
-                <span className="truncate">{m.column.title}</span>
-              )}
-            </div>
-          );
-        })}
+}> = ({ metas, template,type }) => {
+    let index=0;
+    if(type==='center')
+    {
+        index=1;
+    }
+    else
+    {
+        index=100;
+    }
+    return (
+        <div className={
+            cx(
+                "grid gap-0 overflow-visible",type!=='center'?"sticky border-gray-200":"",type==='left'?"left-0":"right-0",type==='left'?"border-r":"",type==='right'?"border-l":""
+                
+            )
+        } style={{ gridTemplateColumns: template,zIndex:index }}>
+            {/* 标题单元格（必须在开头） */}
+            {metas.map((m) => {
+                const isSelection = m.column.key === '__selection__';
+                return (
+                    <div
+                        key={`h-${String(m.column.key)}`}
+                        className={cx(
+                            'sticky top-0 border-b border-gray-200 bg-gray-50  whitespace-nowrap',
+                            'px-2 py-2 text-xs font-medium text-gray-600',
+                            m.textAlignClass,
+                            m.semanticClass,
+                            m.column.headerClassName
+                        )}
+                        style={{ height: headerHeight }}
+                    >
+                        {isSelection ? (
+                            selection?.enableSelectAll ? (
+                                <div className="flex items-center justify-center">
+                                    <Checkbox
+                                        checked={Boolean(
+                                            selection &&
+                                            rows.filter((it) => it.selectable).length > 0 &&
+                                            rows.filter((it) => it.selectable).every((it) => selectedSet.has(it.key))
+                                        )}
+                                        aria-label={selection?.headerTitle ?? '全选'}
+                                        onChange={() => {
+                                            if (!selection?.enableSelectAll) return;
+                                            const selectable = rows.filter((it) => it.selectable);
+                                            const every = selectable.every((it) => selectedSet.has(it.key));
+                                            if (every) selection.onChange([], []);
+                                            else
+                                                selection.onChange(
+                                                    selectable.map((it) => it.key),
+                                                    selectable.map((it) => it.row)
+                                                );
+                                        }}
+                                    />
+                                </div>
+                            ) : (
+                                <span className="sr-only">选择</span>
+                            )
+                        ) : (
+                            <span className="truncate">{m.column.title}</span>
+                        )}
+                    </div>
+                );
+            })}
 
-        {/* 内容单元格（可见切片），统一 translateY 做虚拟滚动位移；不再额外包一层 */}
-        {visibleRows.map((item) =>
-          metas.map((m) => {
-            const isSelection = m.column.key === '__selection__';
-            const isSelected = selectedSet.has(item.key);
-            const isHovered = hoverKey === item.key;
-            const bgBase = zebra ? (item.index % 2 === 0 ? '#ffffff' : '#f8fafc') : '#ffffff';
-            const bg = isSelected ? (isHovered ? 'rgba(30,128,255,0.18)' : 'rgba(30,128,255,0.12)') : isHovered ? '#f3f4f6' : bgBase;
+            {/* 内容单元格（可见切片） */}
+            {visibleRows.map((item) =>
+                metas.map((m) => {
+                    const isSelection = m.column.key === '__selection__';
+                    const isSelected = selectedSet.has(item.key);
+                    const isHovered = hoverKey === item.key;
+                    const isFocused = activeFocusKey != null && activeFocusKey === item.key; // 焦点标记
+                    const bgBase = zebra ? (item.index % 2 === 0 ? '#ffffff' : '#f8fafc') : '#ffffff';
+                    const bg = isSelected ? (isHovered ? 'rgba(30,128,255,0.18)' : 'rgba(30,128,255,0.12)') : isHovered ? '#f3f4f6' : bgBase;
 
-            const commonProps = {
-              className: cx(
-                'overflow-hidden whitespace-nowrap',
-                'px-2 py-2 text-sm text-gray-900',
-                m.textAlignClass,
-                m.semanticClass,
-                m.column.className
-              ),
-              style: {
-                height: rowHeight,
-                backgroundColor: bg,
-              } as CSSProperties,
-              onMouseEnter: () => setHoverKey(item.key),
-              onMouseLeave: () => setHoverKey((k) => (k === item.key ? null : k)),
-              title: m.column.tooltip ? m.column.tooltip(item.row) : undefined,
-              onClick: (e: ReactMouseEvent<HTMLDivElement>) => {
-                const ctx: GridCellRenderContext<T> = {
-                  row: item.row,
-                  rowIndex: item.index,
-                  key: item.key,
-                  isSelected,
-                  isHovered,
-                };
-                if (selection?.selectOnRowClick && !shouldIgnoreRowToggle(e.target)) {
-                  if (selection.mode === 'single') selection.onChange([item.key], [item.row]);
-                  else {
-                    const next = new Set(selection.selectedKeys ?? []);
-                    next.has(item.key) ? next.delete(item.key) : next.add(item.key);
-                    const keys = Array.from(next);
-                    const rowsPicked = rows.filter((r) => next.has(r.key)).map((r) => r.row);
-                    selection.onChange(keys, rowsPicked);
-                  }
-                }
-                onRowClick?.(item.row, ctx, e);
-              },
-              onDoubleClick: (e: ReactMouseEvent<HTMLDivElement>) => {
-                const ctx: GridCellRenderContext<T> = {
-                  row: item.row,
-                  rowIndex: item.index,
-                  key: item.key,
-                  isSelected,
-                  isHovered,
-                };
-                onRowDoubleClick?.(item.row, ctx, e);
-              },
-            };
+                    const commonProps = {
+                        className: cx(
+                            'overflow-hidden whitespace-nowrap',
+                            'px-2 py-2 text-sm text-gray-900',
+                            m.textAlignClass,
+                            m.semanticClass,
+                            m.column.className
+                        ),
+                        style: {
+                            height: rowHeight,
+                            backgroundColor: bg,
+                        } as CSSProperties,
+                        'data-focused': isFocused ? 'true' : undefined, // 仅打标，不加样式
+                        onMouseEnter: () => setHoverKey(item.key),
+                        onMouseLeave: () => setHoverKey((k) => (k === item.key ? null : k)),
+                        title: m.column.tooltip ? m.column.tooltip(item.row) : undefined,
+                        onClick: (e: ReactMouseEvent<HTMLDivElement>) => {
+                            updateFocus(item.key); // 点击即设为焦点
+                            const ctx: GridCellRenderContext<T> = {
+                                row: item.row,
+                                rowIndex: item.index,
+                                key: item.key,
+                                isSelected,
+                                isHovered,
+                            };
+                            if (selection?.selectOnRowClick && !shouldIgnoreRowToggle(e.target)) {
+                                if (selection.mode === 'single') selection.onChange([item.key], [item.row]);
+                                else {
+                                    const next = new Set(selection.selectedKeys ?? []);
+                                    next.has(item.key) ? next.delete(item.key) : next.add(item.key);
+                                    const keys = Array.from(next);
+                                    const rowsPicked = rows.filter((r) => next.has(r.key)).map((r) => r.row);
+                                    selection.onChange(keys, rowsPicked);
+                                }
+                            }
+                            onRowClick?.(item.row, ctx, e);
+                        },
+                        onDoubleClick: (e: ReactMouseEvent<HTMLDivElement>) => {
+                            const ctx: GridCellRenderContext<T> = {
+                                row: item.row,
+                                rowIndex: item.index,
+                                key: item.key,
+                                isSelected,
+                                isHovered,
+                            };
+                            onRowDoubleClick?.(item.row, ctx, e);
+                        },
+                    };
 
-            if (isSelection) {
-              return (
-                <div key={`b-${String(m.column.key)}-${String(item.key)}`} {...commonProps}>
-                  <div className="flex items-center justify-center">
-                    <Checkbox
-                      checked={isSelected}
-                      disabled={!item.selectable}
-                      onChange={() => {
-                        if (!selection) return;
-                        const mode = selection.mode ?? 'multiple';
-                        if (mode === 'single') selection.onChange([item.key], [item.row]);
-                        else {
-                          const next = new Set(selection.selectedKeys ?? []);
-                          next.has(item.key) ? next.delete(item.key) : next.add(item.key);
-                          const keys = Array.from(next);
-                          const rowsPicked = rows.filter((r) => next.has(r.key)).map((r) => r.row);
-                          selection.onChange(keys, rowsPicked);
-                        }
-                      }}
-                      aria-label="选择行"
-                    />
-                  </div>
-                </div>
-              );
-            }
+                    if (isSelection) {
+                        return (
+                            <div key={`b-${String(m.column.key)}-${String(item.key)}`} {...commonProps}>
+                                <div className="flex items-center justify-center">
+                                    <Checkbox
+                                        checked={isSelected}
+                                        disabled={!item.selectable}
+                                        onChange={() => {
+                                            if (!selection) return;
+                                            const mode = selection.mode ?? 'multiple';
+                                            if (mode === 'single') selection.onChange([item.key], [item.row]);
+                                            else {
+                                                const next = new Set(selection.selectedKeys ?? []);
+                                                next.has(item.key) ? next.delete(item.key) : next.add(item.key);
+                                                const keys = Array.from(next);
+                                                const rowsPicked = rows.filter((r) => next.has(r.key)).map((r) => r.row);
+                                                selection.onChange(keys, rowsPicked);
+                                            }
+                                        }}
+                                        aria-label="选择行"
+                                    />
+                                </div>
+                            </div>
+                        );
+                    }
 
-            const ctx: GridCellRenderContext<T> = {
-              row: item.row,
-              rowIndex: item.index,
-              key: item.key,
-              isSelected,
-              isHovered,
-            };
-            const value =
-              typeof m.column.render === 'function'
-                ? m.column.render(item.row, ctx)
-                : (item.row[m.column.key as keyof T] as ReactNode);
+                    const ctx: GridCellRenderContext<T> = {
+                        row: item.row,
+                        rowIndex: item.index,
+                        key: item.key,
+                        isSelected,
+                        isHovered,
+                    };
+                    const value =
+                        typeof m.column.render === 'function'
+                            ? m.column.render(item.row, ctx)
+                            : (item.row[m.column.key as keyof T] as ReactNode);
 
-            const contentClass =
-              m.column.intent === 'actions'
-                ? 'flex items-center justify-center gap-2 whitespace-nowrap'
-                : m.column.intent === 'status'
-                ? 'flex items-center gap-2'
-                : m.align === 'right'
-                ? 'flex items-center justify-end gap-2'
-                : m.align === 'center'
-                ? 'flex items-center justify-center gap-2'
-                : 'truncate';
+                    const contentClass =
+                        m.column.intent === 'actions'
+                            ? 'flex items-center justify-center gap-2 whitespace-nowrap'
+                            : m.column.intent === 'status'
+                                ? 'flex items-center gap-2'
+                                : m.align === 'right'
+                                    ? 'flex items-center justify-end gap-2'
+                                    : m.align === 'center'
+                                        ? 'flex items-center justify-center gap-2'
+                                        : 'truncate';
 
-            return (
-              <div key={`b-${String(m.column.key)}-${String(item.key)}`} {...commonProps}>
-                <div className={contentClass}>{value}</div>
-              </div>
-            );
-          })
-        )}
-      </div>
-    </div>
-  );
+                    return (
+                        <div key={`b-${String(m.column.key)}-${String(item.key)}`} {...commonProps}>
+                            <div className={contentClass}>{value}</div>
+                        </div>
+                    );
+                })
+            )}
+        </div>
+    );
 };
 
   const showEmpty = !loading && rows.length === 0;
   const showLoading = loading;
 
-    return (
-        <div
-            ref={containerRef}
-            className={cx(
-                'relative max-h-full overflow-y-auto overflow-x-hidden nice-scrollbar',
-                'bg-white border border-gray-200',
-                className,
-            )}
-        >
-            {/* 背景占位：撑起真实滚动高度 */}
-            <div style={{ height: fullHeight }} >
+  return (
+    <div
+      ref={containerRef}
+      tabIndex={0}                 // 允许接收键盘事件
+      onKeyDown={handleKeyDown}    // 焦点行键盘控制
+      className={cx(
+        'relative max-h-full overflow-y-auto overflow-x-auto nice-scrollbar',
+        'bg-white border border-gray-200',
+        className,
+      )}
+    >
+      {/* 背景占位：撑起真实滚动高度 */}
+      <div className='w-auto' style={{ height: fullHeight }} >
 
-                {/* 粘滞视图：三段布局，居然和 Table 的 sticky header 外观一致 */}
-                <div className="sticky top-0 w-full grid grid-cols-[auto_1fr_auto]">
-                    {/* 左：固定列（含选择列）不滚动水平条 */}
-                    <Region metas={metasLeft} template={templateLeft} />
-                    {/* 中：未固定列，可水平滚动 */}
-                    <Region metas={metasCenter} template={templateCenter} allowXScroll />
-                    {/* 右：固定列（默认 actions） */}
-                    <Region metas={metasRight} template={templateRight} />
-                </div>
-            </div>
-
-            {/* 空/加载 */}
-            {(showEmpty || showLoading) && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="px-3 py-2 text-gray-500 bg-white/80 rounded">
-                        {showLoading ? loadingState ?? '加载中…' : emptyState ?? '暂无数据'}
-                    </div>
-                </div>
-            )}
+        {/* 粘滞视图：三段布局 */}
+        <div className="sticky top-0 w-auto flex justify-start item-stretch overflow-auto" >
+          {/* 左：固定列（含选择列）不滚动水平条 */}
+          <Region type='left' metas={metasLeft} template={templateLeft}  />
+          {/* 中：未固定列，可水平滚动 */}
+          <Region type='center' metas={metasCenter} template={templateCenter} />
+          {/* 右：固定列（默认 actions） */}
+          <Region type='right' metas={metasRight} template={templateRight} />
         </div>
-    );
+      </div>
+
+      {/* 空/加载（保持你原有样式） */}
+      {(showEmpty || showLoading) && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="px-3 py-2 text-gray-500 bg-white/80">
+            {showLoading ? loadingState ?? '加载中…' : emptyState ?? '暂无数据'}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
