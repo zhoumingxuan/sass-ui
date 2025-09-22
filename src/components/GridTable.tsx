@@ -584,7 +584,7 @@ export default function GridTable<T extends Record<string, unknown>>({
       {/* 背景占位：撑起真实滚动高度 */}
       <div className="w-auto" style={{ height: fullHeight }}>
         {/* 粘滞视图：三段布局（不改你的结构） */}
-        <div className="sticky w-max top-0 grid grid-cols-[max-content_auto_max-content] gap-0 overflow-visible">
+        <div className="sticky min-w-full w-max top-0 grid grid-cols-[max-content_auto_max-content] gap-0 overflow-visible">
           <Region type="left" metas={metasLeft} template={templateLeft} />
           <Region type="center" metas={metasCenter} template={templateCenter} />
           <Region type="right" metas={metasRight} template={templateRight} />
