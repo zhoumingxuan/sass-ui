@@ -405,7 +405,7 @@ export default function GridTable<T extends Record<string, unknown>>({
         className={cx(
           'w-auto grid gap-0 overflow-visible',
           type !== 'center' ? 'sticky border-gray-200' : '',
-          type === 'left' ? 'left-0 border-r gt-region--left' : type === 'right' ? 'right-0 border-l gt-region--right' : 'gt-region--center'
+          type === 'left' ? 'left-0 gt-region--left' : type === 'right' ? 'right-0 gt-region--right' : 'gt-region--center'
         )}
         style={{ gridTemplateColumns: template, zIndex }}
       >

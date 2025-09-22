@@ -380,14 +380,13 @@ export default function TableDemo() {
       {
         key: 'id',
         title: '编号',
-        width:150,
         fixed: 'left',
         render: (row) => <span className="font-medium text-gray-900">{row.id}</span>,
       },
       {
         key: 'project',
         title: '项目',
-        width: 280,
+        width: 1000,
         render: (row) => (
           <div className="min-w-0">
             <div className="truncate font-medium text-gray-900">{row.project}</div>
@@ -397,12 +396,10 @@ export default function TableDemo() {
       {
         key: 'owner',
         title: '负责人',
-        width: 140,
       },
       {
         key: 'priority',
         title: '优先级',
-        width: 120,
         intent: 'status',
         render: (row) => <Pill tone={PRIORITY_META[row.priority].tone}>{PRIORITY_META[row.priority].label}</Pill>,
       },
@@ -425,21 +422,18 @@ export default function TableDemo() {
       {
         key: 'budgetUsed',
         title: '已使用预算',
-        width: 160,
         semantic: 'currency',
         render: (row) => <span>{currencyFormatter.format(row.budgetUsed)}</span>,
       },
       {
         key: 'lastUpdated',
         title: '最新更新时间',
-        width: 200,
         semantic: 'datetime',
         render: (row) => dateTimeFormatter.format(new Date(row.lastUpdated)),
       },
       {
         key: 'risk',
         title: '风险',
-        width: 120,
         intent: 'status',
         render: (row) => <Pill tone={RISK_META[row.risk].tone}>{RISK_META[row.risk].label}</Pill>,
       },
@@ -448,7 +442,6 @@ export default function TableDemo() {
         title: '操作',
         intent: 'actions',
         fixed: 'right',
-        width: 160,
         render: (row) => (
           <div className="flex items-center justify-center gap-2" data-table-row-trigger="ignore">
             <ActionLink emphasized>详情</ActionLink>
@@ -626,24 +619,24 @@ export default function TableDemo() {
     const q = query.trim().toLowerCase();
     const base = q
       ? PROJECTS.filter((row) => {
-          const haystack = [
-            row.project,
-            row.owner,
-            row.team,
-            STATUS_META[row.status].label,
-            PRIORITY_META[row.priority].label,
-            RISK_META[row.risk].label,
-            currencyFormatter.format(row.budgetPlanned),
-            currencyFormatter.format(row.budgetUsed),
-            row.startAt,
-            row.endAt,
-            integerFormatter.format(row.completedTasks),
-            integerFormatter.format(row.totalTasks),
-          ]
-            .join(' ')
-            .toLowerCase();
-          return haystack.includes(q);
-        })
+        const haystack = [
+          row.project,
+          row.owner,
+          row.team,
+          STATUS_META[row.status].label,
+          PRIORITY_META[row.priority].label,
+          RISK_META[row.risk].label,
+          currencyFormatter.format(row.budgetPlanned),
+          currencyFormatter.format(row.budgetUsed),
+          row.startAt,
+          row.endAt,
+          integerFormatter.format(row.completedTasks),
+          integerFormatter.format(row.totalTasks),
+        ]
+          .join(' ')
+          .toLowerCase();
+        return haystack.includes(q);
+      })
       : PROJECTS.slice();
 
     base.sort((a, b) => {
@@ -905,6 +898,22 @@ export default function TableDemo() {
                 <p className="mt-1 text-xs text-gray-400">可以点击“恢复数据”重新装载示例。</p>
               </div>
             }
+            selection={{
+              // 关键：把示例页里已有的已选状态传进来
+              selectedKeys: gridSelectedKeys,
+              onChange: (keys, rows) => {
+                setGridSelectedKeys(keys);
+                setGridSelectedRows(rows);
+              },
+
+              // 交互偏好
+              selectOnRowClick: true,       // 点击整行即可勾选/取消
+              enableSelectAll: true,        // 表头全选
+              headerTitle: '选择全部工单',
+              columnWidth: 44,              // 选择列宽度
+              // 如需控制可选行（比如禁用某些行），在这里返回 false 即可
+              // isRowSelectable: (row) => true,
+            }}
           />
         </div>
       </Card>
