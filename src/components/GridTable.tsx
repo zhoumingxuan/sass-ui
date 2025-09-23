@@ -280,7 +280,6 @@ export default function GridTable<T extends Record<string, unknown>>({
       ? makeMeta<T>({
           key: '__selection__',
           title: selection.headerTitle ?? '',
-          width: selection.columnWidth ?? 44,
           align: 'center',
           intent: 'meta',
           semantic: 'integer',
