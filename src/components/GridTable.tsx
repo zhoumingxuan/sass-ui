@@ -564,6 +564,43 @@ export default function GridTable<T extends Record<string, unknown>>({
     );
   };
 
+
+  // === 统一的空态：沿用 Table 风格（可被 props.emptyState 覆盖） ===
+  const emptyNode = emptyState ?? (
+    <div className="py-16 text-center text-sm text-gray-500">
+      <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-400">
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden>
+          <path d="M10 2a8 8 0 015.293 14.293l3.707 3.707a1 1 0 01-1.414 1.414l-3.707-3.707A8 8 0 1110 2zm-6 8a6 6 0 1012 0 6 6 0 00-12 0z" />
+        </svg>
+      </div>
+      暂无数据
+    </div>
+  );
+
+  // === 轻量加载态（覆盖表体区域）：半透明遮罩 + 中心旋转指示器 ===
+  const LoadingOverlay = ({ text }: { text?: ReactNode }) => (
+    <div
+      className="absolute inset-x-0 z-[200] flex items-center justify-center"
+      style={{ top: headerHeight, bottom: 0 }}
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+    >
+      <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px]" />
+      <div className="relative flex items-center gap-3 rounded-md bg-white/90 px-3 py-2 text-sm text-gray-600 shadow-sm">
+        <svg
+          className="h-4 w-4 animate-spin text-gray-400"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden
+        >
+          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="3" opacity="0.25" />
+          <path d="M21 12a9 9 0 00-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+        </svg>
+        <span>{text ?? '加载中…'}</span>
+      </div>
+    </div>
+  );
   const showEmpty = !loading && rows.length === 0;
   const showLoading = loading;
 
@@ -591,13 +628,17 @@ export default function GridTable<T extends Record<string, unknown>>({
         </div>
       </div>
 
-      {(showEmpty || showLoading) && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="px-3 py-2 text-gray-500 bg-white/80">
-            {showLoading ? loadingState ?? '加载中…' : emptyState ?? '暂无数据'}
-          </div>
+      {showEmpty && (
+        <div
+          className="absolute inset-x-0 flex items-center justify-center"
+          style={{ top: headerHeight, bottom: 0 }}
+          role="status"
+          aria-live="polite"
+        >
+          <div className="bg-white/80">{emptyNode}</div>
         </div>
       )}
+      {showLoading && <LoadingOverlay text={loadingState} />}
     </div>
   );
 }
