@@ -289,8 +289,16 @@ export default function GridTable<T extends Record<string, unknown>>({
   const templateCenter = useMemo(() => buildTemplate(metasCenter), [metasCenter]);
   const templateRight = useMemo(() => buildTemplate(metasRight), [metasRight]);
 
+  // ==== 空/加载态辅助 ====
+  const isEmpty = rows.length === 0;
+  const EMPTY_BODY_MIN = cssNumber('--gt-empty-body-min', 240); // 空态时至少给 240px 的“表体高度”
+
   // ==== 可见切片（保留你现有的简单实现，不引入 overscan） ====
-  const fullHeight = useMemo(() => headerHeight + rowHeight * rows.length, [headerHeight, rowHeight, rows.length]);
+  // 关键修复：当 isEmpty 时，撑起足够的高度让空态层可见（否则容器高度只剩表头高，空态层高度=0）
+  const fullHeight = useMemo(() => {
+    const bodyHeight = isEmpty ? Math.max(0, EMPTY_BODY_MIN) : rowHeight * rows.length;
+    return headerHeight + bodyHeight;
+  }, [headerHeight, rowHeight, rows.length, isEmpty, EMPTY_BODY_MIN]);
 
   const visibleRows = useMemo(() => {
     if (viewHeight < headerHeight) return [];
@@ -601,7 +609,7 @@ export default function GridTable<T extends Record<string, unknown>>({
       </div>
     </div>
   );
-  const showEmpty = !loading && rows.length === 0;
+  const showEmpty = !loading && isEmpty;
   const showLoading = loading;
 
   return (
@@ -618,7 +626,7 @@ export default function GridTable<T extends Record<string, unknown>>({
         className,
       )}
     >
-      {/* 背景占位：撑起真实滚动高度 */}
+      {/* 背景占位：撑起真实滚动高度（空态时也要撑足最小高度，确保空态层可见） */}
       <div className="w-auto" style={{ height: fullHeight }}>
         {/* 粘滞视图：三段布局（不改你的结构） */}
         <div className="sticky min-w-full w-max top-0 grid grid-cols-[max-content_auto_max-content] gap-0 overflow-visible">

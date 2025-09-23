@@ -113,6 +113,7 @@ html::-webkit-scrollbar-thumb:active {
   --sb-thumb: transparent;
   --sb-thumb-hover: var(--color-sb-thumb-sidebar-hover, color-mix(in srgb, var(--color-nav-fg) 32%, transparent));
   --sb-thumb-active: var(--color-sb-thumb-sidebar-active, color-mix(in srgb, var(--color-nav-fg) 48%, transparent));
+  --gt-empty-body-min: 280px;
   scrollbar-width: thin; /* Firefox keeps space, thumb transparent by default */
 }
 .sidebar-scroll:hover,
