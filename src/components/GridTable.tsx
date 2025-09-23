@@ -1,3 +1,4 @@
+
 'use client';
 
 import type {
@@ -91,7 +92,7 @@ function shouldIgnoreRowToggle(target: EventTarget | null) {
   return Boolean(target.closest('button, a, [role="button"], input, label, [data-table-row-trigger="ignore"]'));
 }
 
-// ---- 从 CSS 变量读取样式数值（替代文件内样式常量） ----
+// ---- 从 CSS 变量读取样式数值 ----
 function cssNumber(varName: string, fallback: number) {
   if (typeof window === 'undefined') return fallback;
   const v = getComputedStyle(document.documentElement).getPropertyValue(varName);
@@ -146,7 +147,7 @@ function resolveColumnWidth<T>(col: GridColumn<T>): string|number {
   }
   if (typeof col.minWidth === 'number') return col.minWidth;
   if (typeof col.maxWidth === 'number') return col.maxWidth;
-  return 'auto'; // 默认值：来自 CSS 变量
+  return 'auto'; // 默认值
 }
 
 function buildTemplate<T>(metas: ColumnMeta<T>[]): string {
@@ -252,7 +253,7 @@ export default function GridTable<T extends Record<string, unknown>>({
     [data, rowKey, selection]
   );
 
-  // ==== 列切分（参考 Table：actions 默认右固定） ====
+  // ==== 列切分（actions 默认右固定） ====
   const metasAll = useMemo(() => {
     const cols = columns
       .filter((c) => !c.hidden)
@@ -289,16 +290,8 @@ export default function GridTable<T extends Record<string, unknown>>({
   const templateCenter = useMemo(() => buildTemplate(metasCenter), [metasCenter]);
   const templateRight = useMemo(() => buildTemplate(metasRight), [metasRight]);
 
-  // ==== 空/加载态辅助 ====
-  const isEmpty = rows.length === 0;
-  const EMPTY_BODY_MIN = cssNumber('--gt-empty-body-min', 240); // 空态时至少给 240px 的“表体高度”
-
-  // ==== 可见切片（保留你现有的简单实现，不引入 overscan） ====
-  // 关键修复：当 isEmpty 时，撑起足够的高度让空态层可见（否则容器高度只剩表头高，空态层高度=0）
-  const fullHeight = useMemo(() => {
-    const bodyHeight = isEmpty ? Math.max(0, EMPTY_BODY_MIN) : rowHeight * rows.length;
-    return headerHeight + bodyHeight;
-  }, [headerHeight, rowHeight, rows.length, isEmpty, EMPTY_BODY_MIN]);
+  // ==== 可见切片 ====
+  const fullHeight = useMemo(() => headerHeight + rowHeight * rows.length, [headerHeight, rowHeight, rows.length]);
 
   const visibleRows = useMemo(() => {
     if (viewHeight < headerHeight) return [];
@@ -312,9 +305,7 @@ export default function GridTable<T extends Record<string, unknown>>({
   const [hoverKey, setHoverKey] = useState<string | number | null>(null);
   const selectedSet = useMemo(() => new Set(selection?.selectedKeys ?? []), [selection?.selectedKeys]);
 
-  // ==== 焦点行（内部，仅实现功能，不动样式） ====
   const [activeFocusKey, setActiveFocusKey] = useState<string | number | null>(null);
-
   useEffect(() => {
     if (rows.length === 0) {
       if (activeFocusKey !== null) setActiveFocusKey(null);
@@ -400,7 +391,7 @@ export default function GridTable<T extends Record<string, unknown>>({
     [rows, activeFocusKey, selection, toggleOne, updateFocus]
   );
 
-  // === Region 组件（结构不动，仅补样式类 & 颜色改为 CSS 变量） ===
+  // === Region ===
   const Region: React.FC<{
     metas: ColumnMeta<T>[];
     type: 'left' | 'center' | 'right';
@@ -417,7 +408,7 @@ export default function GridTable<T extends Record<string, unknown>>({
         )}
         style={{ gridTemplateColumns: template, zIndex }}
       >
-        {/* 标题单元格 */}
+        {/* 表头 */}
         {metas.map((m) => {
           const isSelection = m.column.key === '__selection__';
           return (
@@ -470,7 +461,6 @@ export default function GridTable<T extends Record<string, unknown>>({
             const isHovered = hoverKey === item.key;
             const isFocused = activeFocusKey != null && activeFocusKey === item.key;
 
-            // 颜色全部来自 CSS 变量
             const base = zebra ? (item.index % 2 === 0 ? 'var(--gt-zebra-even)' : 'var(--gt-zebra-odd)') : 'var(--gt-zebra-even)';
             const bg = isSelected ? (isHovered ? 'var(--gt-selected-hover)' : 'var(--gt-selected)') : isHovered ? 'var(--gt-hover)' : base;
 
@@ -573,23 +563,22 @@ export default function GridTable<T extends Record<string, unknown>>({
   };
 
 
-  // === 统一的空态：沿用 Table 风格（可被 props.emptyState 覆盖） ===
+  // === 空态（默认视觉，可被 props.emptyState 覆盖） ===
   const emptyNode = emptyState ?? (
-    <div className="py-16 text-center text-sm text-gray-500">
-      <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-400">
-        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden>
+    <div className="text-center">
+      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-gray-400 shadow-inner">
+        <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor" aria-hidden>
           <path d="M10 2a8 8 0 015.293 14.293l3.707 3.707a1 1 0 01-1.414 1.414l-3.707-3.707A8 8 0 1110 2zm-6 8a6 6 0 1012 0 6 6 0 00-12 0z" />
         </svg>
       </div>
-      暂无数据
+      <div className="text-sm font-medium text-gray-600">暂无数据</div>
     </div>
   );
 
-  // === 轻量加载态（覆盖表体区域）：半透明遮罩 + 中心旋转指示器 ===
+  // === 轻量加载态：半透明遮罩 + 中心旋转指示器 ===
   const LoadingOverlay = ({ text }: { text?: ReactNode }) => (
     <div
-      className="absolute inset-x-0 z-[200] flex items-center justify-center"
-      style={{ top: headerHeight, bottom: 0 }}
+      className="absolute inset-0 z-[200] flex items-center justify-center"
       role="status"
       aria-live="polite"
       aria-busy="true"
@@ -609,6 +598,8 @@ export default function GridTable<T extends Record<string, unknown>>({
       </div>
     </div>
   );
+
+  const isEmpty = rows.length === 0;
   const showEmpty = !loading && isEmpty;
   const showLoading = loading;
 
@@ -618,7 +609,6 @@ export default function GridTable<T extends Record<string, unknown>>({
       tabIndex={0}
       onKeyDown={handleKeyDown}
       className={cx(
-        // 注意：加上 grid-table & 阴影开关类（仅样式）
         'grid-table relative max-h-full overflow-y-auto overflow-x-auto nice-scrollbar outline-none focus:outline-none',
         'bg-white border border-gray-200',
         hasLeftShadow && 'has-left-shadow',
@@ -626,9 +616,9 @@ export default function GridTable<T extends Record<string, unknown>>({
         className,
       )}
     >
-      {/* 背景占位：撑起真实滚动高度（空态时也要撑足最小高度，确保空态层可见） */}
+      {/* 背景占位：撑起滚动高度（保持原有虚拟滚动结构，不做最小高度干预） */}
       <div className="w-auto" style={{ height: fullHeight }}>
-        {/* 粘滞视图：三段布局（不改你的结构） */}
+        {/* 粘滞视图：三段布局 */}
         <div className="sticky min-w-full w-max top-0 grid grid-cols-[max-content_auto_max-content] gap-0 overflow-visible">
           <Region type="left" metas={metasLeft} template={templateLeft} />
           <Region type="center" metas={metasCenter} template={templateCenter} />
@@ -636,16 +626,15 @@ export default function GridTable<T extends Record<string, unknown>>({
         </div>
       </div>
 
+      {/* 覆盖层 —— 注意：作为顶级父容器的直接子元素，且使用 inset-0 撑满 */}
       {showEmpty && (
-        <div
-          className="absolute inset-x-0 flex items-center justify-center"
-          style={{ top: headerHeight, bottom: 0 }}
-          role="status"
-          aria-live="polite"
-        >
-          <div className="bg-white/80">{emptyNode}</div>
+        <div className="absolute z-[150] flex items-center justify-center p-6 left-0 right-0 bottom-0" role="status" aria-live="polite" style={{top:headerHeight}}>
+          <div className="w-full max-w-xl border-gray-200 bg-white/80 px-8 py-10 text-center">
+            {emptyNode}
+          </div>
         </div>
       )}
+
       {showLoading && <LoadingOverlay text={loadingState} />}
     </div>
   );
