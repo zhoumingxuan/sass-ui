@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Layout from '@/components/Layout';
 import Card from '@/components/Card';
 import Table, { Column } from '@/components/Table';
-import GridTable, { GridColumn } from '@/components/GridTable';
+import GridTable, { GridColumn, RowActionsConfig } from '@/components/GridTable';
 import Button from '@/components/Button';
 import Pill from '@/components/Pill';
 import ProgressBar from '@/components/ProgressBar';
@@ -355,22 +355,7 @@ export default function TableDemo() {
         intent: 'status',
         semantic: 'text',
         render: (row) => <Pill tone={RISK_META[row.risk].tone}>{RISK_META[row.risk].label}</Pill>,
-      },
-      {
-        key: 'actions',
-        title: '操作',
-        intent: 'actions',
-        align: 'right',
-        sizing: 'auto',
-        render: (row) => (
-          <div className="flex items-center justify-end gap-2" data-table-row-trigger="ignore">
-            <ActionLink emphasized>详情</ActionLink>
-            <ActionLink onClick={() => console.log('promote', row.id)}>
-              {row.status === 'launched' ? '归档' : '推进'}
-            </ActionLink>
-          </div>
-        ),
-      },
+      }
     ],
     [],
   );
@@ -386,7 +371,6 @@ export default function TableDemo() {
       {
         key: 'project',
         title: '项目',
-        width: 1000,
         render: (row) => (
           <div className="min-w-0">
             <div className="truncate font-medium text-gray-900">{row.project}</div>
@@ -436,19 +420,7 @@ export default function TableDemo() {
         title: '风险',
         intent: 'status',
         render: (row) => <Pill tone={RISK_META[row.risk].tone}>{RISK_META[row.risk].label}</Pill>,
-      },
-      {
-        key: 'actions',
-        title: '操作',
-        intent: 'actions',
-        fixed: 'right',
-        render: (row) => (
-          <div className="flex items-center justify-center gap-2" data-table-row-trigger="ignore">
-            <ActionLink emphasized>详情</ActionLink>
-            <ActionLink onClick={() => console.log('plan', row.id)}>安排</ActionLink>
-          </div>
-        ),
-      },
+      }
     ],
     [],
   );
@@ -738,6 +710,24 @@ export default function TableDemo() {
     </div>
   );
 
+  // ===== GridTable：行内操作（通用配置）=====
+  const gridRowActions: RowActionsConfig<Row> = useMemo(
+    () => ({
+      title: '操作',
+      fixed: 'right',
+      align: 'center',
+      // width: 200, // 如需要固定宽度可打开
+      getActions: (row) => [
+        { key: 'detail', label: '详情', emphasized: true, onClick: () => console.log('detail', row.id) },
+        // 示例：根据状态决定第二个动作的含义，仅作为演示；真实场景你可以返回任意操作数组
+        row.status === 'launched'
+          ? { key: 'archive', label: '归档', onClick: () => console.log('archive', row.id) }
+          : { key: 'promote', label: '推进', onClick: () => console.log('promote', row.id) },
+      ],
+    }),
+    [],
+  );
+
   return (
     <Layout
       menuItems={menuItems}
@@ -886,18 +876,14 @@ export default function TableDemo() {
             <div className="text-xs text-gray-400">支持虚拟滚动、固定列、快捷点击选中</div>
           )}
         </div>
-        <div className="mt-4 w-full h-[520px] ">
+        <div className="mt-4 w-full h-[520px] grid grid-rows-[1fr]">
           <GridTable<Row>
             columns={gridColumns}
             data={gridRows}
             rowKey={(row) => row.id}
             loading={gridLoading}
-            emptyState={
-              <div className="py-12 text-center text-sm text-gray-500">
-                <p className="text-base font-medium text-gray-700">暂无栅格数据</p>
-                <p className="mt-1 text-xs text-gray-400">可以点击“恢复数据”重新装载示例。</p>
-              </div>
-            }
+            rowActions={gridRowActions}
+            showIndex
             selection={{
               // 关键：把示例页里已有的已选状态传进来
               selectedKeys: gridSelectedKeys,
