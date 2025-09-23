@@ -1,4 +1,3 @@
-
 'use client';
 
 import type {
@@ -9,7 +8,7 @@ import type {
 } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Checkbox } from './Checkbox';
-import { Inbox,FileQuestion} from 'lucide-react'; // 空态图标：lucide
+import { Inbox, FileQuestion } from 'lucide-react'; // 空态图标：lucide
 
 type FixedSide = 'left' | 'right';
 
@@ -75,11 +74,14 @@ type GridTableProps<T> = {
   selection?: GridSelection<T>;
   onRowClick?: (row: T, context: GridCellRenderContext<T>, event: ReactMouseEvent<HTMLDivElement>) => void;
   onRowDoubleClick?: (row: T, context: GridCellRenderContext<T>, event: ReactMouseEvent<HTMLDivElement>) => void;
+
+  /** —— 新增：序号列 —— */
+  showIndex?: boolean;           // 是否显示序号列（默认不显示）
 };
 
 type ColumnMeta<T> = {
   column: GridColumn<T>;
-  width: number|string;
+  width: number | string;
   align: 'left' | 'center' | 'right';
   textAlignClass: string;
   justifyClass: string;
@@ -142,7 +144,7 @@ function parsePx(input: string): number | null {
   return m ? parseFloat(m[1]) : null;
 }
 
-function resolveColumnWidth<T>(col: GridColumn<T>): string|number {
+function resolveColumnWidth<T>(col: GridColumn<T>): string | number {
   if (typeof col.width === 'number') return col.width;
   if (typeof col.width === 'string') {
     const px = parsePx(col.width);
@@ -158,16 +160,22 @@ function buildTemplate<T>(metas: ColumnMeta<T>[]): string {
     .map((meta) => {
       const col = meta.column;
       const isSelection = col.key === '__selection__';
+      const isIndex = col.key === '__index__';
       const hasExplicit =
         typeof col.width !== 'undefined' ||
         typeof col.minWidth === 'number' ||
         typeof col.maxWidth === 'number' ||
-        isSelection;
+        isSelection ||
+        isIndex;
 
       if (!hasExplicit) return 'auto';
-      if (typeof col.width === 'number') return `${col.width}px`;
-      if (typeof col.width === 'string') return col.width;
-      return `${meta.width}px`;
+      if (typeof col.width === 'number'&&col.width!==0) {
+        return `${col.width}px`;
+      };
+      if (typeof col.width === 'string') {
+        return col.width;
+      }
+      return `${meta.width}`;
     })
     .join(' ');
 }
@@ -207,6 +215,7 @@ export default function GridTable<T extends Record<string, unknown>>({
   selection,
   onRowClick,
   onRowDoubleClick,
+  showIndex = false,
 }: GridTableProps<T>) {
   // ==== 视窗度量 ====
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -267,23 +276,38 @@ export default function GridTable<T extends Record<string, unknown>>({
       .map(makeMeta<T>);
 
     // 左侧选择列
-    const metas: ColumnMeta<T>[] = selection
-      ? [
-          makeMeta<T>({
-            key: '__selection__',
-            title: selection.headerTitle ?? '',
-            width: selection.columnWidth ?? 44,
-            align: 'center',
-            intent: 'meta',
-            semantic: 'integer',
-            fixed: 'left',
-          } as GridColumn<T>),
-          ...cols,
-        ]
-      : cols;
+    const selectionMeta: ColumnMeta<T> | null = selection
+      ? makeMeta<T>({
+          key: '__selection__',
+          title: selection.headerTitle ?? '',
+          width: selection.columnWidth ?? 44,
+          align: 'center',
+          intent: 'meta',
+          semantic: 'integer',
+          fixed: 'left',
+        } as GridColumn<T>)
+      : null;
+
+    // 序号列（左固定；默认在可勾选列之前）
+    const indexMeta: ColumnMeta<T> | null = showIndex
+      ? makeMeta<T>({
+          key: '__index__',
+          title: '序号',
+          align: 'center',
+          intent: 'meta',
+          semantic: 'integer',
+          fixed: 'left',
+        } as GridColumn<T>)
+      : null;
+
+    // 组装：序号 -> 选择 -> 其余列
+    const metas: ColumnMeta<T>[] = [];
+    if (selectionMeta) metas.push(selectionMeta);
+    if (indexMeta) metas.push(indexMeta);
+    metas.push(...cols);
 
     return metas;
-  }, [columns, selection]);
+  }, [columns, selection, showIndex]);
 
   const metasLeft = useMemo(() => metasAll.filter((m) => m.column.fixed === 'left'), [metasAll]);
   const metasRight = useMemo(() => metasAll.filter((m) => m.column.fixed === 'right'), [metasAll]);
@@ -292,6 +316,7 @@ export default function GridTable<T extends Record<string, unknown>>({
   const templateLeft = useMemo(() => buildTemplate(metasLeft), [metasLeft]);
   const templateCenter = useMemo(() => buildTemplate(metasCenter), [metasCenter]);
   const templateRight = useMemo(() => buildTemplate(metasRight), [metasRight]);
+
 
   // ==== 可见切片 ====
   const fullHeight = useMemo(() => headerHeight + rowHeight * rows.length, [headerHeight, rowHeight, rows.length]);
@@ -414,6 +439,7 @@ export default function GridTable<T extends Record<string, unknown>>({
         {/* 表头 */}
         {metas.map((m) => {
           const isSelection = m.column.key === '__selection__';
+          const isIndex = m.column.key === '__index__';
           return (
             <div
               key={`h-${String(m.column.key)}`}
@@ -449,6 +475,8 @@ export default function GridTable<T extends Record<string, unknown>>({
                 ) : (
                   <span className="sr-only">选择</span>
                 )
+              ) : isIndex ? (
+                <span>序号</span>
               ) : (
                 <span className="truncate">{m.column.title}</span>
               )}
@@ -460,6 +488,7 @@ export default function GridTable<T extends Record<string, unknown>>({
         {visibleRows.map((item) =>
           metas.map((m) => {
             const isSelection = m.column.key === '__selection__';
+            const isIndex = m.column.key === '__index__';
             const isSelected = selectedSet.has(item.key);
             const isHovered = hoverKey === item.key;
             const isFocused = activeFocusKey != null && activeFocusKey === item.key;
@@ -541,6 +570,14 @@ export default function GridTable<T extends Record<string, unknown>>({
               );
             }
 
+            if (isIndex) {
+              return (
+                <div key={`b-${String(m.column.key)}-${String(item.key)}`} {...commonProps}>
+                  <div className="text-center tabular-nums">{item.index + 1}</div>
+                </div>
+              );
+            }
+
             const ctx: GridCellRenderContext<T> = {
               row: item.row,
               rowIndex: item.index,
@@ -553,10 +590,9 @@ export default function GridTable<T extends Record<string, unknown>>({
                 ? m.column.render(item.row, ctx)
                 : (item.row[m.column.key as keyof T] as ReactNode);
 
-
             return (
               <div key={`b-${String(m.column.key)}-${String(item.key)}`} {...commonProps}>
-                <div className='truncate'>{value}</div>
+                <div className="truncate">{value}</div>
               </div>
             );
           })
@@ -565,16 +601,15 @@ export default function GridTable<T extends Record<string, unknown>>({
     );
   };
 
-
-  // === 默认空态（写死）：lucide Inbox 图标 + 文案，简洁耐看 ===
-    const emptyNode = emptyState ?? (
-        <div className="text-center select-none">
-            <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-gray-50">
-                <FileQuestion className="h-5 w-5 text-gray-300" aria-hidden />
-            </div>
-            <div className="text-sm text-gray-500">没有可显示的内容</div>
-        </div>
-    );
+  // === 默认空态（写死）：lucide 图标 + 文案 ===
+  const emptyNode = emptyState ?? (
+    <div className="text-center select-none">
+      <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-gray-50">
+        <FileQuestion className="h-5 w-5 text-gray-300" aria-hidden />
+      </div>
+      <div className="text-sm text-gray-500">没有可显示的内容</div>
+    </div>
+  );
 
   // === 轻量加载态：半透明遮罩 + 中心旋转指示器（顶层兄弟，覆盖满容器） ===
   const LoadingOverlay = ({ text }: { text?: ReactNode }) => (
@@ -586,12 +621,7 @@ export default function GridTable<T extends Record<string, unknown>>({
     >
       <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px]" />
       <div className="relative flex items-center gap-3 rounded-md bg-white/90 px-3 py-2 text-sm text-gray-600 shadow-sm">
-        <svg
-          className="h-4 w-4 animate-spin text-gray-400"
-          viewBox="0 0 24 24"
-          fill="none"
-          aria-hidden
-        >
+        <svg className="h-4 w-4 animate-spin text-gray-400" viewBox="0 0 24 24" fill="none" aria-hidden>
           <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="3" opacity="0.25" />
           <path d="M21 12a9 9 0 00-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
         </svg>
@@ -614,7 +644,7 @@ export default function GridTable<T extends Record<string, unknown>>({
         'bg-white border border-gray-200',
         hasLeftShadow && 'has-left-shadow',
         hasRightShadow && 'has-right-shadow',
-        className,
+        className
       )}
     >
       {/* 背景占位：撑起滚动高度（保持原有虚拟滚动结构，不做最小高度干预） */}
