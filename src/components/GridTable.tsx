@@ -625,7 +625,7 @@ export default function GridTable<T extends Record<string, unknown>>({
                             return (
                                 <div key={`b-${String(m.column.key)}-${String(item.key)}`} {...commonProps}>
                                     <div
-                                        className="flex items-center justify-center"
+                                        className="flex items-center justify-center space-x-1"
                                         data-table-row-trigger="ignore"
                                     >
                                         {acts.map((a) => (
