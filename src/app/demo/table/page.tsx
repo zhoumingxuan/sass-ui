@@ -393,7 +393,7 @@ export default function TableDemo() {
         width: 200,
         semantic: 'number',
         render: (row) => (
-          <div className="flex items-center justify-end gap-3">
+          <div className="flex items-center justify-end gap-3 h-full block">
             <ProgressBar
               value={row.progress}
               showValue

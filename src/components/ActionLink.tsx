@@ -13,10 +13,10 @@ export default function ActionLink({ emphasized = false, className = '', ...prop
       type={props.type ?? 'button'}
       className={[
         'inline-flex items-center gap-1 text-sm font-medium',
-        emphasized ? 'text-primary hover:text-primary/80' : 'text-gray-600 hover:text-gray-900',
+        emphasized ? 'text-primary/200 hover:text-primary/300' : 'text-gray-600 hover:text-gray-900',
         'underline-offset-4 hover:underline focus-visible:underline',
         controlRing,
-        'rounded-md px-1 py-0.5 focus-visible:ring-primary/40',
+        'px-1 py-0.5 focus-visible:ring-primary/400',
         className,
       ]
         .filter(Boolean)
