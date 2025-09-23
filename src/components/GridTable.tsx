@@ -7,7 +7,13 @@ import type {
 } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Checkbox } from './Checkbox';
-import { FileQuestion } from 'lucide-react';
+import {
+  FileQuestion,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+} from 'lucide-react';
 import ActionLink from './ActionLink';
 
 type FixedSide = 'left' | 'right';
@@ -92,10 +98,22 @@ type GridTableProps<T> = {
   rowActions?: RowActionsConfig<T>;
 
   /** 行焦点（点击行改变样式；不含键盘导航） */
-  enableRowFocus?: boolean;                    // 默认 false 关闭
-  focusedRowKey?: string | number | null;      // 受控
-  defaultFocusedRow?: string | number | null;  // 非受控默认值
+  enableRowFocus?: boolean;
+  focusedRowKey?: string | number | null;
+  defaultFocusedRow?: string | number | null;
   onFocusedRowChange?: (key: string | number | null, row: T | null) => void;
+
+  /** —— 分页（沿用 Table 的模式：数据由外部切片；组件只展示控制） —— */
+  page?: number;
+  pageSize?: number;
+  total?: number;
+  onPageChange?: (page: number) => void;
+  pageSizeOptions?: number[];
+  onPageSizeChange?: (size: number) => void;
+  /** 轻量快捷键：Alt + ← / → 翻页；Alt + Home / End 首末页（默认开启） */
+  paginationKeyboard?: boolean;
+  /** 是否显示“共 N 项”（默认 true） */
+  showTotal?: boolean;
 };
 
 type ColumnMeta<T> = {
@@ -226,6 +244,15 @@ export default function GridTable<T extends Record<string, unknown>>({
   defaultFocusedRow,
   onFocusedRowChange,
   rowActions,
+  /** 分页 */
+  page,
+  pageSize,
+  total,
+  onPageChange,
+  pageSizeOptions = [10, 20, 50],
+  onPageSizeChange,
+  paginationKeyboard = true,
+  showTotal = true,
 }: GridTableProps<T>) {
   // ==== 视窗度量 ====
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -235,6 +262,16 @@ export default function GridTable<T extends Record<string, unknown>>({
   // 横向阴影开关（仅样式）
   const [hasLeftShadow, setHasLeftShadow] = useState(false);
   const [hasRightShadow, setHasRightShadow] = useState(false);
+
+  // 是否具备分页（沿用 Table：数据由父组件切片，这里仅展示控制）
+  const hasPagination =
+    typeof page === 'number' &&
+    typeof pageSize === 'number' &&
+    typeof total === 'number' &&
+    typeof onPageChange === 'function';
+
+  // 轻量快捷键：仅在鼠标悬停表格区域时生效，避免全局抢键
+  const [hotkeyArmed, setHotkeyArmed] = useState(false);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -258,11 +295,44 @@ export default function GridTable<T extends Record<string, unknown>>({
     el.addEventListener('scroll', onScrollOrResize, { passive: true });
     onScrollOrResize();
 
+    const onEnter = () => setHotkeyArmed(true);
+    const onLeave = () => setHotkeyArmed(false);
+    el.addEventListener('mouseenter', onEnter);
+    el.addEventListener('mouseleave', onLeave);
+
     return () => {
       el.removeEventListener('scroll', onScrollOrResize);
+      el.removeEventListener('mouseenter', onEnter);
+      el.removeEventListener('mouseleave', onLeave);
       if (ro) ro.disconnect();
     };
   }, []);
+
+  useEffect(() => {
+    if (!hasPagination || !paginationKeyboard) return;
+    const handler = (e: KeyboardEvent) => {
+      if (!hotkeyArmed) return;
+      if (!e.altKey) return;
+      if (loading) return;
+      const totalPages = Math.max(1, Math.ceil((total ?? 0) / (pageSize ?? 1)));
+      const p = page ?? 1;
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        onPageChange?.(Math.max(1, p - 1));
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        onPageChange?.(Math.min(totalPages, p + 1));
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        onPageChange?.(1);
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        onPageChange?.(totalPages);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [hasPagination, paginationKeyboard, hotkeyArmed, loading, page, pageSize, total, onPageChange]);
 
   // ==== 数据准备 ====
   const rows: Array<RowItem<T>> = useMemo(
@@ -341,11 +411,14 @@ export default function GridTable<T extends Record<string, unknown>>({
   // ==== 可见切片 ====
   const fullHeight = useMemo(() => headerHeight + rowHeight * rows.length, [headerHeight, rowHeight, rows.length]);
 
+  const [scrollTopState, setScrollTopState] = useState(0);
   const visibleRows = useMemo(() => {
     if (viewHeight < headerHeight) return [];
     const visible = Math.max(viewHeight - headerHeight, 0);
     const endIndex = Math.floor((scrollTop + visible) / rowHeight) + 1;
     const startIndex = Math.max(Math.floor(scrollTop / rowHeight) - 1, 0);
+    // 记住 scrollTop 以便翻页时轻扫到顶部
+    setScrollTopState(scrollTop);
     return rows.slice(startIndex, endIndex);
   }, [rows, scrollTop, viewHeight, headerHeight, rowHeight]);
 
@@ -466,10 +539,10 @@ export default function GridTable<T extends Record<string, unknown>>({
             const base = zebra ? (item.index % 2 === 0 ? 'var(--gt-zebra-even)' : 'var(--gt-zebra-odd)') : 'var(--gt-zebra-even)';
 
             let bg = base;
-            if (isSelected) {
-              bg = isHovered ? 'var(--gt-selected-hover)' : 'var(--gt-selected)';
-            } else if (enableRowFocus && isFocused) {
+            if (enableRowFocus && isFocused) {
               bg = isHovered ? 'var(--gt-focused-hover)' : 'var(--gt-focused)';
+            } else if (isSelected) {
+              bg = isHovered ? 'var(--gt-selected-hover)' : 'var(--gt-selected)';
             } else if (isHovered) {
               bg = 'var(--gt-hover)';
             }
@@ -510,7 +583,8 @@ export default function GridTable<T extends Record<string, unknown>>({
                   }
                 }
                 onRowClick?.(item.row, ctx, e);
-                updateFocus(item.key);
+                // 行焦点
+                if (enableRowFocus) updateFocus(item.key);
               },
               onDoubleClick: (e: ReactMouseEvent<HTMLDivElement>) => {
                 const ctx: GridCellRenderContext<T> = {
@@ -641,40 +715,99 @@ export default function GridTable<T extends Record<string, unknown>>({
   const showEmpty = !loading && isEmpty;
   const showLoading = loading;
 
-  return (
-    <div
-      ref={containerRef}
-      className={cx(
-        'grid-table relative max-h-full overflow-y-auto overflow-x-auto nice-scrollbar outline-none focus:outline-none',
-        'bg-white border border-gray-200',
-        hasLeftShadow && 'has-left-shadow',
-        hasRightShadow && 'has-right-shadow',
-        className
-      )}
-    >
-      {/* 背景占位：撑起滚动高度（保持原有虚拟滚动结构，不做最小高度干预） */}
-      <div className="w-auto" style={{ height: fullHeight }}>
-        {/* 粘滞视图：三段布局 */}
-        <div className="sticky min-w-full w-max top-0 grid grid-cols-[max-content_auto_max-content] gap-0 overflow-visible">
-          <Region type="left" metas={metasLeft} template={templateLeft} />
-          <Region type="center" metas={metasCenter} template={templateCenter} />
-          <Region type="right" metas={metasRight} template={templateRight} />
+  // 分页条（轻量 UI，不喧宾夺主）
+  const PaginationBar = () => {
+    if (!hasPagination) return null;
+    const current = page ?? 1;
+    const size = pageSize ?? 10;
+    const totalCount = total ?? 0;
+    const totalPages = Math.max(1, Math.ceil(totalCount / Math.max(1, size)));
+    const atFirst = current <= 1;
+    const atLast = current >= totalPages;
+
+    const jump = (p: number) => onPageChange?.(Math.min(Math.max(1, p), totalPages));
+
+    return (
+      <div className="flex w-full items-center justify-between border-t border-gray-200 bg-white px-3 py-2 text-sm text-gray-600 select-none">
+        <div className="flex items-center gap-3">
+          {showTotal && <span className="whitespace-nowrap">共 {totalCount} 项</span>}
+          <label className="flex items-center gap-2">
+            <span className="text-gray-500">每页</span>
+            <select
+              className="rounded border border-gray-200 bg-white px-2 py-1 text-sm text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary/30"
+              value={size}
+              onChange={(e) => onPageSizeChange?.(parseInt(e.target.value, 10))}
+            >
+              {(pageSizeOptions ?? [10, 20, 50]).map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+            <span className="text-gray-500">条</span>
+          </label>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-500">
+            第 {current} / {totalPages} 页
+          </span>
+          <div className="flex items-center gap-1" data-table-row-trigger="ignore" aria-label="分页控制">
+            <ActionLink onClick={() => jump(1)} disabled={atFirst} aria-label="首页 (Alt+Home)">
+              <ChevronsLeft className="h-4 w-4" />
+            </ActionLink>
+            <ActionLink onClick={() => jump(current - 1)} disabled={atFirst} aria-label="上一页 (Alt+←)">
+              <ChevronLeft className="h-4 w-4" />
+            </ActionLink>
+            <ActionLink onClick={() => jump(current + 1)} disabled={atLast} aria-label="下一页 (Alt+→)">
+              <ChevronRight className="h-4 w-4" />
+            </ActionLink>
+            <ActionLink onClick={() => jump(totalPages)} disabled={atLast} aria-label="末页 (Alt+End)">
+              <ChevronsRight className="h-4 w-4" />
+            </ActionLink>
+          </div>
         </div>
       </div>
+    );
+  };
 
-      {/* 空态覆盖层：顶级父容器的直接子元素；不遮住表头（从 headerHeight 开始） */}
-      {showEmpty && (
-        <div
-          className="absolute z-[150] left-0 right-0 bottom-0 flex items-center justify-center p-6"
-          style={{ top: headerHeight }}
-          role="status"
-          aria-live="polite"
-        >
-          {emptyNode}
+  return (
+    <>
+      <div
+        ref={containerRef}
+        className={cx(
+          'grid-table relative max-h-full overflow-y-auto overflow-x-auto nice-scrollbar outline-none focus:outline-none',
+          'bg-white border border-gray-200',
+          hasLeftShadow && 'has-left-shadow',
+          hasRightShadow && 'has-right-shadow',
+          className
+        )}
+      >
+        {/* 背景占位：撑起滚动高度（保持原有虚拟滚动结构，不做最小高度干预） */}
+        <div className="w-auto" style={{ height: fullHeight }}>
+          {/* 粘滞视图：三段布局 */}
+          <div className="sticky min-w-full w-max top-0 grid grid-cols-[max-content_auto_max-content] gap-0 overflow-visible">
+            <Region type="left" metas={metasLeft} template={templateLeft} />
+            <Region type="center" metas={metasCenter} template={templateCenter} />
+            <Region type="right" metas={metasRight} template={templateRight} />
+          </div>
         </div>
-      )}
 
-      {showLoading && <LoadingOverlay text={loadingState} />}
-    </div>
+        {/* 空态覆盖层：顶级父容器的直接子元素；不遮住表头（从 headerHeight 开始） */}
+        {showEmpty && (
+          <div
+            className="absolute z-[150] left-0 right-0 bottom-0 flex items-center justify-center p-6"
+            style={{ top: headerHeight }}
+            role="status"
+            aria-live="polite"
+          >
+            {emptyNode}
+          </div>
+        )}
+
+        {showLoading && <LoadingOverlay text={loadingState} />}
+      </div>
+
+      {/* 轻量分页条（不改变表格主体样式） */}
+      {hasPagination && <PaginationBar />}
+    </>
   );
 }
