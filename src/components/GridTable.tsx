@@ -9,6 +9,7 @@ import type {
 } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Checkbox } from './Checkbox';
+import { Inbox,FileQuestion} from 'lucide-react'; // 空态图标：lucide
 
 type FixedSide = 'left' | 'right';
 
@@ -66,7 +67,9 @@ type GridTableProps<T> = {
   highlightOnHover?: boolean;
   rowKey?: (row: T, index: number) => string | number;
   className?: string;
+  /** 自定义空态节点（可选；若不传则使用默认写死的空态） */
   emptyState?: ReactNode;
+  /** 轻量加载态开关与文案 */
   loading?: boolean;
   loadingState?: ReactNode;
   selection?: GridSelection<T>;
@@ -563,19 +566,17 @@ export default function GridTable<T extends Record<string, unknown>>({
   };
 
 
-  // === 空态（默认视觉，可被 props.emptyState 覆盖） ===
-  const emptyNode = emptyState ?? (
-    <div className="text-center">
-      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-gray-400 shadow-inner">
-        <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor" aria-hidden>
-          <path d="M10 2a8 8 0 015.293 14.293l3.707 3.707a1 1 0 01-1.414 1.414l-3.707-3.707A8 8 0 1110 2zm-6 8a6 6 0 1012 0 6 6 0 00-12 0z" />
-        </svg>
-      </div>
-      <div className="text-sm font-medium text-gray-600">暂无数据</div>
-    </div>
-  );
+  // === 默认空态（写死）：lucide Inbox 图标 + 文案，简洁耐看 ===
+    const emptyNode = emptyState ?? (
+        <div className="text-center select-none">
+            <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-gray-50">
+                <FileQuestion className="h-5 w-5 text-gray-300" aria-hidden />
+            </div>
+            <div className="text-sm text-gray-500">没有可显示的内容</div>
+        </div>
+    );
 
-  // === 轻量加载态：半透明遮罩 + 中心旋转指示器 ===
+  // === 轻量加载态：半透明遮罩 + 中心旋转指示器（顶层兄弟，覆盖满容器） ===
   const LoadingOverlay = ({ text }: { text?: ReactNode }) => (
     <div
       className="absolute inset-0 z-[200] flex items-center justify-center"
@@ -626,12 +627,15 @@ export default function GridTable<T extends Record<string, unknown>>({
         </div>
       </div>
 
-      {/* 覆盖层 —— 注意：作为顶级父容器的直接子元素，且使用 inset-0 撑满 */}
+      {/* 空态覆盖层：顶级父容器的直接子元素；不遮住表头（从 headerHeight 开始） */}
       {showEmpty && (
-        <div className="absolute z-[150] flex items-center justify-center p-6 left-0 right-0 bottom-0" role="status" aria-live="polite" style={{top:headerHeight}}>
-          <div className="w-full max-w-xl border-gray-200 bg-white/80 px-8 py-10 text-center">
-            {emptyNode}
-          </div>
+        <div
+          className="absolute z-[150] left-0 right-0 bottom-0 flex items-center justify-center p-6"
+          style={{ top: headerHeight }}
+          role="status"
+          aria-live="polite"
+        >
+          {emptyNode}
         </div>
       )}
 
