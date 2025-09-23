@@ -366,16 +366,11 @@ export default function TableDemo() {
         key: 'id',
         title: '编号',
         fixed: 'left',
-        render: (row) => <span className="font-medium text-gray-900">{row.id}</span>,
+        semantic:'text',
       },
       {
         key: 'project',
         title: '项目',
-        render: (row) => (
-          <div className="min-w-0">
-            <div className="truncate font-medium text-gray-900">{row.project}</div>
-          </div>
-        ),
       },
       {
         key: 'owner',
@@ -384,14 +379,14 @@ export default function TableDemo() {
       {
         key: 'priority',
         title: '优先级',
-        intent: 'status',
+        semantic:'text',
         render: (row) => <Pill tone={PRIORITY_META[row.priority].tone}>{PRIORITY_META[row.priority].label}</Pill>,
       },
       {
         key: 'progress',
         title: '进度',
         width: 200,
-        semantic: 'number',
+        semantic: 'text',
         render: (row) => (
           <div className="flex items-center justify-end gap-3 h-full block">
             <ProgressBar
@@ -406,7 +401,7 @@ export default function TableDemo() {
       {
         key: 'budgetUsed',
         title: '已使用预算',
-        semantic: 'currency',
+        semantic: 'number',
         render: (row) => <span>{currencyFormatter.format(row.budgetUsed)}</span>,
       },
       {
@@ -418,7 +413,7 @@ export default function TableDemo() {
       {
         key: 'risk',
         title: '风险',
-        intent: 'status',
+        semantic: 'text',
         render: (row) => <Pill tone={RISK_META[row.risk].tone}>{RISK_META[row.risk].label}</Pill>,
       }
     ],

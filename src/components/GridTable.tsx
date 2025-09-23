@@ -33,7 +33,7 @@ export type GridColumn<T> = {
     className?: string;
     headerClassName?: string;
     intent?: 'data' | 'actions' | 'status' | 'meta';
-    semantic?: 'text' | 'number' | 'integer' | 'currency' | 'percent' | 'date' | 'time' | 'datetime';
+    semantic?: 'text' | 'number' | 'datetime';
     hidden?: boolean;
     fixed?: FixedSide; // 若未显式设置且 intent=actions，则默认走 right 固定区
 };
@@ -131,13 +131,10 @@ function resolveAlign<T>(col: GridColumn<T>): 'left' | 'center' | 'right' {
     if (col.align) return col.align;
     switch (col.semantic) {
         case 'number':
-        case 'integer':
-        case 'currency':
-        case 'percent':
             return 'right';
-        case 'date':
-        case 'time':
         case 'datetime':
+            return 'center';
+        case 'text':
             return 'center';
         default:
             return 'left';
@@ -147,12 +144,6 @@ function resolveAlign<T>(col: GridColumn<T>): 'left' | 'center' | 'right' {
 function getSemanticClass<T>(col: GridColumn<T>): string {
     switch (col.semantic) {
         case 'number':
-        case 'integer':
-        case 'currency':
-        case 'percent':
-        case 'date':
-        case 'time':
-        case 'datetime':
             return 'tabular-nums';
         default:
             return '';
@@ -304,7 +295,7 @@ export default function GridTable<T extends Record<string, unknown>>({
                 title: selection.headerTitle ?? '',
                 align: 'center',
                 intent: 'meta',
-                semantic: 'integer',
+                semantic: 'text',
                 fixed: 'left',
                 width: selection.columnWidth,
             } as GridColumn<T>)
@@ -317,7 +308,7 @@ export default function GridTable<T extends Record<string, unknown>>({
                 title: '序号',
                 align: 'center',
                 intent: 'meta',
-                semantic: 'integer',
+                semantic: 'text',
                 fixed: 'left',
             } as GridColumn<T>)
             : null;
