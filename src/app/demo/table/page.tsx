@@ -878,6 +878,7 @@ export default function TableDemo() {
             rowKey={(row) => row.id}
             loading={gridLoading}
             rowActions={gridRowActions}
+            enableRowFocus
             showIndex
             selection={{
               // 关键：把示例页里已有的已选状态传进来

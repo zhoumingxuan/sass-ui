@@ -55,6 +55,10 @@
   --gt-z-center: 20;
   --gt-z-right: 25;
   --gt-z-head: 40;
+
+  --gt-focused: rgba(30,128,255,.12);
+  --gt-focused-hover: rgba(30,128,255,.16);
+
 }
 
 /* === 组件级样式（类名尽量语义化） === */

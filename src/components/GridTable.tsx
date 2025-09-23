@@ -97,6 +97,13 @@ type GridTableProps<T> = {
 
     /** —— 内置操作列（通用） —— */
     rowActions?: RowActionsConfig<T>;
+
+    /** 行焦点（点击行改变样式；不含键盘导航） */
+    enableRowFocus?: boolean;                    // 默认 false 关闭
+    focusedRowKey?: string | number | null;      // 受控
+    defaultFocusedRow?: string | number | null;  // 非受控默认值
+    onFocusedRowChange?: (key: string | number | null, row: T | null) => void;
+
 };
 
 type ColumnMeta<T> = {
@@ -225,6 +232,10 @@ export default function GridTable<T extends Record<string, unknown>>({
     onRowClick,
     onRowDoubleClick,
     showIndex = false,
+    enableRowFocus = false,
+    focusedRowKey,
+    defaultFocusedRow,
+    onFocusedRowChange,
     rowActions,
 }: GridTableProps<T>) {
     // ==== 视窗度量 ====
@@ -363,17 +374,44 @@ export default function GridTable<T extends Record<string, unknown>>({
     const [hoverKey, setHoverKey] = useState<string | number | null>(null);
     const selectedSet = useMemo(() => new Set(selection?.selectedKeys ?? []), [selection?.selectedKeys]);
 
-    const [activeFocusKey, setActiveFocusKey] = useState<string | number | null>(null);
-    useEffect(() => {
-        if (rows.length === 0) {
-            if (activeFocusKey !== null) setActiveFocusKey(null);
-            return;
-        }
-        if (activeFocusKey != null && rows.some((r) => r.key === activeFocusKey)) return;
-        setActiveFocusKey(rows[0]?.key ?? null);
-    }, [rows, activeFocusKey]);
 
-    const updateFocus = useCallback((key: string | number | null) => setActiveFocusKey(key), []);
+    // --- 行焦点：精简版（仅点击触发；可受控/非受控） ---
+    const isFocusControlled = typeof focusedRowKey !== 'undefined';
+    const [internalFocusKey, setInternalFocusKey] = useState<string | number | null>(
+        typeof defaultFocusedRow !== 'undefined' ? defaultFocusedRow : null
+    );
+
+    // 若没开启行焦点，则认为无焦点；开启时使用受控/非受控来源
+    const activeFocusKey = enableRowFocus
+        ? ((isFocusControlled ? (focusedRowKey ?? null) : internalFocusKey))
+        : null;
+
+    const updateFocus = useCallback((key: string | number | null) => {
+        if (!enableRowFocus) return;
+        if (!isFocusControlled) setInternalFocusKey(key);
+        const row = key == null ? null : rows.find(r => r.key === key)?.row ?? null;
+        onFocusedRowChange?.(key, row);
+    }, [enableRowFocus, isFocusControlled, onFocusedRowChange, rows]);
+
+    // 数据变化时，若当前焦点行已不存在则清空
+    useEffect(() => {
+        if (!enableRowFocus) return;
+        if (activeFocusKey != null && !rows.some(r => r.key === activeFocusKey)) {
+            updateFocus(null);
+        }
+    }, [rows, enableRowFocus, activeFocusKey, updateFocus]);
+
+    // 点击表格之外任意位置清除焦点
+    useEffect(() => {
+        if (!enableRowFocus) return;
+        const onDocPointerDown = (e: PointerEvent) => {
+            const el = containerRef.current;
+            if (el && !el.contains(e.target as Node)) updateFocus(null);
+        };
+        document.addEventListener('pointerdown', onDocPointerDown, true);
+        return () => document.removeEventListener('pointerdown', onDocPointerDown, true);
+    }, [enableRowFocus, updateFocus]);
+
 
     const isRowSelectable = useCallback(
         (r: T, i: number) => (selection?.isRowSelectable ? selection.isRowSelectable(r, i) : true),
@@ -419,34 +457,6 @@ export default function GridTable<T extends Record<string, unknown>>({
             }
         },
         [selection, rows]
-    );
-
-    // 键盘控制焦点
-    const handleKeyDown = useCallback(
-        (e: ReactKeyboardEvent<HTMLDivElement>) => {
-            if (rows.length === 0) return;
-            const idx = activeFocusKey == null ? -1 : rows.findIndex((it) => it.key === activeFocusKey);
-            if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                const next = idx < rows.length - 1 ? rows[idx + 1] : rows[rows.length - 1];
-                updateFocus(next?.key ?? null);
-            } else if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                const prev = idx > 0 ? rows[idx - 1] : rows[0];
-                updateFocus(prev?.key ?? null);
-            } else if (e.key === 'Home') {
-                e.preventDefault();
-                updateFocus(rows[0]?.key ?? null);
-            } else if (e.key === 'End') {
-                e.preventDefault();
-                updateFocus(rows[rows.length - 1]?.key ?? null);
-            } else if ((e.key === ' ' || e.key === 'Spacebar') && selection && activeFocusKey != null) {
-                e.preventDefault();
-                const hit = rows.find((r) => r.key === activeFocusKey);
-                if (hit) toggleOne(hit);
-            }
-        },
-        [rows, activeFocusKey, selection, toggleOne, updateFocus]
     );
 
     // === Region ===
@@ -527,7 +537,19 @@ export default function GridTable<T extends Record<string, unknown>>({
                         const isFocused = activeFocusKey != null && activeFocusKey === item.key;
 
                         const base = zebra ? (item.index % 2 === 0 ? 'var(--gt-zebra-even)' : 'var(--gt-zebra-odd)') : 'var(--gt-zebra-even)';
-                        const bg = isSelected ? (isHovered ? 'var(--gt-selected-hover)' : 'var(--gt-selected)') : isHovered ? 'var(--gt-hover)' : base;
+                        
+                        let bg = base;
+                        if (isSelected) {
+                            bg = isHovered ? 'var(--gt-selected-hover)' : 'var(--gt-selected)';
+                        }
+                        else if (enableRowFocus && isFocused) {
+                            // 焦点优先：有 hover 时用更深一点的焦点色
+                            bg = isHovered ? 'var(--gt-focused-hover)' : 'var(--gt-focused)';
+                        } else if (isHovered) {
+                            bg = 'var(--gt-hover)';
+                        }
+                        // 否则就是 base（斑马）
+
 
                         const commonProps = {
                             className: cx(
@@ -565,6 +587,7 @@ export default function GridTable<T extends Record<string, unknown>>({
                                     }
                                 }
                                 onRowClick?.(item.row, ctx, e);
+                                updateFocus(item.key);
                             },
                             onDoubleClick: (e: ReactMouseEvent<HTMLDivElement>) => {
                                 const ctx: GridCellRenderContext<T> = {
@@ -705,8 +728,6 @@ export default function GridTable<T extends Record<string, unknown>>({
     return (
         <div
             ref={containerRef}
-            tabIndex={0}
-            onKeyDown={handleKeyDown}
             className={cx(
                 'grid-table relative max-h-full overflow-y-auto overflow-x-auto nice-scrollbar outline-none focus:outline-none',
                 'bg-white border border-gray-200',
