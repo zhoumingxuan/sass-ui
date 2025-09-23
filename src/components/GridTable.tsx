@@ -7,13 +7,16 @@ import type {
 } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Checkbox } from './Checkbox';
+
 import {
   FileQuestion,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  Loader2,              // ← 新增：用作加载中的图标
 } from 'lucide-react';
+
 import ActionLink from './ActionLink';
 
 type FixedSide = 'left' | 'right';
@@ -637,6 +640,7 @@ export default function GridTable<T extends Record<string, unknown>>({
                   <div className="flex items-center justify-center space-x-1" data-table-row-trigger="ignore">
                     {acts.map((a) => (
                       <ActionLink
+                        emphasized
                         key={a.key}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -695,17 +699,14 @@ export default function GridTable<T extends Record<string, unknown>>({
   // === 轻量加载态：半透明遮罩 + 中心旋转指示器（顶层兄弟，覆盖满容器） ===
   const LoadingOverlay = ({ text }: { text?: ReactNode }) => (
     <div
-      className="absolute inset-0 z-[200] flex items-center justify-center"
+      className="absolute left-0 right-0 bottom-0 top-0 z-[200] flex items-center justify-center"
       role="status"
       aria-live="polite"
       aria-busy="true"
     >
       <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px]" />
-      <div className="relative flex items-center gap-3 rounded-md bg-white/90 px-3 py-2 text-sm text-gray-600 shadow-sm">
-        <svg className="h-4 w-4 animate-spin text-gray-400" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="3" opacity="0.25" />
-          <path d="M21 12a9 9 0 00-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-        </svg>
+      <div className="relative flex items-center gap-3 bg-white/90 px-3 py-2 text-sm text-gray-600 shadow-sm">
+        <Loader2 className="h-4 w-4 animate-spin text-gray-400" aria-hidden />
         <span>{text ?? '加载中…'}</span>
       </div>
     </div>
@@ -726,6 +727,8 @@ export default function GridTable<T extends Record<string, unknown>>({
     const atLast = current >= totalPages;
 
     const jump = (p: number) => onPageChange?.(Math.min(Math.max(1, p), totalPages));
+    // 轻度跳转锚点：5 / 10 / 20（仅当在范围内时显示）
+    const landmarks = [5, 10, 20].filter((p) => p > 1 && p < totalPages);
 
     return (
       <div className="flex w-full items-center justify-between border-t border-gray-200 bg-white px-3 py-2 text-sm text-gray-600 select-none">
@@ -746,28 +749,43 @@ export default function GridTable<T extends Record<string, unknown>>({
           </label>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500">
-            第 {current} / {totalPages} 页
-          </span>
-          <div className="flex items-center gap-1" data-table-row-trigger="ignore" aria-label="分页控制">
-            <ActionLink onClick={() => jump(1)} disabled={atFirst} aria-label="首页 (Alt+Home)">
-              <ChevronsLeft className="h-4 w-4" />
-            </ActionLink>
-            <ActionLink onClick={() => jump(current - 1)} disabled={atFirst} aria-label="上一页 (Alt+←)">
-              <ChevronLeft className="h-4 w-4" />
-            </ActionLink>
-            <ActionLink onClick={() => jump(current + 1)} disabled={atLast} aria-label="下一页 (Alt+→)">
-              <ChevronRight className="h-4 w-4" />
-            </ActionLink>
-            <ActionLink onClick={() => jump(totalPages)} disabled={atLast} aria-label="末页 (Alt+End)">
-              <ChevronsRight className="h-4 w-4" />
-            </ActionLink>
-          </div>
-        </div>
-      </div>
-    );
-  };
+                <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">
+                        第 {current} / {totalPages} 页
+                    </span>
+                    <div className="flex items-center gap-1" data-table-row-trigger="ignore" aria-label="分页控制">
+                        <ActionLink onClick={() => jump(1)} disabled={atFirst} aria-label="首页 (Alt+Home)">
+                            <ChevronsLeft className="h-4 w-4" />
+                        </ActionLink>
+                        <ActionLink onClick={() => jump(current - 1)} disabled={atFirst} aria-label="上一页 (Alt+←)">
+                            <ChevronLeft className="h-4 w-4" />
+                        </ActionLink>
+                        <ActionLink onClick={() => jump(current + 1)} disabled={atLast} aria-label="下一页 (Alt+→)">
+                            <ChevronRight className="h-4 w-4" />
+                        </ActionLink>
+                        <ActionLink onClick={() => jump(totalPages)} disabled={atLast} aria-label="末页 (Alt+End)">
+                            <ChevronsRight className="h-4 w-4" />
+                        </ActionLink>
+
+                        {/* 轻度跳转锚点：5/10/20 页（存在即显） */}
+                        {landmarks.length > 0 && <span className="mx-1 h-4 w-px bg-gray-200" aria-hidden />} {/* 细分隔线 */}
+                        {landmarks.map((p) => (
+                            <ActionLink
+                                key={p}
+                                onClick={() => jump(p)}
+                                disabled={p === current}
+                                className="text-[12px] leading-none"
+                                aria-label={`跳到第 ${p} 页`}
+                            >
+                                {p}
+                            </ActionLink>
+                        ))}
+
+                    </div>
+                </div>
+            </div>
+        );
+    };
 
   return (
     <>
