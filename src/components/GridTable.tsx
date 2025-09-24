@@ -261,6 +261,14 @@ export default function GridTable<T extends Record<string, unknown>>({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [viewHeight, setViewHeight] = useState(0);
   const [scrollTop, setScrollTop] = useState(0);
+
+  const rafIdRef = useRef<number | null>(null);
+  const scrollCacheRef = useRef({
+    scrollTop: 0,
+    hasLeftShadow: false,
+    hasRightShadow: false,
+  });
+
   
   // 横向阴影开关（仅样式）
   const [hasLeftShadow, setHasLeftShadow] = useState(false);
@@ -280,22 +288,50 @@ export default function GridTable<T extends Record<string, unknown>>({
     const el = containerRef.current;
     if (!el) return;
 
-    const measure = () => setViewHeight(el.clientHeight);
+    const lastHeightRef = { current: 0 };
+    const measure = () => {
+      const h = el.clientHeight;
+      if (h !== lastHeightRef.current) {
+        lastHeightRef.current = h;
+        setViewHeight(h);
+      }
+    };
     measure();
 
     let ro: ResizeObserver | null = null;
     if (typeof window !== 'undefined' && 'ResizeObserver' in window) {
-      ro = new ResizeObserver(() => measure());
+      ro = new ResizeObserver(measure);
       ro.observe(el);
     }
 
-    const onScrollOrResize = () => {
-      setScrollTop(el.scrollTop);
-      const { scrollLeft, clientWidth, scrollWidth } = el;
-      setHasLeftShadow(scrollLeft > 0);
-      setHasRightShadow(scrollLeft + clientWidth < scrollWidth - 1);
+    const scheduleScrollCalc = () => {
+      if (rafIdRef.current != null) return;
+      rafIdRef.current = requestAnimationFrame(() => {
+        rafIdRef.current = null;
+        const { scrollLeft, scrollTop: st, clientWidth, scrollWidth } = el;
+        const next = {
+          scrollTop: st,
+          hasLeftShadow: scrollLeft > 0,
+          hasRightShadow: scrollLeft + clientWidth < scrollWidth - 1,
+        };
+        const prev = scrollCacheRef.current;
+
+        // 仅对变更的字段 setState
+        if (next.scrollTop !== prev.scrollTop) setScrollTop(next.scrollTop);
+        if (next.hasLeftShadow !== prev.hasLeftShadow) setHasLeftShadow(next.hasLeftShadow);
+        if (next.hasRightShadow !== prev.hasRightShadow) setHasRightShadow(next.hasRightShadow);
+
+        scrollCacheRef.current = next;
+      });
     };
+
+    const onScrollOrResize = () => {
+      // 被动监听，统一交给 rAF 批处理
+      scheduleScrollCalc();
+    };
+
     el.addEventListener('scroll', onScrollOrResize, { passive: true });
+    // 初始化一次阴影状态
     onScrollOrResize();
 
     const onEnter = () => setHotkeyArmed(true);
@@ -308,8 +344,13 @@ export default function GridTable<T extends Record<string, unknown>>({
       el.removeEventListener('mouseenter', onEnter);
       el.removeEventListener('mouseleave', onLeave);
       if (ro) ro.disconnect();
+      if (rafIdRef.current != null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
     };
   }, []);
+
 
  useEffect(() => {
     if (!hasPagination || !paginationKeyboard) return;
@@ -562,8 +603,11 @@ export default function GridTable<T extends Record<string, unknown>>({
                 backgroundColor: bg,
               } as CSSProperties,
               'data-focused': isFocused ? 'true' : undefined,
-              onMouseEnter: () => setHoverKey(item.key),
-              onMouseLeave: () => setHoverKey((k) => (k === item.key ? null : k)),
+              onMouseEnter: () =>
+                setHoverKey((k) => (k === item.key ? k : item.key)),
+              onMouseLeave: () =>
+                setHoverKey((k) => (k === item.key ? null : k)),
+
               title: m.column.tooltip ? m.column.tooltip(item.row) : undefined,
               onClick: (e: ReactMouseEvent<HTMLDivElement>) => {
                 const ctx: GridCellRenderContext<T> = {
@@ -812,7 +856,7 @@ export default function GridTable<T extends Record<string, unknown>>({
               onChange={(e) => setRaw(e.target.value.replace(/[^\d]/g, ''))}
               onKeyDown={onKeyDown}
               onBlur={() => setRaw(String(parseToPage(raw) ?? current))}
-              className="h-8 w-16 rounded-sm border border-gray-200 bg-white px-2 text-[13px] text-gray-700 hover:border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-center tabular-nums"
+              className="h-8 w-12 rounded-sm border border-gray-200 bg-white px-2 text-[13px] text-gray-700 hover:border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-center tabular-nums"
               aria-label="输入页码并回车或点击确定跳转"
             />
             <span className="text-gray-500">页</span>
