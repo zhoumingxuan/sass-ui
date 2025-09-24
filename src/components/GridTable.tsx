@@ -716,7 +716,7 @@ export default function GridTable<T extends Record<string, unknown>>({
   const showEmpty = !loading && isEmpty;
   const showLoading = loading;
 
-  // 分页条（轻量 UI，不喧宾夺主）
+  // 分页条（仅此处重写：布局/间距统一 + 指定页跳转更细致）
   const PaginationBar = () => {
     if (!hasPagination) return null;
     const current = page ?? 1;
@@ -728,14 +728,50 @@ export default function GridTable<T extends Record<string, unknown>>({
 
     const jump = (p: number) => onPageChange?.(Math.min(Math.max(1, p), totalPages));
 
+    // —— 指定页跳转：更严谨的输入与边界 —— //
+    const [raw, setRaw] = useState<string>(String(current));
+    useEffect(() => setRaw(String(current)), [current, totalPages]);
+
+    const clamp = (n: number) => Math.min(Math.max(1, Math.trunc(n)), totalPages);
+    const parseToPage = (v: string): number | null => {
+      if (!v) return null;
+      const n = Number(v);
+      if (!Number.isFinite(n)) return null;
+      return clamp(n);
+    };
+
+    const commit = () => {
+      const n = parseToPage(raw);
+      if (n == null) { setRaw(String(current)); return; }
+      if (n !== current) jump(n);
+    };
+
+    const onKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); commit(); }
+      else if (e.key === 'ArrowUp')  { e.preventDefault(); setRaw(String(clamp((Number(raw || current) + 1)))); }
+      else if (e.key === 'ArrowDown'){ e.preventDefault(); setRaw(String(clamp((Number(raw || current) - 1)))); }
+    };
+
+    const disabledNav = showLoading || totalPages <= 1;
+
     return (
-      <div className="flex w-full items-center justify-between border-t border-gray-200 bg-white px-3 py-2 text-sm text-gray-600 select-none">
-        <div className="flex items-center gap-3">
-          {showTotal && <span className="whitespace-nowrap">共 {totalCount} 项</span>}
-          <label className="flex items-center gap-2">
+      <div
+        className={cx(
+          'grid items-center border-t border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 select-none',
+          'grid-cols-[1fr_auto_1fr]' // 左(总数/每页)-中(导航)-右(跳转)
+        )}
+      >
+        {/* 左侧：总数 + 每页 */}
+        <div className="flex items-center gap-3 min-w-0">
+          {showTotal && (
+            <span className="shrink-0 text-gray-600">
+              共 <span className="tabular-nums">{totalCount}</span> 项
+            </span>
+          )}
+          <label className="flex items-center gap-2 shrink-0">
             <span className="text-gray-500">每页</span>
             <select
-              className="rounded border border-gray-200 bg-white px-2 py-1 text-sm text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary/30"
+              className="h-8 rounded-md border border-gray-200 bg-white px-2 text-sm text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary/30"
               value={size}
               onChange={(e) => onPageSizeChange?.(parseInt(e.target.value, 10))}
             >
@@ -747,29 +783,51 @@ export default function GridTable<T extends Record<string, unknown>>({
           </label>
         </div>
 
-                <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500">
-                        第 {current} / {totalPages} 页
-                    </span>
-                    <div className="flex items-center gap-1" data-table-row-trigger="ignore" aria-label="分页控制">
-                        <ActionLink onClick={() => jump(1)} disabled={atFirst} aria-label="首页 (Alt+Home)">
-                            <ChevronsLeft className="h-4 w-4" />
-                        </ActionLink>
-                        <ActionLink onClick={() => jump(current - 1)} disabled={atFirst} aria-label="上一页 (Alt+←)">
-                            <ChevronLeft className="h-4 w-4" />
-                        </ActionLink>
-                        <ActionLink onClick={() => jump(current + 1)} disabled={atLast} aria-label="下一页 (Alt+→)">
-                            <ChevronRight className="h-4 w-4" />
-                        </ActionLink>
-                        <ActionLink onClick={() => jump(totalPages)} disabled={atLast} aria-label="末页 (Alt+End)">
-                            <ChevronsRight className="h-4 w-4" />
-                        </ActionLink>
+        {/* 中间：分页导航（统一高度/间距） */}
+        <div className="flex items-center justify-center gap-1">
+          <ActionLink onClick={() => jump(1)} disabled={disabledNav || atFirst} aria-label="首页 (Alt+Home)">
+            <ChevronsLeft className="h-4 w-4" />
+          </ActionLink>
+          <ActionLink onClick={() => jump(current - 1)} disabled={disabledNav || atFirst} aria-label="上一页 (Alt+←)">
+            <ChevronLeft className="h-4 w-4" />
+          </ActionLink>
 
-                    </div>
-                </div>
-            </div>
-        );
-    };
+          <span className="mx-2 text-xs text-gray-500 select-none">
+            第 <span className="tabular-nums">{current}</span> / <span className="tabular-nums">{totalPages}</span> 页
+          </span>
+
+          <ActionLink onClick={() => jump(current + 1)} disabled={disabledNav || atLast} aria-label="下一页 (Alt+→)">
+            <ChevronRight className="h-4 w-4" />
+          </ActionLink>
+          <ActionLink onClick={() => jump(totalPages)} disabled={disabledNav || atLast} aria-label="末页 (Alt+End)">
+            <ChevronsRight className="h-4 w-4" />
+          </ActionLink>
+        </div>
+
+        {/* 右侧：指定页跳转（更细致） */}
+        <div className="flex items-center justify-end gap-2 min-w-0" data-table-row-trigger="ignore">
+          <label className="flex items-center gap-2">
+            <span className="text-gray-500 shrink-0">跳转到</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={raw}
+              onChange={(e) => setRaw(e.target.value.replace(/[^\d]/g, ''))}
+              onKeyDown={onKeyDown}
+              onBlur={() => setRaw(String(parseToPage(raw) ?? current))}
+              className="h-8 w-16 rounded-md border border-gray-200 bg-white px-2 text-sm text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary/30 text-center tabular-nums"
+              aria-label="输入页码并回车或点击确定跳转"
+            />
+            <span className="text-gray-500 shrink-0">页</span>
+          </label>
+          <ActionLink emphasized onClick={commit} disabled={parseToPage(raw) === current} aria-label="确定跳转">
+            确定
+          </ActionLink>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <>
