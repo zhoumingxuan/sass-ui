@@ -143,7 +143,7 @@ export default function Home() {
         minWidth: 200,
         render: (row) => (
           <div className="flex items-center gap-2" data-table-row-trigger="ignore">
-            <ActionLink emphasized>查看档案</ActionLink>
+            <ActionLink tone="primary">查看档案</ActionLink>
             <ActionLink onClick={() => console.log("edit", row.id)}>编辑</ActionLink>
           </div>
         ),

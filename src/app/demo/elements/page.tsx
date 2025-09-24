@@ -47,7 +47,7 @@ export default function ElementsDemo() {
       <Card title="操作链接 ActionLink">
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-2">
-            <ActionLink emphasized>立即处理</ActionLink>
+            <ActionLink tone="primary">立即处理</ActionLink>
             <ActionLink>查看详情</ActionLink>
             <ActionLink className="inline-flex items-center gap-1 text-gray-500">
               <LinkIcon size={14} />

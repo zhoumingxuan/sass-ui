@@ -59,6 +59,8 @@
   --gt-focused: rgba(30,128,255,.12);
   --gt-focused-hover: rgba(30,128,255,.16);
 
+  --action-ghost-hover: color-mix(in srgb, var(--color-gray-900) 8%, transparent); 
+
 }
 
 /* === 组件级样式（类名尽量语义化） === */

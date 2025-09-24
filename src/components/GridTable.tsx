@@ -682,7 +682,8 @@ export default function GridTable<T extends Record<string, unknown>>({
                   <div className="flex items-center justify-center space-x-1" data-table-row-trigger="ignore">
                     {acts.map((a) => (
                       <ActionLink
-                        emphasized
+                        tone="primary"
+                        size='xs'
                         key={a.key}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -816,16 +817,16 @@ export default function GridTable<T extends Record<string, unknown>>({
 
         {/* 中间：导航按钮（等距） */}
         <div className="flex items-center justify-center gap-2">
-          <ActionLink onClick={() => jump(1)} disabled={disabledNav || atFirst} aria-label="首页 (Alt+Home)">
+          <ActionLink variant='ghost' size='xs' iconOnly onClick={() => jump(1)} disabled={disabledNav || atFirst} aria-label="首页 (Alt+Home)">
             <ChevronsLeft className="h-4 w-4" />
           </ActionLink>
-          <ActionLink onClick={() => jump(current - 1)} disabled={disabledNav || atFirst} aria-label="上一页 (Alt+←)">
+          <ActionLink variant='ghost' size='xs' iconOnly onClick={() => jump(current - 1)} disabled={disabledNav || atFirst} aria-label="上一页 (Alt+←)">
             <ChevronLeft className="h-4 w-4" />
           </ActionLink>
-          <ActionLink onClick={() => jump(current + 1)} disabled={disabledNav || atLast} aria-label="下一页 (Alt+→)">
+          <ActionLink variant='ghost' size='xs' iconOnly onClick={() => jump(current + 1)} disabled={disabledNav || atLast} aria-label="下一页 (Alt+→)">
             <ChevronRight className="h-4 w-4" />
           </ActionLink>
-          <ActionLink onClick={() => jump(totalPages)} disabled={disabledNav || atLast} aria-label="末页 (Alt+End)">
+          <ActionLink variant='ghost' size='xs' iconOnly onClick={() => jump(totalPages)} disabled={disabledNav || atLast} aria-label="末页 (Alt+End)">
             <ChevronsRight className="h-4 w-4" />
           </ActionLink>
         </div>
@@ -860,7 +861,7 @@ export default function GridTable<T extends Record<string, unknown>>({
               aria-label="输入页码并回车或点击确定跳转"
             />
             <span className="text-gray-500">页</span>
-            <ActionLink emphasized onClick={commit} disabled={parseToPage(raw) === current} aria-label="确定跳转">
+            <ActionLink tone='primary' size='xs' onClick={commit} disabled={parseToPage(raw) === current} aria-label="确定跳转">
               确定
             </ActionLink>
           </div>

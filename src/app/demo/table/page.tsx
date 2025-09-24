@@ -343,6 +343,7 @@ export default function GridTableDemoPage() {
   }, [rows]);
 
   const refresh = () => {
+    setRows([]);
     if (timerRef.current) window.clearTimeout(timerRef.current);
     setLoading(true);
     timerRef.current = setTimeout(() => {

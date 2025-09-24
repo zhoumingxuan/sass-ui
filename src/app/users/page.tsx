@@ -73,7 +73,7 @@ export default function Users() {
         minWidth: 220,
         render: (row) => (
           <div className="flex items-center justify-end gap-2" data-table-row-trigger="ignore">
-            <ActionLink emphasized onClick={() => setEditingUser(row)}>
+            <ActionLink tone="primary" onClick={() => setEditingUser(row)}>
               修改
             </ActionLink>
             <ActionLink onClick={() => setDeletingUser(row)}>删除</ActionLink>
