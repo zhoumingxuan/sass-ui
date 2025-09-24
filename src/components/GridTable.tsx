@@ -791,7 +791,7 @@ export default function GridTable<T extends Record<string, unknown>>({
           <label className="flex items-center gap-2 shrink-0">
             <span className="text-gray-500">每页</span>
             <select
-              className="h-8 rounded-md border border-gray-200 bg-white px-2 text-sm text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary/30"
+              className="h-8 rounded-sm border border-gray-200 bg-white px-2 text-sm text-gray-700 hover:border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               value={size}
               onChange={(e) => onPageSizeChange?.(parseInt(e.target.value, 10))}
             >
@@ -812,7 +812,7 @@ export default function GridTable<T extends Record<string, unknown>>({
               onChange={(e) => setRaw(e.target.value.replace(/[^\d]/g, ''))}
               onKeyDown={onKeyDown}
               onBlur={() => setRaw(String(parseToPage(raw) ?? current))}
-              className="h-8 w-16 rounded-md border border-gray-200 bg-white px-2 text-sm text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary/30 text-center tabular-nums"
+              className="h-8 w-16 rounded-sm border border-gray-200 bg-white px-2 text-sm text-gray-700 hover:border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-center tabular-nums"
               aria-label="输入页码并回车或点击确定跳转"
             />
             <span className="text-gray-500">页</span>
