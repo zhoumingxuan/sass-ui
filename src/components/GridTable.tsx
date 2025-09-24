@@ -14,7 +14,7 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  Loader2,              // ← 新增：用作加载中的图标
+  Loader2,             
 } from 'lucide-react';
 
 import ActionLink from './ActionLink';
@@ -96,7 +96,7 @@ type GridTableProps<T> = {
 
   /** —— 序号列 —— */
   showIndex?: boolean;
-
+  
   /** —— 内置操作列（通用） —— */
   rowActions?: RowActionsConfig<T>;
 
@@ -113,7 +113,7 @@ type GridTableProps<T> = {
   onPageChange?: (page: number) => void;
   pageSizeOptions?: number[];
   onPageSizeChange?: (size: number) => void;
-  /** 轻量快捷键：Alt + ← / → 翻页；Alt + Home / End 首末页（默认开启） */
+   /** 轻量快捷键：Alt + ← / → 翻页；Alt + Home / End 首末页（默认开启） */
   paginationKeyboard?: boolean;
   /** 是否显示“共 N 项”（默认 true） */
   showTotal?: boolean;
@@ -147,7 +147,7 @@ function cssNumber(varName: string, fallback: number) {
 function resolveAlign<T>(col: GridColumn<T>): 'left' | 'center' | 'right' {
   if (col.intent === 'actions') return 'center';
   if (col.align) return col.align;
-  switch (col.semantic) {
+   switch (col.semantic) {
     case 'number':
       return 'right';
     case 'datetime':
@@ -261,7 +261,7 @@ export default function GridTable<T extends Record<string, unknown>>({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [viewHeight, setViewHeight] = useState(0);
   const [scrollTop, setScrollTop] = useState(0);
-
+  
   // 横向阴影开关（仅样式）
   const [hasLeftShadow, setHasLeftShadow] = useState(false);
   const [hasRightShadow, setHasRightShadow] = useState(false);
@@ -311,7 +311,7 @@ export default function GridTable<T extends Record<string, unknown>>({
     };
   }, []);
 
-  useEffect(() => {
+ useEffect(() => {
     if (!hasPagination || !paginationKeyboard) return;
     const handler = (e: KeyboardEvent) => {
       if (!hotkeyArmed) return;
@@ -414,14 +414,12 @@ export default function GridTable<T extends Record<string, unknown>>({
   // ==== 可见切片 ====
   const fullHeight = useMemo(() => headerHeight + rowHeight * rows.length, [headerHeight, rowHeight, rows.length]);
 
-  const [scrollTopState, setScrollTopState] = useState(0);
   const visibleRows = useMemo(() => {
     if (viewHeight < headerHeight) return [];
     const visible = Math.max(viewHeight - headerHeight, 0);
     const endIndex = Math.floor((scrollTop + visible) / rowHeight) + 1;
     const startIndex = Math.max(Math.floor(scrollTop / rowHeight) - 1, 0);
     // 记住 scrollTop 以便翻页时轻扫到顶部
-    setScrollTopState(scrollTop);
     return rows.slice(startIndex, endIndex);
   }, [rows, scrollTop, viewHeight, headerHeight, rowHeight]);
 
@@ -590,7 +588,7 @@ export default function GridTable<T extends Record<string, unknown>>({
                 if (enableRowFocus) updateFocus(item.key);
               },
               onDoubleClick: (e: ReactMouseEvent<HTMLDivElement>) => {
-                const ctx: GridCellRenderContext<T> = {
+               const ctx: GridCellRenderContext<T> = {
                   row: item.row,
                   rowIndex: item.index,
                   key: item.key,
@@ -686,7 +684,7 @@ export default function GridTable<T extends Record<string, unknown>>({
     );
   };
 
-  // === 默认空态（写死）：lucide 图标 + 文案 ===
+ // === 默认空态（写死）：lucide 图标 + 文案 ===
   const emptyNode = emptyState ?? (
     <div className="text-center select-none">
       <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-gray-50">
@@ -716,9 +714,10 @@ export default function GridTable<T extends Record<string, unknown>>({
   const showEmpty = !loading && isEmpty;
   const showLoading = loading;
 
-  // 分页条（仅此处重写：布局/间距统一 + 指定页跳转更细致）
+  /** ===== 分页条：左 = 总数+页信息 | 中 = 导航 | 右 = 每页+跳转 ===== */
   const PaginationBar = () => {
     if (!hasPagination) return null;
+
     const current = page ?? 1;
     const size = pageSize ?? 10;
     const totalCount = total ?? 0;
@@ -728,7 +727,7 @@ export default function GridTable<T extends Record<string, unknown>>({
 
     const jump = (p: number) => onPageChange?.(Math.min(Math.max(1, p), totalPages));
 
-    // —— 指定页跳转：更严谨的输入与边界 —— //
+    // —— 指定页交互（受控输入 + 边界） —— //
     const [raw, setRaw] = useState<string>(String(current));
     useEffect(() => setRaw(String(current)), [current, totalPages]);
 
@@ -739,17 +738,15 @@ export default function GridTable<T extends Record<string, unknown>>({
       if (!Number.isFinite(n)) return null;
       return clamp(n);
     };
-
     const commit = () => {
       const n = parseToPage(raw);
       if (n == null) { setRaw(String(current)); return; }
       if (n !== current) jump(n);
     };
-
     const onKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
       if (e.key === 'Enter') { e.preventDefault(); commit(); }
-      else if (e.key === 'ArrowUp')  { e.preventDefault(); setRaw(String(clamp((Number(raw || current) + 1)))); }
-      else if (e.key === 'ArrowDown'){ e.preventDefault(); setRaw(String(clamp((Number(raw || current) - 1)))); }
+      else if (e.key === 'ArrowUp')   { e.preventDefault(); setRaw(String(clamp(Number(raw || current) + 1))); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); setRaw(String(clamp(Number(raw || current) - 1))); }
     };
 
     const disabledNav = showLoading || totalPages <= 1;
@@ -757,17 +754,40 @@ export default function GridTable<T extends Record<string, unknown>>({
     return (
       <div
         className={cx(
-          'grid items-center border-t border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 select-none',
-          'grid-cols-[1fr_auto_1fr]' // 左(总数/每页)-中(导航)-右(跳转)
+          'grid items-center border-top border-t border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 select-none',
+          'grid-cols-[1fr_auto_1fr]'
         )}
       >
-        {/* 左侧：总数 + 每页 */}
+        {/* 左侧：总数 + 当前/总页（移动到这里） */}
         <div className="flex items-center gap-3 min-w-0">
           {showTotal && (
             <span className="shrink-0 text-gray-600">
               共 <span className="tabular-nums">{totalCount}</span> 项
             </span>
           )}
+          <span className="text-xs text-gray-500">
+            第 <span className="tabular-nums">{current}</span> / <span className="tabular-nums">{totalPages}</span> 页
+          </span>
+        </div>
+
+        {/* 中间：导航按钮（居中） */}
+        <div className="flex items-center justify-center gap-1">
+          <ActionLink onClick={() => jump(1)} disabled={disabledNav || atFirst} aria-label="首页 (Alt+Home)">
+            <ChevronsLeft className="h-4 w-4" />
+          </ActionLink>
+          <ActionLink onClick={() => jump(current - 1)} disabled={disabledNav || atFirst} aria-label="上一页 (Alt+←)">
+            <ChevronLeft className="h-4 w-4" />
+          </ActionLink>
+          <ActionLink onClick={() => jump(current + 1)} disabled={disabledNav || atLast} aria-label="下一页 (Alt+→)">
+            <ChevronRight className="h-4 w-4" />
+          </ActionLink>
+          <ActionLink onClick={() => jump(totalPages)} disabled={disabledNav || atLast} aria-label="末页 (Alt+End)">
+            <ChevronsRight className="h-4 w-4" />
+          </ActionLink>
+        </div>
+
+        {/* 右侧：每页条数 + 指定页跳转（功能聚合） */}
+        <div className="flex items-center justify-end gap-3 min-w-0" data-table-row-trigger="ignore">
           <label className="flex items-center gap-2 shrink-0">
             <span className="text-gray-500">每页</span>
             <select
@@ -781,33 +801,9 @@ export default function GridTable<T extends Record<string, unknown>>({
             </select>
             <span className="text-gray-500">条</span>
           </label>
-        </div>
 
-        {/* 中间：分页导航（统一高度/间距） */}
-        <div className="flex items-center justify-center gap-1">
-          <ActionLink onClick={() => jump(1)} disabled={disabledNav || atFirst} aria-label="首页 (Alt+Home)">
-            <ChevronsLeft className="h-4 w-4" />
-          </ActionLink>
-          <ActionLink onClick={() => jump(current - 1)} disabled={disabledNav || atFirst} aria-label="上一页 (Alt+←)">
-            <ChevronLeft className="h-4 w-4" />
-          </ActionLink>
-
-          <span className="mx-2 text-xs text-gray-500 select-none">
-            第 <span className="tabular-nums">{current}</span> / <span className="tabular-nums">{totalPages}</span> 页
-          </span>
-
-          <ActionLink onClick={() => jump(current + 1)} disabled={disabledNav || atLast} aria-label="下一页 (Alt+→)">
-            <ChevronRight className="h-4 w-4" />
-          </ActionLink>
-          <ActionLink onClick={() => jump(totalPages)} disabled={disabledNav || atLast} aria-label="末页 (Alt+End)">
-            <ChevronsRight className="h-4 w-4" />
-          </ActionLink>
-        </div>
-
-        {/* 右侧：指定页跳转（更细致） */}
-        <div className="flex items-center justify-end gap-2 min-w-0" data-table-row-trigger="ignore">
-          <label className="flex items-center gap-2">
-            <span className="text-gray-500 shrink-0">跳转到</span>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-500">跳到</span>
             <input
               type="text"
               inputMode="numeric"
@@ -819,11 +815,11 @@ export default function GridTable<T extends Record<string, unknown>>({
               className="h-8 w-16 rounded-md border border-gray-200 bg-white px-2 text-sm text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary/30 text-center tabular-nums"
               aria-label="输入页码并回车或点击确定跳转"
             />
-            <span className="text-gray-500 shrink-0">页</span>
-          </label>
-          <ActionLink emphasized onClick={commit} disabled={parseToPage(raw) === current} aria-label="确定跳转">
-            确定
-          </ActionLink>
+            <span className="text-gray-500">页</span>
+            <ActionLink emphasized onClick={commit} disabled={parseToPage(raw) === current} aria-label="确定跳转">
+              确定
+            </ActionLink>
+          </div>
         </div>
       </div>
     );
@@ -851,7 +847,7 @@ export default function GridTable<T extends Record<string, unknown>>({
           </div>
         </div>
 
-        {/* 空态覆盖层：顶级父容器的直接子元素；不遮住表头（从 headerHeight 开始） */}
+{/* 空态覆盖层：顶级父容器的直接子元素；不遮住表头（从 headerHeight 开始） */}
         {showEmpty && (
           <div
             className="absolute z-[150] left-0 right-0 bottom-0 flex items-center justify-center p-6"
