@@ -754,24 +754,24 @@ export default function GridTable<T extends Record<string, unknown>>({
     return (
       <div
         className={cx(
-          'grid items-center border-top border-t border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 select-none',
+          'grid items-center border-t border-gray-200 bg-white px-4 py-2 text-[13px] text-gray-700 select-none',
           'grid-cols-[1fr_auto_1fr]'
         )}
       >
-        {/* 左侧：总数 + 当前/总页（移动到这里） */}
-        <div className="flex items-center gap-3 min-w-0">
+        {/* 左侧：总数 + 当前/总页（并排，固定间距） */}
+        <div className="flex items-center gap-6 min-w-0">
           {showTotal && (
             <span className="shrink-0 text-gray-600">
               共 <span className="tabular-nums">{totalCount}</span> 项
             </span>
           )}
-          <span className="text-xs text-gray-500">
+          <span className="shrink-0 text-gray-600">
             第 <span className="tabular-nums">{current}</span> / <span className="tabular-nums">{totalPages}</span> 页
           </span>
         </div>
 
-        {/* 中间：导航按钮（居中） */}
-        <div className="flex items-center justify-center gap-1">
+        {/* 中间：导航按钮（等距） */}
+        <div className="flex items-center justify-center gap-2">
           <ActionLink onClick={() => jump(1)} disabled={disabledNav || atFirst} aria-label="首页 (Alt+Home)">
             <ChevronsLeft className="h-4 w-4" />
           </ActionLink>
@@ -786,12 +786,12 @@ export default function GridTable<T extends Record<string, unknown>>({
           </ActionLink>
         </div>
 
-        {/* 右侧：每页条数 + 指定页跳转（功能聚合） */}
-        <div className="flex items-center justify-end gap-3 min-w-0" data-table-row-trigger="ignore">
-          <label className="flex items-center gap-2 shrink-0">
+        {/* 右侧：每页条数 + 指定页（紧凑、统一高度/圆角/间距） */}
+        <div className="flex items-center justify-end gap-4 min-w-0" data-table-row-trigger="ignore">
+          <label className="flex items-center gap-1 shrink-0">
             <span className="text-gray-500">每页</span>
             <select
-              className="h-8 rounded-sm border border-gray-200 bg-white px-2 text-sm text-gray-700 hover:border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="h-8 rounded-sm border border-gray-200 bg-white px-2 text-[13px] text-gray-700 hover:border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               value={size}
               onChange={(e) => onPageSizeChange?.(parseInt(e.target.value, 10))}
             >
@@ -802,7 +802,7 @@ export default function GridTable<T extends Record<string, unknown>>({
             <span className="text-gray-500">条</span>
           </label>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <span className="text-gray-500">跳到</span>
             <input
               type="text"
@@ -812,7 +812,7 @@ export default function GridTable<T extends Record<string, unknown>>({
               onChange={(e) => setRaw(e.target.value.replace(/[^\d]/g, ''))}
               onKeyDown={onKeyDown}
               onBlur={() => setRaw(String(parseToPage(raw) ?? current))}
-              className="h-8 w-16 rounded-sm border border-gray-200 bg-white px-2 text-sm text-gray-700 hover:border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-center tabular-nums"
+              className="h-8 w-16 rounded-sm border border-gray-200 bg-white px-2 text-[13px] text-gray-700 hover:border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-center tabular-nums"
               aria-label="输入页码并回车或点击确定跳转"
             />
             <span className="text-gray-500">页</span>
