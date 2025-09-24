@@ -727,8 +727,6 @@ export default function GridTable<T extends Record<string, unknown>>({
     const atLast = current >= totalPages;
 
     const jump = (p: number) => onPageChange?.(Math.min(Math.max(1, p), totalPages));
-    // 轻度跳转锚点：5 / 10 / 20（仅当在范围内时显示）
-    const landmarks = [5, 10, 20].filter((p) => p > 1 && p < totalPages);
 
     return (
       <div className="flex w-full items-center justify-between border-t border-gray-200 bg-white px-3 py-2 text-sm text-gray-600 select-none">
@@ -766,20 +764,6 @@ export default function GridTable<T extends Record<string, unknown>>({
                         <ActionLink onClick={() => jump(totalPages)} disabled={atLast} aria-label="末页 (Alt+End)">
                             <ChevronsRight className="h-4 w-4" />
                         </ActionLink>
-
-                        {/* 轻度跳转锚点：5/10/20 页（存在即显） */}
-                        {landmarks.length > 0 && <span className="mx-1 h-4 w-px bg-gray-200" aria-hidden />} {/* 细分隔线 */}
-                        {landmarks.map((p) => (
-                            <ActionLink
-                                key={p}
-                                onClick={() => jump(p)}
-                                disabled={p === current}
-                                className="text-[12px] leading-none"
-                                aria-label={`跳到第 ${p} 页`}
-                            >
-                                {p}
-                            </ActionLink>
-                        ))}
 
                     </div>
                 </div>
