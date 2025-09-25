@@ -116,7 +116,7 @@ export default function Menu({
       <div className="sticky top-0 z-10 flex items-center px-4 h-header border-b border-white/10 bg-nav-header backdrop-blur-md backdrop-saturate-150 shadow-md select-none">
         <span className="text-sm font-semibold tracking-wide text-nav-fg">导航</span>
       </div>
-      <div className="flex-1 overflow-auto overscroll-contain bg-nav-body px-2 py-3 space-y-1.5 nice-scrollbar sidebar-scroll scrollbar-stable pr-1">
+      <div className="flex-1 overflow-auto overscroll-contain bg-nav-body px-2 py-3 space-y-1.5 nice-scrollbar sidebar-scroll pr-1">
         {items.map((item, idx) => (
           <Item key={idx} item={item} collapsed={collapsed} />
         ))}

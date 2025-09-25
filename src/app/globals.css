@@ -200,19 +200,7 @@ html::-webkit-scrollbar-thumb:active {
 /* Table helpers */
 .table-empty { min-height: var(--table-empty-min-h); }
 
-/* Prevent layout shift when the scrollbar appears */
-.scrollbar-stable { scrollbar-gutter: stable both-edges; }
 
-/* Windows Chrome scrollbars reserve layout; mirror the same spacing for shared utilities */
-@supports (scrollbar-gutter: stable) {
-  .sidebar-scroll,
-  .nice-scrollbar {
-    scrollbar-gutter: stable both-edges;
-  }
-}
-
-/* Cross-platform Chrome (Windows/macOS): keep table layout stable when scrollbar shows */
-.grid-table { scrollbar-gutter: stable both-edges; }
 
 
 

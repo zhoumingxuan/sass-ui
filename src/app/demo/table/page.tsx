@@ -268,7 +268,7 @@ function buildVirtual(rows: Row[], multiplier = 60): Row[] {
 
 /** ====== GridTable 列 ====== */
 const columns: GridColumn<Row>[] = [
-  { key: 'id', title: '编号', fixed: 'left', semantic: 'text' },
+  { key: 'id', title: '编号', fixed: 'left', align:'left' },
   { key: 'project', title: '项目' },
   { key: 'owner', title: '负责人' },
   {
@@ -283,7 +283,7 @@ const columns: GridColumn<Row>[] = [
     width: 200,
     semantic: 'text',
     render: (row) => (
-      <div className="flex h-full items-center justify-end gap-3">
+      <div className="flex h-full items-center justify-center gap-3">
         <ProgressBar value={row.progress} showValue className="w-32" tone={row.progress >= 80 ? 'success' : 'primary'} />
       </div>
     ),
@@ -343,7 +343,6 @@ export default function GridTableDemoPage() {
   }, [rows]);
 
   const refresh = () => {
-    setRows([]);
     if (timerRef.current) window.clearTimeout(timerRef.current);
     setLoading(true);
     timerRef.current = setTimeout(() => {
