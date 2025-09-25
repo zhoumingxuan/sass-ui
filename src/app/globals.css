@@ -193,6 +193,9 @@ html::-webkit-scrollbar-thumb:active {
 /* Prevent layout shift when the scrollbar appears */
 .scrollbar-stable { scrollbar-gutter: stable both-edges; }
 
+/* Cross-platform Chrome (Windows/macOS): keep table layout stable when scrollbar shows */
+.grid-table { scrollbar-gutter: stable both-edges; }
+
 
 
 
