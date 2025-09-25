@@ -8,9 +8,13 @@
     margin: 0;
     background-color: var(--color-bg);
     color: var(--color-gray-800);
-    font-family: var(--font-sans, 'Noto Sans', 'Noto Sans CJK SC', sans-serif);
+    font-family: var(--font-sans, 'Noto Sans', 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', system-ui, sans-serif);
     font-size: 14px;
     line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   a {
@@ -21,6 +25,12 @@
   button {
     font: inherit;
     cursor: pointer;
+  }
+
+  input,
+  textarea,
+  select {
+    font: inherit;
   }
 }
 
@@ -192,6 +202,14 @@ html::-webkit-scrollbar-thumb:active {
 
 /* Prevent layout shift when the scrollbar appears */
 .scrollbar-stable { scrollbar-gutter: stable both-edges; }
+
+/* Windows Chrome scrollbars reserve layout; mirror the same spacing for shared utilities */
+@supports (scrollbar-gutter: stable) {
+  .sidebar-scroll,
+  .nice-scrollbar {
+    scrollbar-gutter: stable both-edges;
+  }
+}
 
 /* Cross-platform Chrome (Windows/macOS): keep table layout stable when scrollbar shows */
 .grid-table { scrollbar-gutter: stable both-edges; }
