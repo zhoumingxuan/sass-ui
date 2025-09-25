@@ -48,13 +48,13 @@ function Item({
   const indentClass = indentByDepth[Math.min(depth, indentByDepth.length - 1)];
   // Increase vertical padding for level-1; slightly roomier for others
   const padY = depth === 0 ? 'py-3' : 'py-2.5';
-  const containerClasses = `relative flex items-center gap-2 px-3 ${padY} rounded-md transition-colors select-none ${
+  const containerClasses = `relative flex w-full items-center gap-2 px-3 ${padY} rounded-md transition-colors select-none ${
     active
       ? 'bg-primary/15 ring-1 ring-primary/30 text-nav-fg before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-primary/80'
       : `${depthText} ${depthHover}`
   } ${indentClass}`;
   return (
-    <div>
+    <div className="w-full">
       {hasChildren ? (
         <div
           className={`${containerClasses} cursor-pointer`}
@@ -89,7 +89,7 @@ function Item({
         </div>
       )}
       {hasChildren && open && !collapsed && (
-        <div className="space-y-1 mt-1 ml-1 pl-3">
+        <div className="mt-1 space-y-1 w-full">
           {item.children!.map((child, idx) => (
             <Item key={idx} item={child} depth={depth + 1} collapsed={collapsed} />
           ))}
