@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState, ReactNode, useCallback } from "react";
 import Button from "./Button";
 import { Search, X, Check, Plus, Eraser, RotateCcw, AlertCircle } from "lucide-react";
+import { createPortal } from "react-dom";
+
 
 type HighlightMode = "tint" | "outline" | "bold";
 type Density = "compact" | "standard";
@@ -167,7 +169,7 @@ export default function SuperSearch({
       setLocalHistory(arr);
       try {
         window.localStorage.setItem(cache_key, JSON.stringify(arr));
-      } catch {}
+      } catch { }
     },
     [cache_key],
   );
@@ -179,7 +181,7 @@ export default function SuperSearch({
       if (!v) return;
       setLocalHistory((prev) => {
         const next = [v, ...prev.filter((x) => x !== v)].slice(0, maxHistory);
-        try { window.localStorage.setItem(cache_key, JSON.stringify(next)); } catch {}
+        try { window.localStorage.setItem(cache_key, JSON.stringify(next)); } catch { }
         return next;
       });
     },
@@ -196,6 +198,44 @@ export default function SuperSearch({
 
   // Preview control
   const [hoverKey, setHoverKey] = useState<string | null>(null);
+  const [hoverRect, setHoverRect] = useState<DOMRect | null>(null);
+  const hoverElRef = useRef<HTMLElement | null>(null);
+
+  const updateHoverRect = useCallback(() => {
+    const el = hoverElRef.current;
+    if (!el) return;
+    // 元素可能因重排暂不可见，防御
+    const r = el.getBoundingClientRect();
+    // 仅在变化时再触发 setState，避免抖动
+    setHoverRect((prev) => {
+      if (!prev || prev.left !== r.left || prev.top !== r.top || prev.width !== r.width || prev.height !== r.height) {
+        return r;
+      }
+      return prev;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!hoverKey || !hoverElRef.current) return;
+    // 在捕获阶段监听 scroll，可以拿到任何祖先滚动（含下拉内部容器）
+    const onScroll = () => updateHoverRect();
+    const onResize = () => updateHoverRect();
+    const onMouseMove = () => updateHoverRect(); // 轻量同步，避免快速滚动后的滞后
+    window.addEventListener('resize', onResize);
+    // capture: true 以捕获所有可滚动容器的滚动
+    window.addEventListener('scroll', onScroll, true);
+    document.addEventListener('mousemove', onMouseMove);
+    // 初始测一次，防止进入时已有偏差
+    updateHoverRect();
+    return () => {
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('scroll', onScroll, true);
+      document.removeEventListener('mousemove', onMouseMove);
+    };
+  }, [hoverKey, updateHoverRect]);
+
+
+
   // Lightweight notice when reaching group limit
   const [groupLimitNotice, setGroupLimitNotice] = useState(false);
   const groupLimitTimerRef = useRef<number | null>(null);
@@ -1075,21 +1115,23 @@ export default function SuperSearch({
                           <li
                             key={it.id}
                             className="relative"
-                            onMouseEnter={() => {
+                            onMouseEnter={(e) => {
                               if (enablePreview) {
-                                
-                                // 仅基于 hover 显示预览，不需要延迟
+                                hoverElRef.current = e.currentTarget as HTMLElement;
                                 setHoverKey(k);
+                                // 进入即刻测一次，避免第一帧漂移
+                                try { setHoverRect(hoverElRef.current.getBoundingClientRect()); } catch { }
                               }
-                              // 同步高亮到悬停项，便于方向键继续操作
                               setActiveSection(si);
                               setActiveIndex(ii);
                             }}
                             onMouseLeave={() => {
                               if (enablePreview) {
-                                
-                                // 仅基于 hover 隐藏预览，不需要延迟
-                                setHoverKey((prev) => (prev === k ? null : prev));
+                                if (hoverKey === k) {
+                                  setHoverKey(null);
+                                  setHoverRect(null);
+                                  hoverElRef.current = null;
+                                }
                               }
                             }}
                           >
@@ -1124,9 +1166,18 @@ export default function SuperSearch({
                                 {isSelected && <Check className="h-4 w-4 text-primary" aria-hidden />}
                               </div>
                             </button>
-                            {enablePreview && hoverKey === k && (
-                              <PreviewCard item={it} sectionLabel={sec.label} placement={preview} />
-                            )}
+                            {enablePreview && hoverKey === k && hoverRect &&
+                              createPortal(
+                                <PreviewCard
+                                  item={it}
+                                  sectionLabel={sec.label}
+                                  placement={preview}
+                                  rect={hoverRect}
+                                />,
+                                document.body
+                              )
+                            }
+
                           </li>
                         );
                       })}
@@ -1194,10 +1245,12 @@ function PreviewCard({
   item,
   sectionLabel,
   placement,
+  rect,
 }: {
   item: SuperSearchItem;
   sectionLabel: string;
   placement: PreviewPlacement;
+  rect:DOMRect;
 }) {
   const [visible, setVisible] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -1208,15 +1261,34 @@ function PreviewCard({
     return () => window.clearTimeout(id);
   }, []);
 
+  // 估计卡片尺寸（与你现有 w-80 / w-72 匹配即可）
+  const estW = placement === "bottom" ? 288 : 320; // 72/80 * 4 px
+  const estH = 220; // 大致高度；若要更准可用 ref 实测
+  const pad = 12;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  let left = 0, top = 0;
+  if (placement === "bottom") {
+    left = rect.left+rect.width / 2 - estW / 2;
+    top  = rect.bottom+8;
+  } else {
+    left = rect.right+8;
+    top  = rect.top+rect.height / 2 - estH / 2;
+  }
+  // 视窗避让
+  left = Math.max(pad, Math.min(left, vw - estW - pad));
+  top  = Math.max(pad, Math.min(top, vh - estH - pad));
+
+
   return (
     <div
       className={
-        (placement === "bottom"
-          ? "absolute left-1/2 top-full mt-2 w-72 -translate-x-1/2"
-          : "absolute left-full top-1/2 ml-2 w-80 -translate-y-1/2") +
-        " z-20 rounded-xl border border-gray-200 bg-white p-3 text-left shadow-elevation-1 transition-all duration-150 ease-out transform-gpu " +
+        (placement === "bottom" ? "w-72" : "w-80") +
+        " fixed z-[1000] rounded-xl border border-gray-200 bg-white p-3 text-left shadow-elevation-1 transition-all duration-150 ease-out transform-gpu " +
         (visible ? "opacity-100 scale-100" : "opacity-0 scale-95")
       }
+      style={{ left, top, maxWidth: "40vw", maxHeight: "70vh", overflow: "auto" }}
       role="dialog"
       aria-label="预览"
     >
