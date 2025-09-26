@@ -100,8 +100,9 @@ export default function DateRangePicker({
       onChange?.(finalS, finalE);
       setOpen(false);
     };
-    document.addEventListener('click', onDoc);
-    return () => document.removeEventListener('click', onDoc);
+    // 与单日期选择器保持一致，使用 mousedown，避免月/年选择时误判为外部点击导致面板关闭
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
   }, [open, draftStartInput, draftEndInput, draftStart, draftEnd, sv, ev, isControlled, onChange]);
 
 
@@ -216,6 +217,7 @@ export default function DateRangePicker({
     setDraftStartInput(formatISO(pick));
     // switch to picking end
     setActive('end');
+    setFocused('end');
     if (draftEnd) {
       const outS = formatISO(pick);
       const outE = formatISO(draftEnd);
@@ -229,6 +231,7 @@ export default function DateRangePicker({
     const pick = new Date(d.getFullYear(), d.getMonth(), d.getDate());
     setDraftEnd(pick);
     setDraftEndInput(formatISO(pick));
+    setFocused('end');
     if (draftStart) {
       const outS = formatISO(draftStart);
       const outE = formatISO(pick);
@@ -424,9 +427,36 @@ export default function DateRangePicker({
                 hoverDate={hoverDate}
                 onHoverDate={setHoverDate}
                 onMonthChange={(m) => {
-                  // Keep panels adjacent and mark active side
+                  // 月/年变更：若有开始日期草稿，尽量保留“日”，并避开禁用规则；同时更新输入草稿
                   setLeft(m);
                   setActive('start');
+                  setFocused('start');
+                  if (draftStart) {
+                    const y = m.getFullYear();
+                    const mon = m.getMonth();
+                    const baseDay = draftStart.getDate();
+                    const lastDay = new Date(y, mon + 1, 0).getDate();
+                    const tryDay = (day: number) => new Date(y, mon, day);
+                    const minDay = Math.min(baseDay, lastDay);
+                    let nd: Date | undefined = tryDay(minDay);
+                    const invalid = (d: Date) => isDisabledStartPick(d);
+                    if (nd && invalid(nd)) {
+                      nd = undefined;
+                      for (let offset = 1; offset <= lastDay; offset++) {
+                        const down = baseDay - offset;
+                        const up = baseDay + offset;
+                        if (down >= 1) {
+                          const cand = tryDay(down);
+                          if (!invalid(cand)) { nd = cand; break; }
+                        }
+                        if (up <= lastDay) {
+                          const cand = tryDay(up);
+                          if (!invalid(cand)) { nd = cand; break; }
+                        }
+                      }
+                    }
+                    if (nd) { setDraftStart(nd); setDraftStartInput(formatISO(nd)); }
+                  }
                 }}
                 onSelect={selectStart}
                 panel={'start'}
@@ -441,9 +471,36 @@ export default function DateRangePicker({
                 hoverDate={hoverDate}
                 onHoverDate={setHoverDate}
                 onMonthChange={(m) => {
-                  // Keep panels adjacent and mark active side
+                  // 月/年变更：若有结束日期草稿，尽量保留“日”，并避开禁用规则；同时更新输入草稿
                   setRight(m);
                   setActive('end');
+                  setFocused('end');
+                  if (draftEnd) {
+                    const y = m.getFullYear();
+                    const mon = m.getMonth();
+                    const baseDay = draftEnd.getDate();
+                    const lastDay = new Date(y, mon + 1, 0).getDate();
+                    const tryDay = (day: number) => new Date(y, mon, day);
+                    const minDay = Math.min(baseDay, lastDay);
+                    let nd: Date | undefined = tryDay(minDay);
+                    const invalid = (d: Date) => isDisabledEndPick(d);
+                    if (nd && invalid(nd)) {
+                      nd = undefined;
+                      for (let offset = 1; offset <= lastDay; offset++) {
+                        const down = baseDay - offset;
+                        const up = baseDay + offset;
+                        if (down >= 1) {
+                          const cand = tryDay(down);
+                          if (!invalid(cand)) { nd = cand; break; }
+                        }
+                        if (up <= lastDay) {
+                          const cand = tryDay(up);
+                          if (!invalid(cand)) { nd = cand; break; }
+                        }
+                      }
+                    }
+                    if (nd) { setDraftEnd(nd); setDraftEndInput(formatISO(nd)); }
+                  }
                 }}
                 onSelect={selectEnd}
                 panel={'end'}
