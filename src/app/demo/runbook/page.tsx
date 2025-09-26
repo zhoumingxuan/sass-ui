@@ -8,7 +8,7 @@ import GridTable, { GridColumn } from '@/components/GridTable';
 import Pill from '@/components/Pill';
 import { menuItems, footerItems } from '@/components/menuItems';
 import { Play, RefreshCw, FileQuestion } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 type Task = {
   id: number;
@@ -61,6 +61,7 @@ export default function RunbookDemo() {
   const [pageSize, setPageSize] = useState(10);
   const [sortKey, setSortKey] = useState<GridColumn<Task>["key"] | undefined>(undefined);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>("asc");
+  const [serverMode, setServerMode] = useState(false);
 
   const tasks: Task[] = [
     { id: 1, item: '检测核心服务', node: 'app-01', status: 'success', duration: 3, lastRun: '2025-09-26 09:15', stepKey: 'start' },
@@ -102,10 +103,12 @@ export default function RunbookDemo() {
     }
   };
 
-  const scoped = tasks.filter((t) => t.stepKey === active);
-  const total = scoped.length;
-  const pass = scoped.filter((t) => t.status === 'success').length;
-  const fail = scoped.filter((t) => t.status === 'error').length;
+  const scopedBase = useMemo(() => tasks.filter((t) => t.stepKey === active), [active]);
+  const [serverData, setServerData] = useState<Task[]>(scopedBase);
+  useEffect(() => { setServerData(scopedBase); }, [scopedBase]);
+  const total = (serverMode ? serverData : scopedBase).length;
+  const pass = (serverMode ? serverData : scopedBase).filter((t) => t.status === 'success').length;
+  const fail = (serverMode ? serverData : scopedBase).filter((t) => t.status === 'error').length;
   const StatsBar = (
     <div className="flex flex-wrap items-center gap-4 text-sm text-gray-700">
       <div>当前步骤: <span className="px-1.5 py-0.5 rounded bg-gray-100 text-gray-800">{active}</span></div>
@@ -133,14 +136,18 @@ export default function RunbookDemo() {
           <Card title="执行项">
             <div className="flex items-center justify-between mb-3">
               {StatsBar}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <Button icon={<Play className="h-4 w-4" />} size="small">执行</Button>
                 <Button variant="default" icon={<RefreshCw className="h-4 w-4" />} size="small">刷新</Button>
+                <label className="flex items-center gap-1 text-sm text-gray-600">
+                  <input type="checkbox" checked={serverMode} onChange={(e) => setServerMode(e.target.checked)} />
+                  服务端排序
+                </label>
               </div>
             </div>
             <GridTable
               columns={columnsWithSort}
-              data={scoped}
+              data={serverMode ? serverData : scopedBase}
               page={page}
               pageSize={pageSize}
               total={total}
@@ -148,7 +155,27 @@ export default function RunbookDemo() {
               onPageSizeChange={setPageSize}
               sortKey={sortKey}
               sortDirection={sortDirection}
-              onSort={handleSort}
+              onSort={serverMode ? async (key) => {
+                // 与后端交互：传递排序字段与方向
+                const nextDirection = key === sortKey ? (sortDirection === 'asc' ? 'desc' : 'asc') : 'asc';
+                setSortKey(key);
+                setSortDirection(nextDirection);
+                // 模拟服务端排序请求（真实场景改为 fetch 调后端）
+                const collator = typeof Intl !== 'undefined' ? new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' }) : null;
+                const k = key as keyof Task;
+                const sorted = [...scopedBase].sort((a, b) => {
+                  const av = (a as any)[k];
+                  const bv = (b as any)[k];
+                  if (av == null && bv == null) return 0;
+                  if (av == null) return nextDirection === 'asc' ? -1 : 1;
+                  if (bv == null) return nextDirection === 'asc' ? 1 : -1;
+                  if (typeof av === 'number' && typeof bv === 'number') return nextDirection === 'asc' ? av - bv : bv - av;
+                  const as = String(av); const bs = String(bv);
+                  return collator ? (nextDirection === 'asc' ? collator.compare(as, bs) : collator.compare(bs, as)) : (nextDirection === 'asc' ? as.localeCompare(bs) : bs.localeCompare(as));
+                });
+                setServerData(sorted);
+              } : handleSort}
+              serverSideSort={serverMode}
               zebra
               showIndex
               rowKey={(r) => r.id}

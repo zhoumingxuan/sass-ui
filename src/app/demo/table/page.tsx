@@ -268,14 +268,15 @@ function buildVirtual(rows: Row[], multiplier = 60): Row[] {
 
 /** ====== GridTable 列 ====== */
 const columns: GridColumn<Row>[] = [
-  { key: 'id', title: '编号', fixed: 'left', align:'left' },
-  { key: 'project', title: '项目' },
+  { key: 'id', title: '编号', fixed: 'left', align:'left', sortable: true },
+  { key: 'project', title: '项目', sortable: true },
   { key: 'owner', title: '负责人' },
   {
     key: 'priority',
     title: '优先级',
     semantic: 'text',
     render: (row) => <Pill tone={PRIORITY_META[row.priority].tone}>{PRIORITY_META[row.priority].label}</Pill>,
+    sortable: true,
   },
   {
     key: 'progress',
@@ -287,24 +288,28 @@ const columns: GridColumn<Row>[] = [
         <ProgressBar value={row.progress} showValue className="w-32" tone={row.progress >= 80 ? 'success' : 'primary'} />
       </div>
     ),
+    sortable: true,
   },
   {
     key: 'budgetUsed',
     title: '已使用预算',
     semantic: 'number',
     render: (row) => <span>{currency.format(row.budgetUsed)}</span>,
+    sortable: true,
   },
   {
     key: 'lastUpdated',
     title: '最新更新时间',
     semantic: 'datetime',
     render: (row) => dateTime.format(new Date(row.lastUpdated)),
+    sortable: true,
   },
   {
     key: 'risk',
     title: '风险',
     semantic: 'text',
     render: (row) => <Pill tone={RISK_META[row.risk].tone}>{RISK_META[row.risk].label}</Pill>,
+    sortable: true,
   },
 ];
 
@@ -321,10 +326,43 @@ export default function GridTableDemoPage() {
   // 分页状态
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  const total = rows.length;
+  const [sortKey, setSortKey] = useState<GridColumn<Row>["key"] | undefined>(undefined);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>("asc");
+  const [serverMode, setServerMode] = useState(false);
+
+  const allowed = useMemo(() => new Set<keyof Row>([
+    'id', 'project', 'owner', 'priority', 'progress', 'budgetUsed', 'lastUpdated', 'risk'
+  ]), []);
+
+  const sortedRows = useMemo(() => {
+    if (serverMode || !sortKey) return rows;
+    const k = sortKey as keyof Row;
+    if (!allowed.has(k)) return rows;
+    const collator = typeof Intl !== 'undefined' ? new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' }) : null;
+    const next = [...rows];
+    next.sort((a, b) => {
+      const av = (a as any)[k];
+      const bv = (b as any)[k];
+      if (av == null && bv == null) return 0;
+      if (av == null) return sortDirection === 'asc' ? -1 : 1;
+      if (bv == null) return sortDirection === 'asc' ? 1 : -1;
+      if (typeof av === 'number' && typeof bv === 'number') return sortDirection === 'asc' ? av - bv : bv - av;
+      if (k === 'lastUpdated') {
+        const ad = new Date(String(av)).getTime();
+        const bd = new Date(String(bv)).getTime();
+        return sortDirection === 'asc' ? ad - bd : bd - ad;
+      }
+      const as = String(av); const bs = String(bv);
+      return collator ? (sortDirection === 'asc' ? collator.compare(as, bs) : collator.compare(bs, as)) : (sortDirection === 'asc' ? as.localeCompare(bs) : bs.localeCompare(as));
+    });
+    return next;
+  }, [rows, serverMode, sortKey, sortDirection, allowed]);
+
+  const effectiveRows = serverMode ? rows : sortedRows;
+  const total = effectiveRows.length;
   const start = (page - 1) * pageSize;
   const end = start + pageSize;
-  const paged = rows.slice(start, end);
+  const paged = effectiveRows.slice(start, end);
 
   useEffect(() => {
     const pages = Math.max(1, Math.ceil(total / Math.max(1, pageSize)));
@@ -378,6 +416,34 @@ export default function GridTableDemoPage() {
     setPage(1);
   };
 
+  const handleSort = (key: GridColumn<Row>["key"]) => {
+    const k = key as keyof Row;
+    if (!allowed.has(k)) return;
+    const nextDirection = k === sortKey ? (sortDirection === 'asc' ? 'desc' : 'asc') : 'asc';
+    setSortKey(k);
+    setSortDirection(nextDirection);
+    setPage(1);
+    if (serverMode) {
+      const collator = typeof Intl !== 'undefined' ? new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' }) : null;
+      const sorted = [...rows].sort((a, b) => {
+        const av = (a as any)[k];
+        const bv = (b as any)[k];
+        if (av == null && bv == null) return 0;
+        if (av == null) return nextDirection === 'asc' ? -1 : 1;
+        if (bv == null) return nextDirection === 'asc' ? 1 : -1;
+        if (typeof av === 'number' && typeof bv === 'number') return nextDirection === 'asc' ? av - bv : bv - av;
+        if (k === 'lastUpdated') {
+          const ad = new Date(String(av)).getTime();
+          const bd = new Date(String(bv)).getTime();
+          return nextDirection === 'asc' ? ad - bd : bd - ad;
+        }
+        const as = String(av); const bs = String(bv);
+        return collator ? (nextDirection === 'asc' ? collator.compare(as, bs) : collator.compare(bs, as)) : (nextDirection === 'asc' ? as.localeCompare(bs) : bs.localeCompare(as));
+      });
+      setRows(sorted);
+    }
+  };
+
   const rowActions: RowActionsConfig<Row> = useMemo(
     () => ({
       title: '操作',
@@ -408,10 +474,14 @@ export default function GridTableDemoPage() {
             <Button icon={<Plus className="h-4 w-4" />} size="small">新建</Button>
             <Button icon={<Filter className="h-4 w-4" />} appearance="ghost" variant="default" size="small">筛选</Button>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Button icon={<RefreshCw className="h-4 w-4" />} onClick={refresh} appearance="ghost" variant="default" size="small">批量刷新</Button>
             <Button onClick={clearAll} appearance="ghost" variant="default" size="small">清空数据</Button>
             <Button onClick={resetAll} appearance="ghost" variant="default" size="small">恢复数据</Button>
+            <label className="flex items-center gap-1 text-sm text-gray-600">
+              <input type="checkbox" checked={serverMode} onChange={(e) => setServerMode(e.target.checked)} />
+              服务端排序
+            </label>
           </div>
         </div>
 
@@ -421,6 +491,10 @@ export default function GridTableDemoPage() {
             data={paged}
             rowKey={(row) => row.id}
             loading={loading}
+            sortKey={sortKey}
+            sortDirection={sortDirection}
+            onSort={handleSort}
+            serverSideSort
             showIndex
             enableRowFocus
             rowActions={rowActions}
@@ -461,6 +535,9 @@ export default function GridTableDemoPage() {
             columns={columns}
             data={heavyRows}
             rowKey={(row) => row.id}
+            sortKey={sortKey}
+            sortDirection={sortDirection}
+            onSort={handleSort}
             showIndex
             enableRowFocus
             rowActions={rowActions}
