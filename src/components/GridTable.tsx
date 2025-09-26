@@ -98,6 +98,8 @@ type GridTableProps<T> = {
   sortKey?: GridColumn<T>['key'];
   sortDirection?: SortDirection;
   onSort?: (key: GridColumn<T>['key']) => void;
+  /** 服务端排序模式：仅触发 onSort，不做内部排序 */
+  serverSideSort?: boolean;
 
   /** —— 序号列 —— */
   showIndex?: boolean;
@@ -248,6 +250,7 @@ export default function GridTable<T extends Record<string, unknown>>({
   sortKey,
   sortDirection,
   onSort,
+  serverSideSort,
   showIndex = false,
   enableRowFocus = false,
   focusedRowKey,
@@ -388,7 +391,7 @@ export default function GridTable<T extends Record<string, unknown>>({
   // ==== 数据准备（含排序） ====
   const rows: Array<RowItem<T>> = useMemo(() => {
     let source = data;
-    if (sortKey && sortDirection) {
+    if (!serverSideSort && sortKey && sortDirection) {
       const target = columns.find((col) => (col.sortKey ?? col.key) === sortKey);
       if (target && (target.sortable ?? false) && target.intent !== 'actions') {
         const dataKey = (target.sortKey ?? target.key) as keyof T;
@@ -423,7 +426,7 @@ export default function GridTable<T extends Record<string, unknown>>({
       const selectable = selection ? (selection.isRowSelectable ? selection.isRowSelectable(row, index) : true) : true;
       return { row, key, index, selectable };
     });
-  }, [columns, data, rowKey, selection, sortDirection, sortKey]);
+  }, [columns, data, rowKey, selection, sortDirection, sortKey, serverSideSort]);
 
   useEffect(() => {
     if (!containerRef.current) return;
