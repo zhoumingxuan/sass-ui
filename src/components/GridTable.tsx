@@ -585,7 +585,7 @@ export default function GridTable<T extends Record<string, unknown>>({
                   isSelected,
                   isHovered,
                 };
-                if (selection?.selectOnRowClick && !shouldIgnoreRowToggle(e.target)) {
+                if (selection?.selectOnRowClick && item.selectable && !shouldIgnoreRowToggle(e.target)) {
                   if (selection.mode === 'single') selection.onChange([item.key], [item.row]);
                   else {
                     const next = new Set(selection.selectedKeys ?? []);
