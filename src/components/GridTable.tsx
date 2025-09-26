@@ -20,6 +20,7 @@ import {
 import ActionLink from './ActionLink';
 
 type FixedSide = 'left' | 'right';
+type SortDirection = 'asc' | 'desc';
 
 export type GridCellRenderContext<T> = {
   row: T;
@@ -35,6 +36,8 @@ export type GridColumn<T> = {
   align?: 'left' | 'center' | 'right';
   styles?:CSSProperties;
   width?: number | string;
+  sortable?: boolean;
+  sortKey?: keyof T;
   render?: (row: T, context: GridCellRenderContext<T>) => ReactNode;
   tooltip?: (row: T) => string;
   className?: string;
@@ -92,6 +95,9 @@ type GridTableProps<T> = {
   selection?: GridSelection<T>;
   onRowClick?: (row: T, context: GridCellRenderContext<T>, event: ReactMouseEvent<HTMLDivElement>) => void;
   onRowDoubleClick?: (row: T, context: GridCellRenderContext<T>, event: ReactMouseEvent<HTMLDivElement>) => void;
+  sortKey?: GridColumn<T>['key'];
+  sortDirection?: SortDirection;
+  onSort?: (key: GridColumn<T>['key']) => void;
 
   /** —— 序号列 —— */
   showIndex?: boolean;
@@ -179,6 +185,33 @@ function buildTemplate<T>(metas: ColumnMeta<T>[]): string {
     .join(' ');
 }
 
+function SortIcon({ active, direction }: { active: boolean; direction?: SortDirection }) {
+  const isAsc = active && direction === 'asc';
+  const isDesc = active && direction === 'desc';
+  return (
+    <span className="flex flex-col items-center gap-0.5 leading-none">
+      <svg
+        viewBox="0 0 12 6"
+        className={["h-1.5 w-1.5", isAsc ? 'text-primary' : 'text-slate-300'].join(' ')}
+        aria-hidden
+        focusable="false"
+        fill="currentColor"
+      >
+        <path d="M6 0L11 6H1L6 0Z" />
+      </svg>
+      <svg
+        viewBox="0 0 12 6"
+        className={["h-1.5 w-1.5", isDesc ? 'text-primary' : 'text-slate-300'].join(' ')}
+        aria-hidden
+        focusable="false"
+        fill="currentColor"
+      >
+        <path d="M6 6L1 0h10L6 6Z" />
+      </svg>
+    </span>
+  );
+}
+
 function resolveRowKey<T>(row: T, index: number, fallback?: GridTableProps<T>['rowKey']): string | number {
   if (fallback) return fallback(row, index);
   const fromId = (row as { id?: string | number })?.id;
@@ -212,6 +245,9 @@ export default function GridTable<T extends Record<string, unknown>>({
   selection,
   onRowClick,
   onRowDoubleClick,
+  sortKey,
+  sortDirection,
+  onSort,
   showIndex = false,
   enableRowFocus = false,
   focusedRowKey,
@@ -349,16 +385,53 @@ export default function GridTable<T extends Record<string, unknown>>({
     return () => window.removeEventListener('keydown', handler);
   }, [hasPagination, paginationKeyboard, hotkeyArmed, loading, page, pageSize, total, onPageChange]);
 
-  // ==== 数据准备 ====
-  const rows: Array<RowItem<T>> = useMemo(
-    () =>
-      data.map((row, index) => {
-        const key = resolveRowKey(row, index, rowKey);
-        const selectable = selection ? (selection.isRowSelectable ? selection.isRowSelectable(row, index) : true) : true;
-        return { row, key, index, selectable };
-      }),
-    [data, rowKey, selection]
-  );
+  // ==== 数据准备（含排序） ====
+  const rows: Array<RowItem<T>> = useMemo(() => {
+    let source = data;
+    if (sortKey && sortDirection) {
+      const target = columns.find((col) => (col.sortKey ?? col.key) === sortKey);
+      if (target && (target.sortable ?? false) && target.intent !== 'actions') {
+        const dataKey = (target.sortKey ?? target.key) as keyof T;
+        const collator = typeof Intl !== 'undefined' ? new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' }) : null;
+        const next = [...data];
+        next.sort((a, b) => {
+          const aValue = (a as Record<string, unknown>)[dataKey as string] as unknown;
+          const bValue = (b as Record<string, unknown>)[dataKey as string] as unknown;
+          if (aValue == null && bValue == null) return 0;
+          if (aValue == null) return sortDirection === 'asc' ? -1 : 1;
+          if (bValue == null) return sortDirection === 'asc' ? 1 : -1;
+          if (typeof aValue === 'number' && typeof bValue === 'number') {
+            return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+          }
+          if (aValue instanceof Date && bValue instanceof Date) {
+            return sortDirection === 'asc'
+              ? aValue.getTime() - bValue.getTime()
+              : bValue.getTime() - aValue.getTime();
+          }
+          const left = String(aValue);
+          const right = String(bValue);
+          if (collator) {
+            return sortDirection === 'asc' ? collator.compare(left, right) : collator.compare(right, left);
+          }
+          return sortDirection === 'asc' ? left.localeCompare(right) : right.localeCompare(left);
+        });
+        source = next;
+      }
+    }
+    return source.map((row, index) => {
+      const key = resolveRowKey(row, index, rowKey);
+      const selectable = selection ? (selection.isRowSelectable ? selection.isRowSelectable(row, index) : true) : true;
+      return { row, key, index, selectable };
+    });
+  }, [columns, data, rowKey, selection, sortDirection, sortKey]);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    if (typeof sortKey === 'undefined') return;
+    containerRef.current.scrollTop = 0;
+    scrollCacheRef.current.scrollTop = 0;
+    setScrollTop(0);
+  }, [sortKey, sortDirection]);
 
   // ==== 列切分 ====
   const metasAll = useMemo(() => {
@@ -494,6 +567,12 @@ export default function GridTable<T extends Record<string, unknown>>({
           const isSelection = m.column.key === '__selection__';
           const isIndex = m.column.key === '__index__';
           const isActions = m.column.key === '__actions__';
+          const align = resolveAlign(m.column);
+          const justifyClass =
+            align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start';
+          const sortable = (m.column.sortable ?? false) && m.column.intent !== 'actions';
+          const effectiveSortKey = (m.column.sortKey ?? m.column.key) as GridColumn<T>['key'];
+          const active = sortable && sortKey === effectiveSortKey;
           return (
             <div
               key={`h-${String(m.column.key)}`}
@@ -530,6 +609,18 @@ export default function GridTable<T extends Record<string, unknown>>({
                 <span>序号</span>
               ) : isActions ? (
                 <span>{(rowActions?.title ?? '操作') as ReactNode}</span>
+              ) : sortable ? (
+                <button
+                  type="button"
+                  className={cx(
+                    'group inline-flex w-full items-center gap-1.5 truncate text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20',
+                    justifyClass
+                  )}
+                  onClick={() => onSort?.(m.column.key)}
+                >
+                  <span className="truncate text-gray-600 group-hover:text-gray-900">{m.column.title}</span>
+                  <SortIcon active={active} direction={active ? (sortDirection as SortDirection | undefined) : undefined} />
+                </button>
               ) : (
                 <span className="truncate">{m.column.title}</span>
               )}
