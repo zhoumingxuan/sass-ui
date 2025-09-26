@@ -97,7 +97,7 @@ type GridTableProps<T> = {
   onRowClick?: (row: T, context: GridCellRenderContext<T>, event: ReactMouseEvent<HTMLDivElement>) => void;
   onRowDoubleClick?: (row: T, context: GridCellRenderContext<T>, event: ReactMouseEvent<HTMLDivElement>) => void;
   /** 多列排序回调（服务端排序时触发；返回 Promise 可用于内置 loading） */
-  onSortChange?: (sorts: Array<SortSpec<GridColumn<T>['key']>>) => Promise<void> | void;
+  onSortChange?: (sorts: Array<SortSpec<GridColumn<T>['key']>>) => void;
   /** 服务端排序模式：仅触发 onSort，不做内部排序 */
   serverSideSort?: boolean;
 
@@ -292,8 +292,7 @@ export default function GridTable<T extends Record<string, unknown>>({
   // 轻量快捷键：仅在鼠标悬停表格区域时生效，避免全局抢键
   const [hotkeyArmed, setHotkeyArmed] = useState(false);
   const [sorts, setSorts] = useState<Array<SortSpec<GridColumn<T>['key']>>>([]);
-  const [serverSorting, setServerSorting] = useState(false);
-
+  
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -633,8 +632,7 @@ export default function GridTable<T extends Record<string, unknown>>({
                       if (hit === -1) {
                         const next = [...prev, { key, direction: 'asc' as SortDirection }];
                         if (serverSideSort && onSortChange) {
-                          const p = onSortChange(next);
-                          if (p && typeof (p as any).then === 'function') { setServerSorting(true); (p as Promise<void>).finally(() => setServerSorting(false)); }
+                          onSortChange?.(next);
                         }
                         return next;
                       } else {
@@ -642,15 +640,13 @@ export default function GridTable<T extends Record<string, unknown>>({
                         if (item.direction === 'asc') {
                           const next = prev.slice(); next[hit] = { key, direction: 'desc' };
                           if (serverSideSort && onSortChange) {
-                            const p = onSortChange(next);
-                            if (p && typeof (p as any).then === 'function') { setServerSorting(true); (p as Promise<void>).finally(() => setServerSorting(false)); }
+                            onSortChange?.(next);
                           }
                           return next;
                         } else {
                           const next = prev.filter((_, i) => i !== hit);
                           if (serverSideSort && onSortChange) {
-                            const p = onSortChange(next);
-                            if (p && typeof (p as any).then === 'function') { setServerSorting(true); (p as Promise<void>).finally(() => setServerSorting(false)); }
+                            onSortChange?.(next);
                           }
                           return next;
                         }
@@ -866,9 +862,8 @@ export default function GridTable<T extends Record<string, unknown>>({
 
   const isEmpty = rows.length === 0;
   const showEmpty = !loading && isEmpty;
-  const showLoading = loading || serverSorting;
-  const overlayText: ReactNode = serverSorting ? '排序中…' : loadingState;
-
+  const showLoading = loading;
+  const overlayText: ReactNode = loadingState;
   /** ===== 分页条：左 = 总数+页信息 | 中 = 导航 | 右 = 每页+跳转 ===== */
   const PaginationBar = () => {
     if (!hasPagination) return null;
