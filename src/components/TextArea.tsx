@@ -1,16 +1,17 @@
 'use client';
 
 import { TextareaHTMLAttributes } from 'react';
-import { inputBase, fieldLabel, helperText, inputStatus, Status } from './formStyles';
+import { inputBase, fieldLabel, helperText, inputStatus, Status, InputSize, inputSize } from './formStyles';
 
-type Props = TextareaHTMLAttributes<HTMLTextAreaElement> & {
+type Props = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'size'> & {
   label?: string;
   helper?: string;
   autoGrow?: boolean;
   status?: Status;
+  size?: InputSize; // lg | md | sm
 };
 
-export default function TextArea({ label, helper, autoGrow = false, status, className = '', onChange, ...props }: Props) {
+export default function TextArea({ label, helper, autoGrow = false, status, className = '', onChange, size = 'md', ...props }: Props) {
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     if (autoGrow) {
       e.currentTarget.style.height = 'auto';
@@ -24,7 +25,7 @@ export default function TextArea({ label, helper, autoGrow = false, status, clas
       {label && <span className={fieldLabel}>{label}</span>}
       <textarea
         aria-invalid={status === 'error' ? true : undefined}
-        className={[inputBase, status ? inputStatus[status] : '', 'min-h-24 py-2 resize-y', className].filter(Boolean).join(' ')}
+        className={[inputBase, inputSize[size], status ? inputStatus[status] : '', 'min-h-24 py-2 resize-y', className].filter(Boolean).join(' ')}
         onChange={handleChange}
         {...props}
       />

@@ -1,7 +1,7 @@
 "use client";
 
 import { InputHTMLAttributes, useEffect, useId, useState } from "react";
-import { inputBase, fieldLabel, helperText, inputStatus, Status } from "../formStyles";
+import { inputBase, fieldLabel, helperText, inputStatus, Status, InputSize, inputSize } from "../formStyles";
 import { ChevronUp, ChevronDown } from "lucide-react";
 
 type Props = Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "value" | "defaultValue"> & {
@@ -15,9 +15,10 @@ type Props = Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "value" | 
   precision?: number; // decimal places
   onChange?: (value: number | null) => void;
   status?: Status;
+  size?: InputSize; // lg | md | sm
 };
 
-export default function NumberInput({ label, helper, className = "", value, defaultValue, step = 1, min, max, precision, onChange, status, ...props }: Props) {
+export default function NumberInput({ label, helper, className = "", value, defaultValue, step = 1, min, max, precision, onChange, status, size = 'md', ...props }: Props) {
   const id = useId();
   const isControlled = typeof value === "number" || value === null;
   const [internal, setInternal] = useState<number | null>(typeof defaultValue === "number" ? defaultValue : null);
@@ -95,7 +96,12 @@ export default function NumberInput({ label, helper, className = "", value, defa
           type="text"
           inputMode="decimal"
           aria-invalid={status === 'error' ? true : undefined}
-          className={[inputBase, status ? inputStatus[status] : '', "pr-10"].filter(Boolean).join(" ")}
+          className={[
+            inputBase,
+            inputSize[size],
+            status ? inputStatus[status] : '',
+            size === 'lg' ? 'pr-12' : size === 'sm' ? 'pr-8' : 'pr-10'
+          ].filter(Boolean).join(" ")}
           value={text}
           onChange={handleInput}
           onBlur={handleBlur}
@@ -104,10 +110,10 @@ export default function NumberInput({ label, helper, className = "", value, defa
           {...props}
         />
         <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex flex-col items-center">
-          <button type="button" aria-label="增加" className="h-5 w-7 rounded-md text-gray-600 hover:bg-gray-100 flex items-center justify-center" onClick={inc}>
+          <button type="button" aria-label="增加" className={`${size === 'lg' ? 'h-6 w-8' : size === 'sm' ? 'h-4 w-6' : 'h-5 w-7'} rounded-md text-gray-600 hover:bg-gray-100 flex items-center justify-center`} onClick={inc}>
             <ChevronUp size={14} />
           </button>
-          <button type="button" aria-label="减少" className="mt-0.5 h-5 w-7 rounded-md text-gray-600 hover:bg-gray-100 flex items-center justify-center" onClick={dec}>
+          <button type="button" aria-label="减少" className={`mt-0.5 ${size === 'lg' ? 'h-6 w-8' : size === 'sm' ? 'h-4 w-6' : 'h-5 w-7'} rounded-md text-gray-600 hover:bg-gray-100 flex items-center justify-center`} onClick={dec}>
             <ChevronDown size={14} />
           </button>
         </div>

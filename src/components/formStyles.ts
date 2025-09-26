@@ -2,7 +2,7 @@
 
 // Unified form control styles for consistent UX across inputs
 export const inputBase = [
-  'w-full h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm placeholder:text-gray-400 transition-[box-shadow,border-color]',
+  'w-full rounded-lg border border-gray-200 bg-white placeholder:text-gray-400 transition-[box-shadow,border-color]',
   'hover:border-gray-300',
   'focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20',
   'shadow-none',
@@ -25,4 +25,19 @@ export const inputStatus: Record<Status, string> = {
   warning: 'border-warning focus:ring-warning/20',
   success: 'border-success focus:ring-success/20',
   info: 'border-info focus:ring-info/20',
+};
+
+// Unified input sizing without px font sizes
+export type InputSize = 'sm' | 'md' | 'lg';
+export const inputSize: Record<InputSize, string> = {
+  sm: 'h-8 px-2 text-xs',
+  md: 'h-10 px-3 text-sm',
+  lg: 'h-12 px-4 text-base',
+};
+
+// Right padding presets for inputs with trailing icons/controls
+export const inputPR: Record<InputSize, string> = {
+  sm: 'pr-8',
+  md: 'pr-10',
+  lg: 'pr-12',
 };

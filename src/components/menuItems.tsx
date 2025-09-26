@@ -43,6 +43,7 @@ export const menuItems: MenuItem[] = [
       { label: '抽屉', href: '/demo/drawer', icon: <PanelsTopLeft /> },
       { label: '消息提示', href: '/demo/message', icon: <MessageSquareText /> },
       { label: '超级搜索', href: '/demo/supersearch', icon: <Search /> },
+      { label: '运维流程', href: '/demo/runbook', icon: <ClipboardList /> },
     ],
   },
 ];

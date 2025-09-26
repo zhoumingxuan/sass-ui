@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 
 import ActionLink from './ActionLink';
+import { Input } from '@/components/Input';
 
 type FixedSide = 'left' | 'right';
 type SortDirection = 'asc' | 'desc';
@@ -926,26 +927,40 @@ export default function GridTable<T extends Record<string, unknown>>({
 
     const disabledNav = showLoading || totalPages <= 1;
 
+    // 新分页输入：采用统一的 Input 组件（文本框），非数字时还原当前页
+    const [draftRaw, setDraftRaw] = useState<string>(String(current));
+    useEffect(() => { setDraftRaw(String(current)); }, [current, totalPages]);
+    const commitGoto = () => {
+      const v = draftRaw.trim();
+      if (!v) { setDraftRaw(String(current)); return; }
+      const n = Number(v);
+      if (!Number.isFinite(n)) { setDraftRaw(String(current)); return; }
+      const c = clamp(n);
+      if (c !== current) jump(c);
+      setDraftRaw(String(c));
+    };
+
+    // 采用统一的 Select 和 Input.Number
     return (
       <div
         className={cx(
-          'grid items-center border-t border-gray-200 bg-white px-4 py-2 text-[13px] text-gray-700 select-none',
+          'grid items-center border-t border-gray-200 bg-white px-3 py-1 text-xs text-gray-700 select-none',
           'grid-cols-[1fr_auto_1fr]'
         )}
       >
-        {/* 左侧：总数 + 当前/总页（并排，固定间距） */}
+        {/* 左侧：总数 + 当前/总页 */}
         <div className="flex items-center gap-6 min-w-0">
           {showTotal && (
             <span className="shrink-0 text-gray-600">
-              共 <span className="tabular-nums">{totalCount}</span> 项
+              共<span className="tabular-nums">{totalCount}</span> 项
             </span>
           )}
           <span className="shrink-0 text-gray-600">
-            第 <span className="tabular-nums">{current}</span> / <span className="tabular-nums">{totalPages}</span> 页
+            第<span className="tabular-nums">{current}</span> / <span className="tabular-nums">{totalPages}</span> 页
           </span>
         </div>
 
-        {/* 中间：导航按钮（等距） */}
+        {/* 中间：导航按钮 */}
         <div className="flex items-center justify-center gap-2">
           <ActionLink variant='ghost' size='xs' iconOnly onClick={() => jump(1)} disabled={disabledNav || atFirst} aria-label="首页 (Alt+Home)">
             <ChevronsLeft className="h-4 w-4" />
@@ -961,37 +976,36 @@ export default function GridTable<T extends Record<string, unknown>>({
           </ActionLink>
         </div>
 
-        {/* 右侧：每页条数 + 指定页（紧凑、统一高度/圆角/间距） */}
-        <div className="flex items-center justify-end gap-4 min-w-0" data-table-row-trigger="ignore">
-          <label className="flex items-center gap-1 shrink-0">
+        {/* 右侧：每页条数 + 指定页（统一 Input 组件） */}
+        <div className="flex items-center justify-end gap-2 min-w-0" data-table-row-trigger="ignore">
+          <div className="flex items-center gap-1 shrink-0">
             <span className="text-gray-500">每页</span>
-            <select
-              className="h-8 rounded-sm border border-gray-200 bg-white px-2 text-[13px] text-gray-700 hover:border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-              value={size}
-              onChange={(e) => onPageSizeChange?.(parseInt(e.target.value, 10))}
-            >
-              {(pageSizeOptions ?? [10, 20, 50]).map((opt) => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
+            <div className="w-20">
+              <Input.Select
+                options={(pageSizeOptions ?? [10, 20, 50]).map((opt) => ({ value: String(opt), label: String(opt) }))}
+                value={String(size)}
+                required
+                size="sm"
+                onChange={(v) => onPageSizeChange?.(parseInt(v || String(size), 10))}
+              />
+            </div>
             <span className="text-gray-500">条</span>
-          </label>
+          </div>
 
           <div className="flex items-center gap-1">
             <span className="text-gray-500">跳到</span>
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              value={raw}
-              onChange={(e) => setRaw(e.target.value.replace(/[^\d]/g, ''))}
-              onKeyDown={onKeyDown}
-              onBlur={() => setRaw(String(parseToPage(raw) ?? current))}
-              className="h-8 w-12 rounded-sm border border-gray-200 bg-white px-2 text-[13px] text-gray-700 hover:border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-center tabular-nums"
-              aria-label="输入页码并回车或点击确定跳转"
-            />
+            <div className="w-14">
+              <Input.Text
+                value={draftRaw}
+                onChange={(e) => setDraftRaw((e.target as HTMLInputElement).value)}
+                onBlur={() => { const n = Number(draftRaw); if (!Number.isFinite(n)) setDraftRaw(String(current)); else setDraftRaw(String(clamp(n))); }}
+                onKeyDownCapture={(e) => { if (e.key === 'Enter') { e.preventDefault(); commitGoto(); } }}
+                size="sm"
+                aria-label="输入页码并回车或点击确定跳转"
+              />
+            </div>
             <span className="text-gray-500">页</span>
-            <ActionLink tone='primary' size='xs' onClick={commit} disabled={parseToPage(raw) === current} aria-label="确定跳转">
+            <ActionLink tone='primary' size='xs' onClick={commitGoto} disabled={Number.isFinite(Number(draftRaw)) ? clamp(Number(draftRaw)) === current : true} aria-label="确定跳转">
               确定
             </ActionLink>
           </div>

@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CSSProperties } from "react";
-import { inputBase, fieldLabel, helperText, inputStatus, Status } from "../formStyles";
+import { inputBase, fieldLabel, helperText, inputStatus, Status, InputSize, inputSize, inputPR } from "../formStyles";
 import { X, Check, ChevronDown } from "lucide-react";
 
 export type Option = { value: string; label: string; disabled?: boolean };
@@ -20,9 +20,10 @@ type Props = {
   onChange?: (value: string) => void;
   className?: string;
   status?: Status;
+  size?: InputSize; // lg | md | sm
 };
 
-export default function Select({ label, helper, options, placeholder, clearable, className = "", value, defaultValue, onChange, required, status }: Props) {
+export default function Select({ label, helper, options, placeholder, clearable, className = "", value, defaultValue, onChange, required, status, size = 'md' }: Props) {
   const id = useId();
   const isControlled = typeof value !== "undefined";
   const [internal, setInternal] = useState<string | undefined>(defaultValue);
@@ -70,12 +71,29 @@ export default function Select({ label, helper, options, placeholder, clearable,
   }, [open]);
 
   const labelText = val ? options.find(o => o.value === val)?.label ?? '' : '';
+  const itemText = size === 'sm' ? 'text-xs' : size === 'lg' ? 'text-base' : 'text-sm';
 
   return (
     <label className="block">
       {label && <span className={fieldLabel}>{label}</span>}
       <div ref={anchor} className={`relative ${className}`}>
-        <button type="button" id={id} onClick={() => setOpen(o => !o)} className={[inputBase, status ? inputStatus[status] : '', 'text-left pr-10 h-10 flex items-center'].filter(Boolean).join(' ')} aria-haspopup="listbox" aria-expanded={open} aria-invalid={status === 'error' ? true : undefined}>{labelText || placeholder || ''}</button>
+        <button
+          type="button"
+          id={id}
+          onClick={() => setOpen(o => !o)}
+          className={[
+            inputBase,
+            inputSize[size],
+            status ? inputStatus[status] : '',
+            'text-left flex items-center',
+            size === 'lg' ? 'pr-12' : size === 'sm' ? 'pr-8' : 'pr-10'
+          ].filter(Boolean).join(' ')}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-invalid={status === 'error' ? true : undefined}
+        >
+          {labelText || placeholder || ''}
+        </button>
         {canClear && (
           <button type="button" onClick={handleClear} aria-label="清空" className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
             <X size={16} aria-hidden />
@@ -90,7 +108,7 @@ export default function Select({ label, helper, options, placeholder, clearable,
             style={{ top: pos.top, left: pos.left, minWidth: pos.width } as CSSProperties}
           >
             {(placeholder && !required) && (
-              <button type="button" role="option" aria-selected={!val} className="flex w-full items-center justify-between px-3 py-2 text-sm text-gray-500 hover:bg-gray-50" onClick={() => commit("")}> 
+              <button type="button" role="option" aria-selected={!val} className={`flex w-full items-center justify-between px-3 py-2 ${itemText} text-gray-500 hover:bg-gray-50`} onClick={() => commit("")}> 
                 {placeholder}
               </button>
             )}
@@ -102,7 +120,7 @@ export default function Select({ label, helper, options, placeholder, clearable,
                 aria-disabled={o.disabled}
                 aria-selected={val === o.value}
                 disabled={o.disabled}
-                className={`flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-gray-50 ${o.disabled ? 'text-gray-300 cursor-not-allowed' : 'text-gray-700'}`}
+                className={`flex w-full items-center justify-between px-3 py-2 ${itemText} hover:bg-gray-50 ${o.disabled ? 'text-gray-300 cursor-not-allowed' : 'text-gray-700'}`}
                 onClick={() => commit(o.value)}
               >
                 <span>{o.label}</span>

@@ -60,6 +60,7 @@ export default function RunbookDemo() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [serverMode, setServerMode] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const tasks: Task[] = [
     { id: 1, item: '检测核心服务', node: 'app-01', status: 'success', duration: 3, lastRun: '2025-09-26 09:15', stepKey: 'start' },
@@ -92,6 +93,7 @@ export default function RunbookDemo() {
   const sortableFields: Array<keyof Task> = ['item', 'node', 'status', 'duration', 'lastRun'];
   const handleSortChange = async (sorts: Array<{ key: GridColumn<Task>["key"]; direction: 'asc' | 'desc' }>) => {
     if (!serverMode || sorts.length === 0) return;
+    setLoading(true);
     const collator = typeof Intl !== 'undefined' ? new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' }) : null;
     const sorted = [...serverData].sort((a, b) => {
       for (const s of sorts) {
@@ -111,6 +113,7 @@ export default function RunbookDemo() {
     });
     await new Promise((r) => setTimeout(r, 200));
     setServerData(sorted);
+    setLoading(false);
   };
 
   const scopedBase = useMemo(() => tasks.filter((t) => t.stepKey === active), [active]);
@@ -163,6 +166,7 @@ export default function RunbookDemo() {
               total={total}
               onPageChange={setPage}
               onPageSizeChange={setPageSize}
+              loading={serverMode ? loading : false}
               onSortChange={handleSortChange}
               serverSideSort={serverMode}
               zebra
