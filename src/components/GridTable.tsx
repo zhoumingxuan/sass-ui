@@ -33,8 +33,7 @@ export type GridColumn<T> = {
   key: keyof T | string;
   title: ReactNode;
   align?: 'left' | 'center' | 'right';
-  minWidth?: number;
-  maxWidth?: number;
+  styles?:CSSProperties;
   width?: number | string;
   render?: (row: T, context: GridCellRenderContext<T>) => ReactNode;
   tooltip?: (row: T) => string;
@@ -122,9 +121,8 @@ type GridTableProps<T> = {
 type ColumnMeta<T> = {
   column: GridColumn<T>;
   width: number | string;
-  align: 'left' | 'center' | 'right';
-  textAlignClass: string;
-  semanticClass: string;
+  styles?: CSSProperties;
+  className?:string;
 };
 
 function cx(...xs: Array<string | false | null | undefined>) {
@@ -147,7 +145,7 @@ function cssNumber(varName: string, fallback: number) {
 function resolveAlign<T>(col: GridColumn<T>): 'left' | 'center' | 'right' {
   if (col.intent === 'actions') return 'center';
   if (col.align) return col.align;
-   switch (col.semantic) {
+  switch (col.semantic) {
     case 'number':
       return 'right';
     case 'datetime':
@@ -168,41 +166,15 @@ function getSemanticClass<T>(col: GridColumn<T>): string {
   }
 }
 
-function parsePx(input: string): number | null {
-  const m = input.trim().match(/^([0-9]+(?:\.[0-9]+)?)px$/i);
-  return m ? parseFloat(m[1]) : null;
-}
-
-function resolveColumnWidth<T>(col: GridColumn<T>): string | number {
-  if (typeof col.width === 'number') return col.width;
-  if (typeof col.width === 'string') {
-    const px = parsePx(col.width);
-    if (px != null) return px;
-  }
-  if (typeof col.minWidth === 'number') return col.minWidth;
-  if (typeof col.maxWidth === 'number') return col.maxWidth;
-  return 'auto';
-}
 
 function buildTemplate<T>(metas: ColumnMeta<T>[]): string {
   return metas
     .map((meta) => {
       const col = meta.column;
-      const isSelection = col.key === '__selection__';
-      const isIndex = col.key === '__index__';
-      const isActions = col.key === '__actions__';
-      const hasExplicit =
-        typeof col.width !== 'undefined' ||
-        typeof col.minWidth === 'number' ||
-        typeof col.maxWidth === 'number' ||
-        isSelection ||
-        isIndex ||
-        isActions;
-
-      if (!hasExplicit) return 'auto';
+      if (col.width === undefined ) return 'auto';
       if (typeof col.width === 'number' && col.width !== 0) return `${col.width}px`;
       if (typeof col.width === 'string') return col.width;
-      return `${meta.width}`;
+      return `${col.width}`;
     })
     .join(' ');
 }
@@ -220,10 +192,9 @@ function makeMeta<T>(col: GridColumn<T>): ColumnMeta<T> {
   const align = resolveAlign(col);
   return {
     column: col,
-    width: resolveColumnWidth(col),
-    align,
-    textAlignClass: align === 'left' ? 'text-left' : align === 'center' ? 'text-center' : 'text-right',
-    semanticClass: getSemanticClass(col),
+    width: col.width!==undefined?col.width:'auto',
+    styles:col.styles?{textAlign:align,...col.styles}:{textAlign:align},
+    className:col.className
   };
 }
 
@@ -531,11 +502,9 @@ export default function GridTable<T extends Record<string, unknown>>({
                 'gt-head-cell sticky top-0 border-b border-gray-200 bg-gray-50 whitespace-nowrap',
                 type === 'center' ? 'min-w-full' : '',
                 'px-2 text-xs font-medium text-gray-600',
-                m.textAlignClass,
-                m.semanticClass,
                 m.column.headerClassName
               )}
-              style={{ height: headerHeight }}
+              style={{ height: headerHeight,...m.styles }}
             >
               {isSelection ? (
                 selection?.enableSelectAll ? (
@@ -594,13 +563,12 @@ export default function GridTable<T extends Record<string, unknown>>({
                 'gt-cell overflow-hidden whitespace-nowrap',
                 'px-2 text-sm text-gray-900',
                 isSelection || isActions ? 'flex items-center justify-center' : '',
-                m.textAlignClass,
-                m.semanticClass,
                 m.column.className
               ),
               style: {
                 height: rowHeight,
                 backgroundColor: bg,
+                ...m.styles,
               } as CSSProperties,
               'data-focused': isFocused ? 'true' : undefined,
               onMouseEnter: () =>
