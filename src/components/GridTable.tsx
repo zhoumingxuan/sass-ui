@@ -21,6 +21,7 @@ import ActionLink from './ActionLink';
 
 type FixedSide = 'left' | 'right';
 type SortDirection = 'asc' | 'desc';
+type SortSpec<K extends string | number | symbol = any> = { key: K; direction: SortDirection };
 
 export type GridCellRenderContext<T> = {
   row: T;
@@ -95,9 +96,8 @@ type GridTableProps<T> = {
   selection?: GridSelection<T>;
   onRowClick?: (row: T, context: GridCellRenderContext<T>, event: ReactMouseEvent<HTMLDivElement>) => void;
   onRowDoubleClick?: (row: T, context: GridCellRenderContext<T>, event: ReactMouseEvent<HTMLDivElement>) => void;
-  sortKey?: GridColumn<T>['key'];
-  sortDirection?: SortDirection;
-  onSort?: (key: GridColumn<T>['key']) => void;
+  /** 多列排序回调（服务端排序时触发；返回 Promise 可用于内置 loading） */
+  onSortChange?: (sorts: Array<SortSpec<GridColumn<T>['key']>>) => Promise<void> | void;
   /** 服务端排序模式：仅触发 onSort，不做内部排序 */
   serverSideSort?: boolean;
 
@@ -247,9 +247,7 @@ export default function GridTable<T extends Record<string, unknown>>({
   selection,
   onRowClick,
   onRowDoubleClick,
-  sortKey,
-  sortDirection,
-  onSort,
+  onSortChange,
   serverSideSort,
   showIndex = false,
   enableRowFocus = false,
@@ -293,6 +291,8 @@ export default function GridTable<T extends Record<string, unknown>>({
 
   // 轻量快捷键：仅在鼠标悬停表格区域时生效，避免全局抢键
   const [hotkeyArmed, setHotkeyArmed] = useState(false);
+  const [sorts, setSorts] = useState<Array<SortSpec<GridColumn<T>['key']>>>([]);
+  const [serverSorting, setServerSorting] = useState(false);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -388,53 +388,58 @@ export default function GridTable<T extends Record<string, unknown>>({
     return () => window.removeEventListener('keydown', handler);
   }, [hasPagination, paginationKeyboard, hotkeyArmed, loading, page, pageSize, total, onPageChange]);
 
-  // ==== 数据准备（含排序） ====
+  // ==== 数据准备（含多列排序） ====
   const rows: Array<RowItem<T>> = useMemo(() => {
     let source = data;
-    if (!serverSideSort && sortKey && sortDirection) {
-      const target = columns.find((col) => (col.sortKey ?? col.key) === sortKey);
-      if (target && (target.sortable ?? false) && target.intent !== 'actions') {
-        const dataKey = (target.sortKey ?? target.key) as keyof T;
-        const collator = typeof Intl !== 'undefined' ? new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' }) : null;
-        const next = [...data];
-        next.sort((a, b) => {
-          const aValue = (a as Record<string, unknown>)[dataKey as string] as unknown;
-          const bValue = (b as Record<string, unknown>)[dataKey as string] as unknown;
-          if (aValue == null && bValue == null) return 0;
-          if (aValue == null) return sortDirection === 'asc' ? -1 : 1;
-          if (bValue == null) return sortDirection === 'asc' ? 1 : -1;
-          if (typeof aValue === 'number' && typeof bValue === 'number') {
-            return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    if (!serverSideSort && sorts.length > 0) {
+      const next = [...data];
+      const collator = typeof Intl !== 'undefined' ? new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' }) : null;
+      const resolver = (colKey: GridColumn<T>['key']) => {
+        const col = columns.find((c) => (c.sortKey ?? c.key) === colKey || c.key === colKey);
+        return (col?.sortKey ?? col?.key) as keyof T | undefined;
+      };
+      next.sort((a, b) => {
+        for (const s of sorts) {
+          const dataKey = resolver(s.key);
+          if (!dataKey) continue;
+          const av = (a as any)[dataKey as any];
+          const bv = (b as any)[dataKey as any];
+          if (av == null && bv == null) continue;
+          if (av == null) return s.direction === 'asc' ? -1 : 1;
+          if (bv == null) return s.direction === 'asc' ? 1 : -1;
+          if (typeof av === 'number' && typeof bv === 'number') {
+            const r = av - bv;
+            if (r !== 0) return s.direction === 'asc' ? r : -r;
+            continue;
           }
-          if (aValue instanceof Date && bValue instanceof Date) {
-            return sortDirection === 'asc'
-              ? aValue.getTime() - bValue.getTime()
-              : bValue.getTime() - aValue.getTime();
+          if (av instanceof Date && bv instanceof Date) {
+            const r = av.getTime() - bv.getTime();
+            if (r !== 0) return s.direction === 'asc' ? r : -r;
+            continue;
           }
-          const left = String(aValue);
-          const right = String(bValue);
-          if (collator) {
-            return sortDirection === 'asc' ? collator.compare(left, right) : collator.compare(right, left);
-          }
-          return sortDirection === 'asc' ? left.localeCompare(right) : right.localeCompare(left);
-        });
-        source = next;
-      }
+          const as = String(av);
+          const bs = String(bv);
+          const r = collator ? collator.compare(as, bs) : as.localeCompare(bs);
+          if (r !== 0) return s.direction === 'asc' ? r : -r;
+        }
+        return 0;
+      });
+      source = next;
     }
     return source.map((row, index) => {
       const key = resolveRowKey(row, index, rowKey);
       const selectable = selection ? (selection.isRowSelectable ? selection.isRowSelectable(row, index) : true) : true;
       return { row, key, index, selectable };
     });
-  }, [columns, data, rowKey, selection, sortDirection, sortKey, serverSideSort]);
+  }, [columns, data, rowKey, selection, sorts, serverSideSort]);
 
   useEffect(() => {
     if (!containerRef.current) return;
-    if (typeof sortKey === 'undefined') return;
+    if (sorts.length === 0) return;
     containerRef.current.scrollTop = 0;
     scrollCacheRef.current.scrollTop = 0;
     setScrollTop(0);
-  }, [sortKey, sortDirection]);
+  }, [sorts]);
 
   // ==== 列切分 ====
   const metasAll = useMemo(() => {
@@ -575,7 +580,8 @@ export default function GridTable<T extends Record<string, unknown>>({
             align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start';
           const sortable = (m.column.sortable ?? false) && m.column.intent !== 'actions';
           const effectiveSortKey = (m.column.sortKey ?? m.column.key) as GridColumn<T>['key'];
-          const active = sortable && sortKey === effectiveSortKey;
+          const curr = sorts.find((s) => s.key === effectiveSortKey);
+          const active = Boolean(curr);
           return (
             <div
               key={`h-${String(m.column.key)}`}
@@ -619,10 +625,63 @@ export default function GridTable<T extends Record<string, unknown>>({
                     'group inline-flex w-full items-center gap-1.5 truncate text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20',
                     justifyClass
                   )}
-                  onClick={() => onSort?.(m.column.key)}
+                  onClick={(e) => {
+                    const withShift = (e as any).shiftKey === true;
+                    setSorts((prev) => {
+                      const key = effectiveSortKey;
+                      const hit = prev.findIndex((s) => s.key === key);
+                      if (withShift) {
+                        if (hit === -1) {
+                          const next = [...prev, { key, direction: 'asc' as SortDirection }];
+                          if (serverSideSort && onSortChange) {
+                            const p = onSortChange(next);
+                            if (p && typeof (p as any).then === 'function') { setServerSorting(true); (p as Promise<void>).finally(() => setServerSorting(false)); }
+                          }
+                          return next;
+                        } else {
+                          const item = prev[hit];
+                          const dir = item.direction === 'asc' ? 'desc' : 'asc';
+                          // tri-state: asc -> desc -> remove
+                          if (item.direction === 'desc') {
+                            const next = prev.filter((_, i) => i !== hit);
+                            if (serverSideSort && onSortChange) {
+                              const p = onSortChange(next);
+                              if (p && typeof (p as any).then === 'function') { setServerSorting(true); (p as Promise<void>).finally(() => setServerSorting(false)); }
+                            }
+                            return next;
+                          } else {
+                            const next = prev.slice(); next[hit] = { key, direction: dir };
+                            if (serverSideSort && onSortChange) {
+                              const p = onSortChange(next);
+                              if (p && typeof (p as any).then === 'function') { setServerSorting(true); (p as Promise<void>).finally(() => setServerSorting(false)); }
+                            }
+                            return next;
+                          }
+                        }
+                      } else {
+                        // single sort mode: toggle if same key, else replace
+                        if (hit !== -1 && prev.length === 1) {
+                          const item = prev[hit];
+                          const dir = item.direction === 'asc' ? 'desc' : 'asc';
+                          const next = [{ key, direction: dir as SortDirection }];
+                          if (serverSideSort && onSortChange) {
+                            const p = onSortChange(next);
+                            if (p && typeof (p as any).then === 'function') { setServerSorting(true); (p as Promise<void>).finally(() => setServerSorting(false)); }
+                          }
+                          return next;
+                        }
+                        const next = [{ key, direction: 'asc' as SortDirection }];
+                        if (serverSideSort && onSortChange) {
+                          const p = onSortChange(next);
+                          if (p && typeof (p as any).then === 'function') { setServerSorting(true); (p as Promise<void>).finally(() => setServerSorting(false)); }
+                        }
+                        return next;
+                      }
+                    });
+                  }}
                 >
                   <span className="truncate text-gray-600 group-hover:text-gray-900">{m.column.title}</span>
-                  <SortIcon active={active} direction={active ? (sortDirection as SortDirection | undefined) : undefined} />
+                  <SortIcon active={active} direction={active ? (curr?.direction as SortDirection | undefined) : undefined} />
                 </button>
               ) : (
                 <span className="truncate">{m.column.title}</span>
@@ -819,7 +878,8 @@ export default function GridTable<T extends Record<string, unknown>>({
 
   const isEmpty = rows.length === 0;
   const showEmpty = !loading && isEmpty;
-  const showLoading = loading;
+  const showLoading = loading || serverSorting;
+  const overlayText = serverSorting ? '排序中…' : loadingState;
 
   /** ===== 分页条：左 = 总数+页信息 | 中 = 导航 | 右 = 每页+跳转 ===== */
   const PaginationBar = () => {
@@ -966,7 +1026,7 @@ export default function GridTable<T extends Record<string, unknown>>({
           </div>
         )}
 
-        {showLoading && <LoadingOverlay text={loadingState} />}
+        {showLoading && <LoadingOverlay text={overlayText} />}
       </div>
 
       {/* 轻量分页条（不改变表格主体样式） */}

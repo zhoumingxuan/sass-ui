@@ -326,39 +326,13 @@ export default function GridTableDemoPage() {
   // 分页状态
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  const [sortKey, setSortKey] = useState<GridColumn<Row>["key"] | undefined>(undefined);
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>("asc");
   const [serverMode, setServerMode] = useState(false);
 
   const allowed = useMemo(() => new Set<keyof Row>([
     'id', 'project', 'owner', 'priority', 'progress', 'budgetUsed', 'lastUpdated', 'risk'
   ]), []);
 
-  const sortedRows = useMemo(() => {
-    if (serverMode || !sortKey) return rows;
-    const k = sortKey as keyof Row;
-    if (!allowed.has(k)) return rows;
-    const collator = typeof Intl !== 'undefined' ? new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' }) : null;
-    const next = [...rows];
-    next.sort((a, b) => {
-      const av = (a as any)[k];
-      const bv = (b as any)[k];
-      if (av == null && bv == null) return 0;
-      if (av == null) return sortDirection === 'asc' ? -1 : 1;
-      if (bv == null) return sortDirection === 'asc' ? 1 : -1;
-      if (typeof av === 'number' && typeof bv === 'number') return sortDirection === 'asc' ? av - bv : bv - av;
-      if (k === 'lastUpdated') {
-        const ad = new Date(String(av)).getTime();
-        const bd = new Date(String(bv)).getTime();
-        return sortDirection === 'asc' ? ad - bd : bd - ad;
-      }
-      const as = String(av); const bs = String(bv);
-      return collator ? (sortDirection === 'asc' ? collator.compare(as, bs) : collator.compare(bs, as)) : (sortDirection === 'asc' ? as.localeCompare(bs) : bs.localeCompare(as));
-    });
-    return next;
-  }, [rows, serverMode, sortKey, sortDirection, allowed]);
-
-  const effectiveRows = serverMode ? rows : sortedRows;
+  const effectiveRows = rows;
   const total = effectiveRows.length;
   const start = (page - 1) * pageSize;
   const end = start + pageSize;
@@ -416,32 +390,36 @@ export default function GridTableDemoPage() {
     setPage(1);
   };
 
-  const handleSort = (key: GridColumn<Row>["key"]) => {
-    const k = key as keyof Row;
-    if (!allowed.has(k)) return;
-    const nextDirection = k === sortKey ? (sortDirection === 'asc' ? 'desc' : 'asc') : 'asc';
-    setSortKey(k);
-    setSortDirection(nextDirection);
+  const handleSortChange = async (sorts: Array<{ key: GridColumn<Row>["key"]; direction: 'asc' | 'desc' }>) => {
+    if (!serverMode || sorts.length === 0) return;
     setPage(1);
-    if (serverMode) {
-      const collator = typeof Intl !== 'undefined' ? new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' }) : null;
-      const sorted = [...rows].sort((a, b) => {
+    const collator = typeof Intl !== 'undefined' ? new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' }) : null;
+    const sorted = [...rows].sort((a, b) => {
+      for (const s of sorts) {
+        const k = s.key as keyof Row;
+        if (!allowed.has(k)) continue;
         const av = (a as any)[k];
         const bv = (b as any)[k];
-        if (av == null && bv == null) return 0;
-        if (av == null) return nextDirection === 'asc' ? -1 : 1;
-        if (bv == null) return nextDirection === 'asc' ? 1 : -1;
-        if (typeof av === 'number' && typeof bv === 'number') return nextDirection === 'asc' ? av - bv : bv - av;
+        if (av == null && bv == null) continue;
+        if (av == null) return s.direction === 'asc' ? -1 : 1;
+        if (bv == null) return s.direction === 'asc' ? 1 : -1;
+        if (typeof av === 'number' && typeof bv === 'number') {
+          const r = av - bv; if (r !== 0) return s.direction === 'asc' ? r : -r; continue;
+        }
         if (k === 'lastUpdated') {
           const ad = new Date(String(av)).getTime();
           const bd = new Date(String(bv)).getTime();
-          return nextDirection === 'asc' ? ad - bd : bd - ad;
+          const r = ad - bd; if (r !== 0) return s.direction === 'asc' ? r : -r; continue;
         }
         const as = String(av); const bs = String(bv);
-        return collator ? (nextDirection === 'asc' ? collator.compare(as, bs) : collator.compare(bs, as)) : (nextDirection === 'asc' ? as.localeCompare(bs) : bs.localeCompare(as));
-      });
-      setRows(sorted);
-    }
+        const r = collator ? collator.compare(as, bs) : as.localeCompare(bs);
+        if (r !== 0) return s.direction === 'asc' ? r : -r;
+      }
+      return 0;
+    });
+    // 模拟服务端耗时
+    await new Promise((r) => setTimeout(r, 300));
+    setRows(sorted);
   };
 
   const rowActions: RowActionsConfig<Row> = useMemo(
@@ -491,10 +469,8 @@ export default function GridTableDemoPage() {
             data={paged}
             rowKey={(row) => row.id}
             loading={loading}
-            sortKey={sortKey}
-            sortDirection={sortDirection}
-            onSort={handleSort}
-            serverSideSort
+            onSortChange={handleSortChange}
+            serverSideSort={serverMode}
             showIndex
             enableRowFocus
             rowActions={rowActions}
@@ -535,9 +511,7 @@ export default function GridTableDemoPage() {
             columns={columns}
             data={heavyRows}
             rowKey={(row) => row.id}
-            sortKey={sortKey}
-            sortDirection={sortDirection}
-            onSort={handleSort}
+            onSortChange={handleSortChange}
             showIndex
             enableRowFocus
             rowActions={rowActions}

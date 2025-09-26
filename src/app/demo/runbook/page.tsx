@@ -59,8 +59,6 @@ export default function RunbookDemo() {
   const [active, setActive] = useState('start');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [sortKey, setSortKey] = useState<GridColumn<Task>["key"] | undefined>(undefined);
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>("asc");
   const [serverMode, setServerMode] = useState(false);
 
   const tasks: Task[] = [
@@ -92,15 +90,27 @@ export default function RunbookDemo() {
   }, []);
 
   const sortableFields: Array<keyof Task> = ['item', 'node', 'status', 'duration', 'lastRun'];
-  const handleSort = (key: GridColumn<Task>["key"]) => {
-    if (!sortableFields.includes(key as keyof Task)) return;
-    const normalized = key as keyof Task;
-    if (normalized === sortKey) {
-      setSortDirection((dir) => (dir === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setSortKey(normalized);
-      setSortDirection('asc');
-    }
+  const handleSortChange = async (sorts: Array<{ key: GridColumn<Task>["key"]; direction: 'asc' | 'desc' }>) => {
+    if (!serverMode || sorts.length === 0) return;
+    const collator = typeof Intl !== 'undefined' ? new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' }) : null;
+    const sorted = [...serverData].sort((a, b) => {
+      for (const s of sorts) {
+        const k = s.key as keyof Task;
+        if (!sortableFields.includes(k)) continue;
+        const av = (a as any)[k];
+        const bv = (b as any)[k];
+        if (av == null && bv == null) continue;
+        if (av == null) return s.direction === 'asc' ? -1 : 1;
+        if (bv == null) return s.direction === 'asc' ? 1 : -1;
+        if (typeof av === 'number' && typeof bv === 'number') { const r = av - bv; if (r !== 0) return s.direction === 'asc' ? r : -r; continue; }
+        const as = String(av); const bs = String(bv);
+        const r = collator ? collator.compare(as, bs) : as.localeCompare(bs);
+        if (r !== 0) return s.direction === 'asc' ? r : -r;
+      }
+      return 0;
+    });
+    await new Promise((r) => setTimeout(r, 200));
+    setServerData(sorted);
   };
 
   const scopedBase = useMemo(() => tasks.filter((t) => t.stepKey === active), [active]);
@@ -153,28 +163,7 @@ export default function RunbookDemo() {
               total={total}
               onPageChange={setPage}
               onPageSizeChange={setPageSize}
-              sortKey={sortKey}
-              sortDirection={sortDirection}
-              onSort={serverMode ? async (key) => {
-                // 与后端交互：传递排序字段与方向
-                const nextDirection = key === sortKey ? (sortDirection === 'asc' ? 'desc' : 'asc') : 'asc';
-                setSortKey(key);
-                setSortDirection(nextDirection);
-                // 模拟服务端排序请求（真实场景改为 fetch 调后端）
-                const collator = typeof Intl !== 'undefined' ? new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' }) : null;
-                const k = key as keyof Task;
-                const sorted = [...scopedBase].sort((a, b) => {
-                  const av = (a as any)[k];
-                  const bv = (b as any)[k];
-                  if (av == null && bv == null) return 0;
-                  if (av == null) return nextDirection === 'asc' ? -1 : 1;
-                  if (bv == null) return nextDirection === 'asc' ? 1 : -1;
-                  if (typeof av === 'number' && typeof bv === 'number') return nextDirection === 'asc' ? av - bv : bv - av;
-                  const as = String(av); const bs = String(bv);
-                  return collator ? (nextDirection === 'asc' ? collator.compare(as, bs) : collator.compare(bs, as)) : (nextDirection === 'asc' ? as.localeCompare(bs) : bs.localeCompare(as));
-                });
-                setServerData(sorted);
-              } : handleSort}
+              onSortChange={handleSortChange}
               serverSideSort={serverMode}
               zebra
               showIndex
