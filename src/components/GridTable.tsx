@@ -580,8 +580,9 @@ export default function GridTable<T extends Record<string, unknown>>({
             align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start';
           const sortable = (m.column.sortable ?? false) && m.column.intent !== 'actions';
           const effectiveSortKey = (m.column.sortKey ?? m.column.key) as GridColumn<T>['key'];
-          const curr = sorts.find((s) => s.key === effectiveSortKey);
-          const active = Boolean(curr);
+          const currIndex = sorts.findIndex((s) => s.key === effectiveSortKey);
+          const curr = currIndex >= 0 ? sorts[currIndex] : undefined;
+          const active = currIndex >= 0;
           return (
             <div
               key={`h-${String(m.column.key)}`}
@@ -625,57 +626,34 @@ export default function GridTable<T extends Record<string, unknown>>({
                     'group inline-flex w-full items-center gap-1.5 truncate text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20',
                     justifyClass
                   )}
-                  onClick={(e) => {
-                    const withShift = (e as any).shiftKey === true;
+                  onClick={() => {
                     setSorts((prev) => {
                       const key = effectiveSortKey;
                       const hit = prev.findIndex((s) => s.key === key);
-                      if (withShift) {
-                        if (hit === -1) {
-                          const next = [...prev, { key, direction: 'asc' as SortDirection }];
+                      if (hit === -1) {
+                        const next = [...prev, { key, direction: 'asc' as SortDirection }];
+                        if (serverSideSort && onSortChange) {
+                          const p = onSortChange(next);
+                          if (p && typeof (p as any).then === 'function') { setServerSorting(true); (p as Promise<void>).finally(() => setServerSorting(false)); }
+                        }
+                        return next;
+                      } else {
+                        const item = prev[hit];
+                        if (item.direction === 'asc') {
+                          const next = prev.slice(); next[hit] = { key, direction: 'desc' };
                           if (serverSideSort && onSortChange) {
                             const p = onSortChange(next);
                             if (p && typeof (p as any).then === 'function') { setServerSorting(true); (p as Promise<void>).finally(() => setServerSorting(false)); }
                           }
                           return next;
                         } else {
-                          const item = prev[hit];
-                          const dir = item.direction === 'asc' ? 'desc' : 'asc';
-                          // tri-state: asc -> desc -> remove
-                          if (item.direction === 'desc') {
-                            const next = prev.filter((_, i) => i !== hit);
-                            if (serverSideSort && onSortChange) {
-                              const p = onSortChange(next);
-                              if (p && typeof (p as any).then === 'function') { setServerSorting(true); (p as Promise<void>).finally(() => setServerSorting(false)); }
-                            }
-                            return next;
-                          } else {
-                            const next = prev.slice(); next[hit] = { key, direction: dir };
-                            if (serverSideSort && onSortChange) {
-                              const p = onSortChange(next);
-                              if (p && typeof (p as any).then === 'function') { setServerSorting(true); (p as Promise<void>).finally(() => setServerSorting(false)); }
-                            }
-                            return next;
-                          }
-                        }
-                      } else {
-                        // single sort mode: toggle if same key, else replace
-                        if (hit !== -1 && prev.length === 1) {
-                          const item = prev[hit];
-                          const dir = item.direction === 'asc' ? 'desc' : 'asc';
-                          const next = [{ key, direction: dir as SortDirection }];
+                          const next = prev.filter((_, i) => i !== hit);
                           if (serverSideSort && onSortChange) {
                             const p = onSortChange(next);
                             if (p && typeof (p as any).then === 'function') { setServerSorting(true); (p as Promise<void>).finally(() => setServerSorting(false)); }
                           }
                           return next;
                         }
-                        const next = [{ key, direction: 'asc' as SortDirection }];
-                        if (serverSideSort && onSortChange) {
-                          const p = onSortChange(next);
-                          if (p && typeof (p as any).then === 'function') { setServerSorting(true); (p as Promise<void>).finally(() => setServerSorting(false)); }
-                        }
-                        return next;
                       }
                     });
                   }}
