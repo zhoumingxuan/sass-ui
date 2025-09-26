@@ -17,12 +17,12 @@ type RadioProps = React.InputHTMLAttributes<HTMLInputElement> & {
 
 export function Radio({ label, description, className = '', disabled, ...props }: RadioProps) {
   return (
-    <label className={`inline-flex items-start gap-2 ${disabled ? controlDisabled : ''} ${className}`}>
+    <label className={`inline-flex items-center gap-2 ${disabled ? controlDisabled : ''} ${className}`}>
       <input
         type="radio"
         disabled={disabled}
         className={[
-          'mt-0.5 h-4 w-4 shrink-0 rounded-full border bg-white',
+          'mt-0 h-3.5 w-3.5 shrink-0 rounded-full border bg-white translate-y-px',
           'border-gray-200 hover:border-gray-300 hover:bg-gray-50',
           'checked:border-primary/60 checked:hover:border-primary checked:hover:bg-primary/5',
           'accent-primary disabled:accent-gray-300',
