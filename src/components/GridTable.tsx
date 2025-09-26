@@ -21,7 +21,7 @@ import ActionLink from './ActionLink';
 
 type FixedSide = 'left' | 'right';
 type SortDirection = 'asc' | 'desc';
-type SortSpec<K extends string | number | symbol = any> = { key: K; direction: SortDirection };
+type SortSpec<K extends PropertyKey = PropertyKey> = { key: K; direction: SortDirection };
 
 export type GridCellRenderContext<T> = {
   row: T;
@@ -659,7 +659,17 @@ export default function GridTable<T extends Record<string, unknown>>({
                   }}
                 >
                   <span className="truncate text-gray-600 group-hover:text-gray-900">{m.column.title}</span>
-                  <SortIcon active={active} direction={active ? (curr?.direction as SortDirection | undefined) : undefined} />
+                  <div className="flex items-center gap-1">
+                    <SortIcon active={active} direction={active ? (curr?.direction as SortDirection | undefined) : undefined} />
+                    {active ? (
+                      <span
+                        className="ml-0.5 inline-flex h-4 min-w-[14px] items-center justify-center rounded bg-primary/10 px-1 text-[10px] leading-none text-primary"
+                        title={`排序优先级 ${currIndex + 1}`}
+                      >
+                        {currIndex + 1}
+                      </span>
+                    ) : null}
+                  </div>
                 </button>
               ) : (
                 <span className="truncate">{m.column.title}</span>
@@ -857,7 +867,7 @@ export default function GridTable<T extends Record<string, unknown>>({
   const isEmpty = rows.length === 0;
   const showEmpty = !loading && isEmpty;
   const showLoading = loading || serverSorting;
-  const overlayText = serverSorting ? '排序中…' : loadingState;
+  const overlayText: ReactNode = serverSorting ? '排序中…' : loadingState;
 
   /** ===== 分页条：左 = 总数+页信息 | 中 = 导航 | 右 = 每页+跳转 ===== */
   const PaginationBar = () => {
