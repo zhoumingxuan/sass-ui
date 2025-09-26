@@ -6,6 +6,7 @@ import type {
   MouseEvent as ReactMouseEvent,
 } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Checkbox } from './Checkbox';
 
 import {
@@ -292,6 +293,7 @@ export default function GridTable<T extends Record<string, unknown>>({
   // 轻量快捷键：仅在鼠标悬停表格区域时生效，避免全局抢键
   const [hotkeyArmed, setHotkeyArmed] = useState(false);
   const [sorts, setSorts] = useState<Array<SortSpec<GridColumn<T>['key']>>>([]);
+  const [overlayBox, setOverlayBox] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
   
   useEffect(() => {
     const el = containerRef.current;
@@ -309,7 +311,7 @@ export default function GridTable<T extends Record<string, unknown>>({
 
     let ro: ResizeObserver | null = null;
     if (typeof window !== 'undefined' && 'ResizeObserver' in window) {
-      ro = new ResizeObserver(measure);
+      ro = new ResizeObserver(() => { measure(); updateOverlay(); });
       ro.observe(el);
     }
 
@@ -348,10 +350,21 @@ export default function GridTable<T extends Record<string, unknown>>({
     el.addEventListener('mouseenter', onEnter);
     el.addEventListener('mouseleave', onLeave);
 
+    const updateOverlay = () => {
+      const r = el.getBoundingClientRect();
+      setOverlayBox({ left: r.left, top: r.top, width: r.width, height: r.height });
+    };
+    updateOverlay();
+    const onWinScroll = () => requestAnimationFrame(updateOverlay);
+    window.addEventListener('resize', onWinScroll);
+    window.addEventListener('scroll', onWinScroll, true);
+
     return () => {
       el.removeEventListener('scroll', onScrollOrResize);
       el.removeEventListener('mouseenter', onEnter);
       el.removeEventListener('mouseleave', onLeave);
+      window.removeEventListener('resize', onWinScroll);
+      window.removeEventListener('scroll', onWinScroll, true);
       if (ro) ro.disconnect();
       if (rafIdRef.current != null) {
         cancelAnimationFrame(rafIdRef.current);
@@ -846,24 +859,36 @@ export default function GridTable<T extends Record<string, unknown>>({
 
   // === 轻量加载态：半透明遮罩 + 中心旋转指示器（顶层兄弟，覆盖满容器） ===
   const LoadingOverlay = ({ text }: { text?: ReactNode }) => (
-    <div
-      className="absolute left-0 right-0 bottom-0 top-0 z-[200] flex items-center justify-center"
-      role="status"
-      aria-live="polite"
-      aria-busy="true"
-    >
-      <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px]" />
-      <div className="relative flex items-center gap-3 bg-white/90 px-3 py-2 text-sm text-gray-600 shadow-sm">
-        <Loader2 className="h-4 w-4 animate-spin text-gray-400" aria-hidden />
-        <span>{text ?? '加载中…'}</span>
-      </div>
-    </div>
+    overlayBox
+      ? createPortal(
+          <div
+            style={{ position: 'fixed', left: overlayBox.left, top: overlayBox.top, width: overlayBox.width, height: overlayBox.height }}
+            className="z-[200] flex items-center justify-center"
+            role="status"
+            aria-live="polite"
+            aria-busy="true"
+          >
+            <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px]" />
+            <div className="relative flex items-center gap-3 bg-white/90 px-3 py-2 text-sm text-gray-600 shadow-sm">
+              <Loader2 className="h-4 w-4 animate-spin text-gray-400" aria-hidden />
+              <span>{text ?? '加载中…'}</span>
+            </div>
+          </div>,
+          document.body
+        )
+      : null
   );
 
   const isEmpty = rows.length === 0;
   const showEmpty = !loading && isEmpty;
   const showLoading = loading;
   const overlayText: ReactNode = loadingState;
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    setOverlayBox({ left: r.left, top: r.top, width: r.width, height: r.height });
+  }, [showLoading]);
   /** ===== 分页条：左 = 总数+页信息 | 中 = 导航 | 右 = 每页+跳转 ===== */
   const PaginationBar = () => {
     if (!hasPagination) return null;
