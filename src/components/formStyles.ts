@@ -19,12 +19,14 @@ export const controlRing = 'focus-visible:outline-none focus-visible:ring-2 focu
 export const controlDisabled = 'opacity-50 cursor-not-allowed';
 
 // Input status helpers for error/warning/success/info rings and borders
-export type Status = 'error' | 'warning' | 'success' | 'info';
+// Design note: to avoid using !important, we explicitly override base
+// hover/focus border colors with the same variants and place these
+// classes after `inputBase` in consumers.
+export type Status = 'error' | 'warning' | 'success';
 export const inputStatus: Record<Status, string> = {
-  error: 'border-error focus:ring-error/20',
-  warning: 'border-warning focus:ring-warning/20',
-  success: 'border-success focus:ring-success/20',
-  info: 'border-info focus:ring-info/20',
+  error: '!border-error hover:border-error focus-visible:ring-1 focus-visible:ring-error/40',
+  warning: '!border-warning hover:border-warning focus-visible:ring-1 focus-visible:ring-warning/40',
+  success: '!border-success hover:border-success focus-visible:ring-1 focus-visible:ring-success/40'
 };
 
 // Unified input sizing without px font sizes

@@ -35,7 +35,7 @@ export default function FormDemo() {
               password: '',
               gender: 'male',
               hobbies: ['read'],
-              agree: true,
+              agree: false,
               city: '',
               birthday: '',
               period: [undefined, undefined],
@@ -99,7 +99,7 @@ export default function FormDemo() {
               </div>
 
               <div className="col-span-12 md:col-span-6">
-                <Form.Item name="agree" label="是否同意" valuePropName="checked">
+                <Form.Item name="agree" label="是否同意" valuePropName="checked" rules={[{ validator: (v) => (v ? undefined : '请勾选同意') }]}>
                   <Switch label="" />
                 </Form.Item>
               </div>
@@ -115,13 +115,13 @@ export default function FormDemo() {
               </div>
 
               <div className="col-span-12 md:col-span-6">
-                <Form.Item name="birthday" label="生日">
+                <Form.Item name="birthday" label="生日" rules={[{ required: true, message: '请选择日期' }]}>
                   <Input.Date />
                 </Form.Item>
               </div>
 
               <div className="col-span-12 md:col-span-6">
-                <Form.Item name="period" label="有效期">
+                <Form.Item name="period" label="有效期" rules={[{ validator: (v) => (Array.isArray(v) && v[0] && v[1]) ? undefined : '请选择起止日期' }]}>
                   <Input.DateRange />
                 </Form.Item>
               </div>

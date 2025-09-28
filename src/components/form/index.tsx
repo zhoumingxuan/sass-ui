@@ -271,15 +271,23 @@ function FormItem({
         if (name) form!.validateField(name);
       }
     };
+
+    // error status propagation for form controls
+    if (hasErr) {
+      // Inputs that support `status` = 'error' will render red borders
+      (childProps as Record<string, unknown>).status = 'error';
+      // Radio/Checkbox/Switch 不做额外错误样式处理
+    }
   }
   const isHorizontal = form!.layout === 'horizontal';
   const showColon = typeof colon === 'boolean' ? colon : form!.colon !== false;
   const renderLabel = () => {
     if (!label) return null;
     const txt = typeof label === 'string' ? label : label;
+    const requiredMark = required || (Array.isArray(rules) ? rules.some(r => r && (r as Rule).required) : false);
     return (
       <div className={fieldLabel}>
-        <span className="text-error mr-1">{required ? '*' : ''}</span>
+        <span className="text-error mr-1">{requiredMark ? '*' : ''}</span>
         <span className="text-gray-700">{txt}{showColon ? '：' : ''}</span>
       </div>
     );

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { CSSProperties } from 'react';
-import { fieldLabel, helperText, inputBase, inputSize } from '../formStyles';
+import { fieldLabel, helperText, inputBase, inputSize, inputStatus, Status } from '../formStyles';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import Calendar from './Calendar';
 import { addMonths, endOfMonth, formatISO, parseDateStrict, startOfMonth } from './utils';
@@ -28,6 +28,7 @@ type Props = {
   requireConfirm?: boolean;
   onChange?: (start?: string, end?: string) => void;
   className?: string;
+  status?: Status;
 };
 
 export default function DateRangePicker({
@@ -47,6 +48,7 @@ export default function DateRangePicker({
   disabledAfter,
   onChange,
   className = '',
+  status,
 }: Props) {
   const isControlled = typeof start !== 'undefined' || typeof end !== 'undefined';
   const [s, setS] = useState<string | undefined>(defaultValue ? defaultValue[0] : undefined);
@@ -335,7 +337,8 @@ export default function DateRangePicker({
                   setOpen(false);
                 }
               }}
-              className={`${inputBase} ${inputSize['md']} text-left pr-10 ${(active === 'start' && open) ? 'ring-2 ring-primary/20 border-transparent' : ''} ${(open ? !draftStartInput : !sv) ? 'text-gray-400' : 'text-gray-700'}`}
+              aria-invalid={status === 'error' ? true : undefined}
+              className={`${inputBase} ${inputSize['md']} ${status ? inputStatus[status] : ''} text-left pr-10 ${(active === 'start' && open) ? 'ring-2 ring-primary/20 border-transparent' : ''} ${(open ? !draftStartInput : !sv) ? 'text-gray-400' : 'text-gray-700'}`}
             />
             <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><CalendarIcon size={18} aria-hidden /></span>
           </div>
@@ -369,7 +372,8 @@ export default function DateRangePicker({
                   setOpen(false);
                 }
               }}
-              className={`${inputBase} ${inputSize['md']} text-left pr-10 ${(active === 'end' && open) ? 'ring-2 ring-primary/20 border-transparent' : ''} ${(open ? !draftEndInput : !ev) ? 'text-gray-400' : 'text-gray-700'}`}
+              aria-invalid={status === 'error' ? true : undefined}
+              className={`${inputBase} ${inputSize['md']} ${status ? inputStatus[status] : ''} text-left pr-10 ${(active === 'end' && open) ? 'ring-2 ring-primary/20 border-transparent' : ''} ${(open ? !draftEndInput : !ev) ? 'text-gray-400' : 'text-gray-700'}`}
             />
             <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><CalendarIcon size={18} aria-hidden /></span>
           </div>
