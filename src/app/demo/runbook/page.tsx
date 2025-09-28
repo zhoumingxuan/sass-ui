@@ -7,8 +7,8 @@ import StepsPanel, { StepGroup } from '@/components/StepsPanel';
 import GridTable, { GridColumn } from '@/components/GridTable';
 import Pill from '@/components/Pill';
 import { menuItems, footerItems } from '@/components/menuItems';
-import { Play, RefreshCw, FileQuestion } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { Play, RefreshCw } from 'lucide-react';
+import { useMemo, useState } from 'react';
 
 type Task = {
   id: number;
@@ -57,10 +57,7 @@ export default function RunbookDemo() {
   ];
   // 默认从“开市前/启动系统”开始，可按需手动切换
   const [active, setActive] = useState<string>('start');
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [serverMode, setServerMode] = useState(false);
-  const [loading, setLoading] = useState(false);
+  
 
   const tasks: Task[] = [
     { id: 1, item: '检测核心服务', node: 'app-01', status: 'success', duration: 3, lastRun: '2025-09-26 09:15', stepKey: 'start' },
@@ -90,38 +87,12 @@ export default function RunbookDemo() {
     return columns.map((c) => (allowed.has(c.key as keyof Task) ? { ...c, sortable: true } : c));
   }, []);
 
-  const sortableFields: Array<keyof Task> = ['item', 'node', 'status', 'duration', 'lastRun'];
-  const handleSortChange = async (sorts: Array<{ key: GridColumn<Task>["key"]; direction: 'asc' | 'desc' }>) => {
-    if (!serverMode || sorts.length === 0) return;
-    setLoading(true);
-    const collator = typeof Intl !== 'undefined' ? new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' }) : null;
-    const sorted = [...serverData].sort((a, b) => {
-      for (const s of sorts) {
-        const k = s.key as keyof Task;
-        if (!sortableFields.includes(k)) continue;
-        const av = (a as any)[k];
-        const bv = (b as any)[k];
-        if (av == null && bv == null) continue;
-        if (av == null) return s.direction === 'asc' ? -1 : 1;
-        if (bv == null) return s.direction === 'asc' ? 1 : -1;
-        if (typeof av === 'number' && typeof bv === 'number') { const r = av - bv; if (r !== 0) return s.direction === 'asc' ? r : -r; continue; }
-        const as = String(av); const bs = String(bv);
-        const r = collator ? collator.compare(as, bs) : as.localeCompare(bs);
-        if (r !== 0) return s.direction === 'asc' ? r : -r;
-      }
-      return 0;
-    });
-    await new Promise((r) => setTimeout(r, 200));
-    setServerData(sorted);
-    setLoading(false);
-  };
+  
 
   const scopedBase = useMemo(() => tasks.filter((t) => t.stepKey === active), [active]);
-  const [serverData, setServerData] = useState<Task[]>(scopedBase);
-  useEffect(() => { setServerData(scopedBase); }, [scopedBase]);
-  const total = (serverMode ? serverData : scopedBase).length;
-  const pass = (serverMode ? serverData : scopedBase).filter((t) => t.status === 'success').length;
-  const fail = (serverMode ? serverData : scopedBase).filter((t) => t.status === 'error').length;
+  const total = scopedBase.length;
+  const pass = scopedBase.filter((t) => t.status === 'success').length;
+  const fail = scopedBase.filter((t) => t.status === 'error').length;
   const StatsBar = (
     <div className="flex flex-wrap items-center gap-4 text-sm text-gray-700">
       <div>当前步骤: <span className="px-1.5 py-0.5 rounded bg-gray-100 text-gray-800">{active}</span></div>
@@ -135,7 +106,7 @@ export default function RunbookDemo() {
     <Layout
       menuItems={menuItems}
       footerItems={footerItems}
-      header={<div className="text-xl font-semibold text-gray-800">日常运维 / 运维流程 / 系统环境准备</div>}
+      header={<div className="text-xl font-semibold text-gray-800">日常运维流程</div>}
     >
       <div className="grid grid-cols-[280px_1fr] gap-5 items-start">
         <StepsPanel
@@ -147,35 +118,6 @@ export default function RunbookDemo() {
 
         <div className="space-y-4">
           <Card title="执行项">
-            <div className="flex items-center justify-between mb-3">
-              {StatsBar}
-              <div className="flex items-center gap-3">
-                <Button icon={<Play className="h-4 w-4" />} size="small">执行</Button>
-                <Button variant="default" icon={<RefreshCw className="h-4 w-4" />} size="small">刷新</Button>
-                <label className="flex items-center gap-1 text-sm text-gray-600">
-                  <input type="checkbox" checked={serverMode} onChange={(e) => setServerMode(e.target.checked)} />
-                  服务端排序
-                </label>
-              </div>
-            </div>
-            <GridTable
-              columns={columnsWithSort}
-              data={serverMode ? serverData : scopedBase}
-              page={page}
-              pageSize={pageSize}
-              total={total}
-              onPageChange={setPage}
-              onPageSizeChange={setPageSize}
-              loading={serverMode ? loading : false}
-              onSortChange={handleSortChange}
-              serverSideSort={serverMode}
-              zebra
-              showIndex
-              rowKey={(r) => r.id}
-            />
-          </Card>
-
-          <Card title="执行步骤" className='h-[600px]'>
             <div className="flex items-center justify-between mb-3 shrink-0">
               {StatsBar}
               <div className="flex items-center gap-2">
@@ -184,6 +126,16 @@ export default function RunbookDemo() {
               </div>
             </div>
             <GridTable
+              columns={columnsWithSort}
+              data={scopedBase}
+              zebra
+              showIndex
+              rowKey={(r) => r.id}
+            />
+          </Card>
+
+          <Card title="执行步骤" className='h-[520px]'>
+            <GridTable
               columns={[
                 { key: 'ts', title: '发生时间', width: 180 },
                 { key: 'item', title: '执行项'},
@@ -191,10 +143,7 @@ export default function RunbookDemo() {
                 { key: 'desc', title: '描述' },
               ]}
               data={[]}
-              page={1}
               className="flex-1 min-h-0"
-              pageSize={10}
-              onPageChange={() => {}}
               showIndex
             />
           </Card>
