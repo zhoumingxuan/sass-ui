@@ -228,10 +228,10 @@ export default function RunbookDemo() {
             </div>
             <GridTable
               columns={[
-                { key: 'ts', title: '发生时间' },
-                { key: 'item', title: '执行项'},
-                { key: 'level', title: '级别' },
-                { key: 'desc', title: '描述' },
+                { key: 'ts', title: '发生时间',sortable:true },
+                { key: 'item', title: '执行项',sortable:true},
+                { key: 'level', title: '级别',sortable:true },
+                { key: 'desc', title: '描述',sortable:true },
               ]}
               data={filteredLogs}
               className="flex-1 min-h-0"
