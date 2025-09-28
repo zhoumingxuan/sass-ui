@@ -4,7 +4,7 @@
 export const inputBase = [
   'w-full rounded-lg border border-gray-200 bg-white placeholder:text-gray-400 transition-[box-shadow,border-color]',
   'hover:border-gray-300',
-  'focus:border-primary focus:outline-none focus:ring-2 focus-visible:ring-primary/20',
+  'focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus-visible:ring-2 focus-visible:ring-primary/20',
   'shadow-none',
 ].join(' ');
 
