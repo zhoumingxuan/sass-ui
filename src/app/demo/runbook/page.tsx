@@ -138,15 +138,17 @@ export default function RunbookDemo() {
       footerItems={footerItems}
       header={<div className="text-xl font-semibold text-gray-800">日常运维流程</div>}
     >
-      <div className="grid grid-cols-[auto_1fr] h-full gap-5 items-start">
+      <div className="grid grid-cols-[auto_1fr_auto] h-full gap-5 items-start">
+        {/* 开市（左侧） */}
         <StepsPanel
-          groups={groups}
+          groups={groups.filter((g) => g.key === 'before')}
           activeKey={active}
           onChange={(k) => setActive(String(k))}
           className="sticky top-0 self-start h-fit"
         />
 
-        <div className="grid grid-rows-2 grid-rows-[1fr_1fr] gap-4 h-full">
+        {/* 中部：执行项 + 执行步骤（等分） */}
+        <div className="grid grid-rows-2 gap-4 h-full">
           <Card title="执行项">
             <div className="flex items-center justify-between mb-3 shrink-0">
               {StatsBar}
@@ -179,6 +181,14 @@ export default function RunbookDemo() {
             />
           </Card>
         </div>
+
+        {/* 闭市（右侧） */}
+        <StepsPanel
+          groups={groups.filter((g) => g.key === 'after')}
+          activeKey={active}
+          onChange={(k) => setActive(String(k))}
+          className="sticky top-0 self-start h-fit"
+        />
       </div>
     </Layout>
   );
