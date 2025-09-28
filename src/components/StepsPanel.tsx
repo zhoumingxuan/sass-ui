@@ -14,10 +14,11 @@ type Props = {
   activeKey?: StepItem['key'];
   onChange?: (key: StepItem['key']) => void;
   className?: string;
+  baseIndex?: number;
 };
 
 // 仅做分组与标题样式包装，保持与业务逻辑解耦
-export default function StepsPanel({ groups, activeKey, onChange, className = '' }: Props) {
+export default function StepsPanel({ groups, activeKey, onChange, className = '', baseIndex = 0 }: Props) {
   return (
     <div
       className={[
@@ -27,14 +28,16 @@ export default function StepsPanel({ groups, activeKey, onChange, className = ''
       ].join(' ')}
     >
       {groups.map((g, i) => {
-        // Calculate a continuous index offset so step numbers don't reset per group
-        const startIndex = groups.slice(0, i).reduce((sum, gg) => sum + (gg.items?.length || 0), 0);
+        const startIndex = baseIndex + groups.slice(0, i).reduce((sum, gg) => sum + (gg.items?.length || 0), 0);
         const isActive = g.items?.some((it) => it.key === activeKey);
+        const activeIndex = g.items?.findIndex((it) => it.key === activeKey) ?? -1;
+        const isActiveLast = activeIndex >= 0 && activeIndex === (g.items?.length || 0) - 1;
         return (
           <section
             key={g.key}
             className={[
-              'rounded-lg border p-3 transition-colors',
+              'rounded-lg border p-3 transition-colors overflow-hidden',
+              isActiveLast ? 'pb-0' : '',
               'bg-white',
               isActive ? 'border-primary/30 bg-primary/5' : 'border-gray-100 hover:bg-gray-50/60',
             ].join(' ')}

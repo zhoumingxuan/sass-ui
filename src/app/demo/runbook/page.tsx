@@ -7,7 +7,7 @@ import StepsPanel, { StepGroup } from '@/components/StepsPanel';
 import GridTable, { GridColumn } from '@/components/GridTable';
 import Pill from '@/components/Pill';
 import { menuItems, footerItems } from '@/components/menuItems';
-import { Play, RefreshCw } from 'lucide-react';
+import { Play, RefreshCw,RotateCw } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Input } from '@/components/Input';
 
@@ -222,6 +222,9 @@ export default function RunbookDemo() {
                   onChange={(e) => setLogQuery((e.target as HTMLInputElement).value)}
                 />
               </div>
+              <div className="flex items-center gap-2">
+                <Button variant="default" icon={<RotateCw className="h-4 w-4" />} size="small">重置</Button>
+              </div>
             </div>
             <GridTable
               columns={[
@@ -241,6 +244,7 @@ export default function RunbookDemo() {
         <StepsPanel
           groups={groups.filter((g) => g.key === 'after')}
           activeKey={active}
+          baseIndex={groups.find((g) => g.key === 'before')?.items.length}
           onChange={(k) => setActive(String(k))}
           className="sticky top-0 self-start h-fit"
         />
