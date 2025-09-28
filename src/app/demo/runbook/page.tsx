@@ -9,6 +9,7 @@ import Pill from '@/components/Pill';
 import { menuItems, footerItems } from '@/components/menuItems';
 import { Play, RefreshCw } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { Input } from '@/components/Input';
 
 type Task = {
   id: number;
@@ -65,7 +66,22 @@ export default function RunbookDemo() {
     { id: 3, item: '启动监听端口', node: 'app-01', status: 'running', note: '等待健康检查', stepKey: 'start' },
   ];
 
-  
+  // 执行步骤日志（仅演示用途）
+  type Log = { id: number; ts: string; item: string; level: 'info' | 'warn' | 'error'; desc: string; stepKey: string };
+  const logs: Log[] = [
+    { id: 1, ts: '2025-09-26 09:24:19', item: '检测核心服务', level: 'info',  desc: 'START', stepKey: 'start' },
+    { id: 2, ts: '2025-09-26 09:24:20', item: '检测核心服务', level: 'info',  desc: 'SUCC',  stepKey: 'start' },
+    { id: 3, ts: '2025-09-26 09:24:20', item: '加载基础配置', level: 'info',  desc: 'START', stepKey: 'start' },
+    { id: 4, ts: '2025-09-26 09:24:21', item: '加载基础配置', level: 'info',  desc: 'SUCC',  stepKey: 'start' },
+    { id: 5, ts: '2025-09-26 09:24:21', item: '启动监听端口', level: 'info',  desc: 'START', stepKey: 'start' },
+    { id: 6, ts: '2025-09-26 09:24:23', item: '启动监听端口', level: 'warn',  desc: '等待健康检查', stepKey: 'start' },
+  ];
+
+  // “执行步骤”筛选条件
+  const [logLevel, setLogLevel] = useState<'all' | 'info' | 'warn' | 'error'>('all');
+  const [logItem, setLogItem] = useState<string>('all');
+  const [logQuery, setLogQuery] = useState('');
+
 
   const columns: GridColumn<Task>[] = [
       { key: 'item', title: '执行项',styles:{minWidth:220}},
@@ -99,6 +115,22 @@ export default function RunbookDemo() {
   const total = scopedBase.length;
   const pass = scopedBase.filter((t) => t.status === 'success').length;
   const fail = scopedBase.filter((t) => t.status === 'error').length;
+
+  // 按当前步骤切片日志并应用筛选
+  const scopedLogs = useMemo(() => logs.filter((l) => l.stepKey === active), [logs, active]);
+  const itemOptions = useMemo(() => {
+    const set = new Set(scopedLogs.map(l => l.item));
+    return ['all', ...Array.from(set)];
+  }, [scopedLogs]);
+  const filteredLogs = useMemo(() => {
+    const q = logQuery.trim().toLowerCase();
+    return scopedLogs.filter((l) => {
+      if (logLevel !== 'all' && l.level !== logLevel) return false;
+      if (logItem !== 'all' && l.item !== logItem) return false;
+      if (q && !(l.item.toLowerCase().includes(q) || l.desc.toLowerCase().includes(q))) return false;
+      return true;
+    });
+  }, [scopedLogs, logLevel, logItem, logQuery]);
 
   // 当前执行步骤状态（不显示步骤编码）
   const stepStatusText: Record<string, string> = {
@@ -168,6 +200,41 @@ export default function RunbookDemo() {
           </Card>
 
           <Card title="执行步骤">
+            <div className="mb-3 flex flex-wrap items-center gap-3">
+              <div className="w-44">
+                <Input.Select
+                  value={logItem}
+                  onChange={(v) => setLogItem((v as any) || 'all')}
+                  options={itemOptions.map(v => ({ value: v, label: v === 'all' ? '全部执行项' : v }))}
+                />
+              </div>
+              <div className="w-36">
+                <Input.Select
+                  value={logLevel}
+                  onChange={(v) => setLogLevel((v as any) || 'all')}
+                  options={[
+                    { value: 'all', label: '全部级别' },
+                    { value: 'info', label: 'info' },
+                    { value: 'warn', label: 'warn' },
+                    { value: 'error', label: 'error' },
+                  ]}
+                />
+              </div>
+              <div className="min-w-[14rem] flex-1">
+                <Input.Text
+                  placeholder="关键字：执行项/描述"
+                  value={logQuery}
+                  onChange={(e) => setLogQuery((e.target as HTMLInputElement).value)}
+                />
+              </div>
+              <Button
+                variant="default"
+                size="small"
+                onClick={() => { setLogLevel('all'); setLogItem('all'); setLogQuery(''); }}
+              >
+                重置
+              </Button>
+            </div>
             <GridTable
               columns={[
                 { key: 'ts', title: '发生时间' },
@@ -175,7 +242,7 @@ export default function RunbookDemo() {
                 { key: 'level', title: '级别' },
                 { key: 'desc', title: '描述' },
               ]}
-              data={[]}
+              data={filteredLogs}
               className="flex-1 min-h-0"
               showIndex
             />

@@ -52,7 +52,7 @@ export default function Steps({
 }: StepsProps) {
   const isVertical = orientation === 'vertical';
   const dotSize = size === 'sm' ? 'h-6 w-6 text-xs' : 'h-7 w-7 text-sm';
-  const gap = size === 'sm' ? 'gap-2' : 'gap-2.5';
+  const gap = size === 'sm' ? 'gap-2.5' : 'gap-3';
   const padding = size === 'sm' ? 'py-2' : 'py-2.5';
 
   return (
@@ -71,9 +71,11 @@ export default function Steps({
               gap,
               padding,
               // 轻量行态效果：更现代的交互反馈；整行可点击
-              'rounded-md -mx-1 px-1',
+              '-mx-2 px-2 md:-mx-3 md:px-3',
+              isActiveRow ? 'rounded-none' : 'rounded-md',
               clickable ? 'group transition-colors cursor-pointer' : '',
-              isActiveRow ? 'bg-primary/5' : 'hover:bg-gray-50/70',
+              // 选中用柔和底色，不再描边，避免与分组边框叠加成“双框”
+              isActiveRow ? 'bg-primary/10' : 'hover:bg-gray-50/70',
             ].join(' ')}
             aria-selected={isActiveRow ? true : undefined}
             onClick={(e) => {
