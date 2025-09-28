@@ -119,7 +119,7 @@ export default function Steps({
               <div className="flex items-center gap-2 min-w-0">
                 <div
                   className={[
-                    'font-medium whitespace-normal break-words leading-5',
+                    'font-medium whitespace-nowrap leading-5',
                     status === 'disabled' ? 'text-gray-400' : 'text-gray-800',
                     item.key === activeKey ? 'text-gray-900' : '',
                   ].join(' ')}
@@ -129,7 +129,7 @@ export default function Steps({
                 {item.meta && <div className="ml-auto text-xs text-gray-500 shrink-0">{item.meta}</div>}
               </div>
               {item.description ? (
-                <div className="text-xs text-gray-500 mt-0.5 leading-5 break-words whitespace-normal">{item.description}</div>
+                <div className="text-xs text-gray-500 mt-0.5 leading-5 whitespace-nowrap">{item.description}</div>
               ) : null}
             </div>
           </div>

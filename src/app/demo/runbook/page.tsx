@@ -84,7 +84,13 @@ export default function RunbookDemo() {
 
   const columnsWithSort: GridColumn<Task>[] = useMemo(() => {
     const allowed = new Set<keyof Task>(['item', 'node', 'status', 'duration', 'lastRun']);
-    return columns.map((c) => (allowed.has(c.key as keyof Task) ? { ...c, sortable: true } : c));
+    const base = columns.map((c) => (allowed.has(c.key as keyof Task) ? { ...c, sortable: true } : c));
+    return base.map((c) => {
+      const { width, ...rest } = c as any;
+      const styles = (c as any).styles ? { ...(c as any).styles } : undefined;
+      if (styles && Object.prototype.hasOwnProperty.call(styles, 'minWidth')) delete (styles as any).minWidth;
+      return styles ? { ...rest, styles } : rest;
+    });
   }, []);
 
   
@@ -132,7 +138,7 @@ export default function RunbookDemo() {
       footerItems={footerItems}
       header={<div className="text-xl font-semibold text-gray-800">日常运维流程</div>}
     >
-      <div className="grid grid-cols-[280px_1fr] gap-5 items-start">
+      <div className="grid grid-cols-[auto_1fr] h-full gap-5 items-start">
         <StepsPanel
           groups={groups}
           activeKey={active}
@@ -140,7 +146,7 @@ export default function RunbookDemo() {
           className="sticky top-0 self-start h-fit"
         />
 
-        <div className="space-y-4">
+        <div className="grid grid-rows-2 grid-rows-[1fr_1fr] gap-4 h-full">
           <Card title="执行项">
             <div className="flex items-center justify-between mb-3 shrink-0">
               {StatsBar}
@@ -149,24 +155,22 @@ export default function RunbookDemo() {
                 <Button variant="default" icon={<RefreshCw className="h-4 w-4" />} size="small">刷新</Button>
               </div>
             </div>
-            <div className="flex-1 min-h-[360px] flex flex-col">
-              <GridTable
-                columns={columnsWithSort}
-                data={scopedBase}
-                zebra
-                showIndex
-                rowKey={(r) => r.id}
-                className="flex-1 min-h-0"
-              />
-            </div>
+            <GridTable
+              columns={columnsWithSort}
+              data={scopedBase}
+              zebra
+              showIndex
+              rowKey={(r) => r.id}
+              className="flex-1 min-h-0"
+            />
           </Card>
 
-          <Card title="执行步骤" className='h-[520px]'>
+          <Card title="执行步骤">
             <GridTable
               columns={[
-                { key: 'ts', title: '发生时间', width: 180 },
+                { key: 'ts', title: '发生时间' },
                 { key: 'item', title: '执行项'},
-                { key: 'level', title: '级别', width: 120 },
+                { key: 'level', title: '级别' },
                 { key: 'desc', title: '描述' },
               ]}
               data={[]}
