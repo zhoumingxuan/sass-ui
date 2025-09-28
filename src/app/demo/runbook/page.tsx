@@ -55,8 +55,8 @@ export default function RunbookDemo() {
       ],
     },
   ];
-
-  const [active, setActive] = useState('start');
+  // 默认从“开市前/启动系统”开始，可按需手动切换
+  const [active, setActive] = useState<string>('start');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [serverMode, setServerMode] = useState(false);
@@ -137,12 +137,12 @@ export default function RunbookDemo() {
       footerItems={footerItems}
       header={<div className="text-xl font-semibold text-gray-800">日常运维 / 运维流程 / 系统环境准备</div>}
     >
-      <div className="grid grid-cols-[280px_1fr] gap-5">
+      <div className="grid grid-cols-[280px_1fr] gap-5 items-start">
         <StepsPanel
           groups={groups}
           activeKey={active}
           onChange={(k) => setActive(String(k))}
-          className="sticky top-4 h-fit"
+          className="sticky top-0 self-start h-fit"
         />
 
         <div className="space-y-4">
@@ -176,7 +176,7 @@ export default function RunbookDemo() {
           </Card>
 
           <Card title="执行步骤" className='h-[600px]'>
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-3 shrink-0">
               {StatsBar}
               <div className="flex items-center gap-2">
                 <Button icon={<Play className="h-4 w-4" />} size="small">执行</Button>
@@ -192,7 +192,7 @@ export default function RunbookDemo() {
               ]}
               data={[]}
               page={1}
-              className={"h-full"}
+              className="flex-1 min-h-0"
               pageSize={10}
               onPageChange={() => {}}
               showIndex

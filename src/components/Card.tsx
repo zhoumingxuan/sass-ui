@@ -18,10 +18,12 @@ export default function Card({
   return (
     <div
       className={`rounded-lg border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md focus-within:shadow-md ${className}`}
+      /* 让包含内容的卡片在指定高度下能自适应伸展 */
+      style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}
     >
       {title ? (
         <>
-          <div className="flex justify-between items-center px-6 pt-5 pb-3">
+          <div className="flex justify-between items-center px-6 pt-5 pb-3 shrink-0">
             <div className="text-gray-700 font-medium text-lg">{title}</div>
             {closable && (
               <button
@@ -33,10 +35,10 @@ export default function Card({
               </button>
             )}
           </div>
-          <div className="px-6 pb-6">{children}</div>
+          <div className="px-6 pb-6 flex-1 min-h-0 flex flex-col">{children}</div>
         </>
       ) : (
-        <div className="p-4 md:p-6">{children}</div>
+        <div className="p-4 md:p-6 flex-1 min-h-0 flex flex-col">{children}</div>
       )}
     </div>
   );

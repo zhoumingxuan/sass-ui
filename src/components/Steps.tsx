@@ -56,7 +56,16 @@ export default function Steps({
         const clickable = typeof onChange === 'function' && status !== 'disabled';
         const isLast = idx === items.length - 1;
         return (
-          <div key={item.key} className={[isVertical ? 'flex' : 'inline-flex items-center', gap, padding].join(' ')}>
+          <div
+            key={item.key}
+            className={[
+              isVertical ? 'flex' : 'inline-flex items-center',
+              gap,
+              padding,
+              // 轻量行态效果：更现代的交互反馈
+              clickable ? 'group rounded-md -mx-1 px-1 transition-colors hover:bg-gray-50/80' : '',
+            ].join(' ')}
+          >
             <div className="relative flex flex-col items-center">
               <button
                 type="button"
@@ -117,4 +126,3 @@ export default function Steps({
     </div>
   );
 }
-

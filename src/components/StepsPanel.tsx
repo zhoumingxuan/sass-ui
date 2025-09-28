@@ -19,17 +19,32 @@ type Props = {
 // 仅做分组与标题样式包装，保持与业务逻辑解耦
 export default function StepsPanel({ groups, activeKey, onChange, className = '' }: Props) {
   return (
-    <div className={[
-      'rounded-xl bg-white/80 shadow-sm border border-gray-200 p-3 space-y-3',
-      className,
-    ].join(' ')}>
-      {groups.map((g) => (
-        <section key={g.key} className="rounded-lg bg-gray-50 p-3">
-          <div className="mb-2 text-gray-700 font-medium text-sm px-1">{g.title}</div>
-          <Steps items={g.items} activeKey={activeKey} onChange={onChange} />
-        </section>
-      ))}
+    <div
+      className={[
+        // 卡片化外观，与右侧 Card 视觉统一
+        'rounded-xl bg-white shadow-sm border border-gray-200 py-4 px-6 space-y-4',
+        className,
+      ].join(' ')}
+    >
+      {groups.map((g) => {
+        const isActive = g.items?.some((it) => it.key === activeKey);
+        return (
+          <section
+            key={g.key}
+            className={[
+              'rounded-lg border p-3 transition-colors',
+              'bg-white',
+              isActive ? 'border-primary/30 bg-primary/5' : 'border-gray-100 hover:bg-gray-50/60',
+            ].join(' ')}
+          >
+            <div className="mb-2 text-gray-800 font-medium text-sm px-1 flex items-center gap-2">
+              <span className={['inline-block h-1.5 w-1.5 rounded-full', isActive ? 'bg-primary' : 'bg-gray-300'].join(' ')} />
+              <span className="truncate">{g.title}</span>
+            </div>
+            <Steps items={g.items} activeKey={activeKey} onChange={onChange} />
+          </section>
+        );
+      })}
     </div>
   );
 }
-
