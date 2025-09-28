@@ -201,15 +201,9 @@ export default function RunbookDemo() {
 
           <Card title="执行步骤">
             <div className="mb-3 flex flex-wrap items-center gap-3">
-              <div className="w-44">
-                <Input.Select
-                  value={logItem}
-                  onChange={(v) => setLogItem((v as any) || 'all')}
-                  options={itemOptions.map(v => ({ value: v, label: v === 'all' ? '全部执行项' : v }))}
-                />
-              </div>
               <div className="w-36">
                 <Input.Select
+                  size='sm'
                   value={logLevel}
                   onChange={(v) => setLogLevel((v as any) || 'all')}
                   options={[
@@ -220,20 +214,14 @@ export default function RunbookDemo() {
                   ]}
                 />
               </div>
-              <div className="min-w-[14rem] flex-1">
+              <div className="min-w-[18rem]">
                 <Input.Text
+                  size='sm'
                   placeholder="关键字：执行项/描述"
                   value={logQuery}
                   onChange={(e) => setLogQuery((e.target as HTMLInputElement).value)}
                 />
               </div>
-              <Button
-                variant="default"
-                size="small"
-                onClick={() => { setLogLevel('all'); setLogItem('all'); setLogQuery(''); }}
-              >
-                重置
-              </Button>
             </div>
             <GridTable
               columns={[
