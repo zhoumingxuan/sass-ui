@@ -293,7 +293,9 @@ function FormItem({
             {renderLabel()}
           </div>
           <div className="flex-1">
-            {child ? React.cloneElement(child, childProps) : null}
+            <div className="min-h-10 flex items-center">
+              {child ? React.cloneElement(child, childProps) : null}
+            </div>
             {hasErr ? (
               <div className={errorText}>{errs![0]}</div>
             ) : (

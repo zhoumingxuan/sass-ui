@@ -32,7 +32,7 @@ export function Checkbox({ label, description, indeterminate, className = '', di
         ref={ref}
         aria-checked={indeterminate ? 'mixed' : undefined}
         className={[
-          'mt-0 h-3.5 w-3.5 shrink-0 rounded border bg-white translate-y-px',
+          'mt-0 h-3.5 w-3.5 shrink-0 rounded border bg-white',
           // base hover feedback & disabled neutralization
           'border-gray-200 hover:border-gray-300 hover:bg-gray-50 disabled:hover:border-gray-200 disabled:hover:bg-white',
           // checked hover refinement (keep subtle tint, stronger border)

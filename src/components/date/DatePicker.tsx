@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { CSSProperties } from 'react';
-import { fieldLabel, helperText, inputBase, inputStatus, Status } from '../formStyles';
+import { fieldLabel, helperText, inputBase, inputStatus, Status, inputSize } from '../formStyles';
 import { X, Calendar as CalendarIcon } from 'lucide-react';
 import Calendar from './Calendar';
 import { addMonths, formatISO, parseISO } from './utils';
@@ -125,7 +125,7 @@ export default function DatePicker({ label, helper, value, defaultValue, min, ma
             }
           }}
           aria-invalid={status === 'error' ? true : undefined}
-          className={[inputBase, status ? inputStatus[status] : '', 'text-left pr-10 leading-none flex items-center h-10', !v ? 'text-gray-400' : 'text-gray-700'].filter(Boolean).join(' ')}
+          className={[inputBase, inputSize['md'], status ? inputStatus[status] : '', 'text-left pr-10', !v ? 'text-gray-400' : 'text-gray-700'].filter(Boolean).join(' ')}
         />
         {clearable && v && (
           <button type="button" onClick={clear} aria-label="清空" className="absolute right-10 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500">
