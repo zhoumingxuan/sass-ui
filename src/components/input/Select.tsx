@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CSSProperties } from "react";
-import { inputBase, fieldLabel, helperText, inputStatus, Status, InputSize, inputSize, inputPR } from "../formStyles";
+import { inputBase, fieldLabel, helperText, inputStatus, Status, InputSize, inputSize } from "../formStyles";
 import { X, Check, ChevronDown } from "lucide-react";
 
 export type Option = { value: string; label: string; disabled?: boolean };
@@ -72,6 +72,7 @@ export default function Select({ label, helper, options, placeholder, clearable,
 
   const labelText = val ? options.find(o => o.value === val)?.label ?? '' : '';
   const itemText = size === 'sm' ? 'text-xs' : size === 'lg' ? 'text-base' : 'text-sm';
+  const textTone = val ? 'text-gray-700' : 'text-gray-400';
 
   return (
     <label className="block">
@@ -86,6 +87,7 @@ export default function Select({ label, helper, options, placeholder, clearable,
             inputSize[size],
             status ? inputStatus[status] : '',
             'text-left flex items-center',
+            textTone,
             size === 'lg' ? 'pr-12' : size === 'sm' ? 'pr-8' : 'pr-10'
           ].filter(Boolean).join(' ')}
           aria-haspopup="listbox"

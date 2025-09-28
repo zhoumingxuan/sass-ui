@@ -24,9 +24,9 @@ export const controlDisabled = 'opacity-50 cursor-not-allowed';
 // classes after `inputBase` in consumers.
 export type Status = 'error' | 'warning' | 'success';
 export const inputStatus: Record<Status, string> = {
-  error: '!border-error hover:border-error focus-visible:ring-1 focus-visible:ring-error/40',
-  warning: '!border-warning hover:border-warning focus-visible:ring-1 focus-visible:ring-warning/40',
-  success: '!border-success hover:border-success focus-visible:ring-1 focus-visible:ring-success/40'
+  error: '!border-error hover:border-error focus:border-error focus-visible:ring-1 focus-visible:ring-error/40',
+  warning: '!border-warning hover:border-warning focus:border-warning focus-visible:ring-1 focus-visible:ring-warning/40',
+  success: '!border-success hover:border-success focus:border-success focus-visible:ring-1 focus-visible:ring-success/40'
 };
 
 // Unified input sizing without px font sizes
