@@ -31,7 +31,7 @@ const toneByStatus: Record<StepStatus, string> = {
 
 const lineByStatus: Record<Exclude<StepStatus, 'disabled'>, string> = {
   pending: 'bg-gray-200',
-  active: 'bg-primary/40',
+  active: 'bg-primary/60',
   done: 'bg-success/60',
   error: 'bg-error/60',
 };
