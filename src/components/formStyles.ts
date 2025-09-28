@@ -4,7 +4,7 @@
 export const inputBase = [
   'w-full rounded-lg border border-gray-200 bg-white placeholder:text-gray-400 transition-[box-shadow,border-color]',
   'hover:border-gray-300',
-  'focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20',
+  'focus:border-primary focus:outline-none focus:ring-2 focus-visible:ring-primary/20',
   'shadow-none',
 ].join(' ');
 
@@ -19,14 +19,12 @@ export const controlRing = 'focus-visible:outline-none focus-visible:ring-2 focu
 export const controlDisabled = 'opacity-50 cursor-not-allowed';
 
 // Input status helpers for error/warning/success/info rings and borders
-// Design note: to avoid using !important, we explicitly override base
-// hover/focus border colors with the same variants and place these
-// classes after `inputBase` in consumers.
-export type Status = 'error' | 'warning' | 'success';
+export type Status = 'error' | 'warning' | 'success' ;
 export const inputStatus: Record<Status, string> = {
-  error: '!border-error hover:border-error focus:border-error focus-visible:ring-1 focus-visible:ring-error/40',
-  warning: '!border-warning hover:border-warning focus:border-warning focus-visible:ring-1 focus-visible:ring-warning/40',
-  success: '!border-success hover:border-success focus:border-success focus-visible:ring-1 focus-visible:ring-success/40'
+  // 错误态：强制覆盖基础样式的边框/环颜色（包括 hover / focus）
+  error: '!border-error hover:border-error focus:!border-error !ring-error/30 focus:!ring-error/30',
+  warning: '!border-warning hover:border-warning focus:!border-warning !ring-warning/30 focus:!ring-warning/30',
+  success: '!border-success hover:border-success focus:!border-success !ring-success/30 focus:!ring-success/30',
 };
 
 // Unified input sizing without px font sizes
