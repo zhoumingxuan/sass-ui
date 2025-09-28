@@ -59,6 +59,8 @@ export default function Steps({
     <div className={[isVertical ? 'flex flex-col' : 'flex items-center', className].join(' ')}>
       {items.map((item, idx) => {
         const status: StepStatus = item.status ?? (item.key === activeKey ? 'active' : 'pending');
+        const isActiveRow = item.key === activeKey;
+        // 为了避免与外层卡片/分组边框产生冲突，选中仅使用轻量底色，不再额外描边
         const clickable = typeof onChange === 'function' && status !== 'disabled';
         const isLast = idx === items.length - 1;
         return (
@@ -69,8 +71,11 @@ export default function Steps({
               gap,
               padding,
               // 轻量行态效果：更现代的交互反馈；整行可点击
-              clickable ? 'group rounded-md -mx-1 px-1 transition-colors hover:bg-gray-50/80 cursor-pointer' : '',
+              'rounded-md -mx-1 px-1',
+              clickable ? 'group transition-colors cursor-pointer' : '',
+              isActiveRow ? 'bg-primary/5' : 'hover:bg-gray-50/70',
             ].join(' ')}
+            aria-selected={isActiveRow ? true : undefined}
             onClick={(e) => {
               if (!clickable) return;
               const el = e.target as HTMLElement;
@@ -102,7 +107,7 @@ export default function Steps({
                     <path d="M6 6l8 8M14 6l-8 8" />
                   </svg>
                 ) : (
-                  <span>{startIndex + idx + 1}</span>
+                  <span className="leading-none">{startIndex + idx + 1}</span>
                 )}
               </button>
               {isVertical && !isLast ? (
@@ -121,7 +126,7 @@ export default function Steps({
                   className={[
                     'font-medium whitespace-nowrap leading-5',
                     status === 'disabled' ? 'text-gray-400' : 'text-gray-800',
-                    item.key === activeKey ? 'text-gray-900' : '',
+                    isActiveRow ? 'text-gray-900 font-semibold' : '',
                   ].join(' ')}
                 >
                   {item.title}
@@ -129,7 +134,7 @@ export default function Steps({
                 {item.meta && <div className="ml-auto text-xs text-gray-500 shrink-0">{item.meta}</div>}
               </div>
               {item.description ? (
-                <div className="text-xs text-gray-500 mt-0.5 leading-5 whitespace-nowrap">{item.description}</div>
+                <div className={['text-xs mt-0.5 leading-5 whitespace-nowrap', isActiveRow ? 'text-gray-600' : 'text-gray-500'].join(' ')}>{item.description}</div>
               ) : null}
             </div>
           </div>

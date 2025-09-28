@@ -8,13 +8,17 @@
     margin: 0;
     background-color: var(--color-bg);
     color: var(--color-gray-800);
-    font-family: var(--font-sans, 'Noto Sans', 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', system-ui, sans-serif);
+    /* 更稳妥的中英文字体回退顺序：优先中文等宽度更稳定的字体，降低不同平台度量差异 */
+    font-family: var(--font-sans, 'PingFang SC', 'Noto Sans SC', 'Noto Sans CJK SC', 'Microsoft YaHei', 'Segoe UI', 'Noto Sans', system-ui, sans-serif);
     font-size: 14px;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
+    font-variant-ligatures: none;
+    font-feature-settings: 'liga' 0, 'clig' 0;
   }
 
   a {
@@ -25,12 +29,17 @@
   button {
     font: inherit;
     cursor: pointer;
+    /* 统一不同平台默认样式差异（特别是 Windows 与 macOS） */
+    -webkit-appearance: none;
+    appearance: none;
+    line-height: inherit;
   }
 
   input,
   textarea,
   select {
     font: inherit;
+    line-height: inherit;
   }
 }
 
