@@ -68,9 +68,15 @@ export default function Steps({
               isVertical ? 'flex' : 'inline-flex items-center',
               gap,
               padding,
-              // 轻量行态效果：更现代的交互反馈
-              clickable ? 'group rounded-md -mx-1 px-1 transition-colors hover:bg-gray-50/80' : '',
+              // 轻量行态效果：更现代的交互反馈；整行可点击
+              clickable ? 'group rounded-md -mx-1 px-1 transition-colors hover:bg-gray-50/80 cursor-pointer' : '',
             ].join(' ')}
+            onClick={(e) => {
+              if (!clickable) return;
+              const el = e.target as HTMLElement;
+              if (el.closest('button')) return; // 避免与按钮自身点击重复
+              onChange?.(item.key);
+            }}
           >
             <div className="relative flex flex-col items-center">
               <button
@@ -113,7 +119,7 @@ export default function Steps({
               <div className="flex items-center gap-2 min-w-0">
                 <div
                   className={[
-                    'font-medium truncate',
+                    'font-medium whitespace-normal break-words leading-5',
                     status === 'disabled' ? 'text-gray-400' : 'text-gray-800',
                     item.key === activeKey ? 'text-gray-900' : '',
                   ].join(' ')}
@@ -123,7 +129,7 @@ export default function Steps({
                 {item.meta && <div className="ml-auto text-xs text-gray-500 shrink-0">{item.meta}</div>}
               </div>
               {item.description ? (
-                <div className="text-xs text-gray-500 mt-0.5 leading-5 break-words">{item.description}</div>
+                <div className="text-xs text-gray-500 mt-0.5 leading-5 break-words whitespace-normal">{item.description}</div>
               ) : null}
             </div>
           </div>

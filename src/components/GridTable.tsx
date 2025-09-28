@@ -529,6 +529,18 @@ export default function GridTable<T extends Record<string, unknown>>({
     return rows.slice(startIndex, endIndex);
   }, [rows, scrollTop, viewHeight, headerHeight, rowHeight]);
 
+  // 根据视图容量补齐“视觉行”：
+  // capacity = 视图可显示的最大行数（不包含表头，整行数），
+  // 若数据总数小于 capacity，则渲染填充行但不改变滚动高度（避免出现竖向滚动条）。
+  const fillerCount = useMemo(() => {
+    if (loading) return 0;
+    if (rows.length === 0) return 0; // 空态覆盖
+    const visibleSpace = Math.max(0, viewHeight - headerHeight);
+    const capacity = Math.floor(visibleSpace / rowHeight);
+    if (capacity <= 0) return 0;
+    return rows.length < capacity ? capacity - rows.length : 0;
+  }, [loading, rows.length, viewHeight, headerHeight, rowHeight]);
+
   // ==== 选择/悬停/焦点 ====
   const [hoverKey, setHoverKey] = useState<string | number | null>(null);
   const selectedSet = useMemo(() => new Set(selection?.selectedKeys ?? []), [selection?.selectedKeys]);
@@ -844,6 +856,21 @@ export default function GridTable<T extends Record<string, unknown>>({
             );
           })
         )}
+
+        {/* 视觉填充行：用于在内容不足时延续背景斑马纹，避免大块留白 */}
+        {fillerCount > 0 &&
+          Array.from({ length: fillerCount }).map((_, i) => {
+            const vIndex = rows.length + i; // 虚拟行索引，用于计算斑马底色
+            const base = zebra ? (vIndex % 2 === 0 ? 'var(--gt-zebra-even)' : 'var(--gt-zebra-odd)') : 'var(--gt-zebra-even)';
+            return metas.map((m) => (
+              <div
+                key={`f-${String(m.column.key)}-${vIndex}`}
+                className={cx('gt-cell px-2', m.column.className)}
+                style={{ height: rowHeight, backgroundColor: base, ...m.styles }}
+                aria-hidden
+              />
+            ));
+          })}
       </div>
     );
   };

@@ -93,9 +93,33 @@ export default function RunbookDemo() {
   const total = scopedBase.length;
   const pass = scopedBase.filter((t) => t.status === 'success').length;
   const fail = scopedBase.filter((t) => t.status === 'error').length;
+
+  // 当前执行步骤状态（不显示步骤编码）
+  const stepStatusText: Record<string, string> = {
+    pending: '待执行',
+    active: '进行中',
+    done: '已通过',
+    error: '错误',
+    disabled: '未执行',
+  };
+  const stepStatusTone: Record<string, Parameters<typeof Pill>[0]['tone']> = {
+    pending: 'neutral',
+    active: 'primary',
+    done: 'success',
+    error: 'danger',
+    disabled: 'neutral',
+  };
+  const activeStepStatus = useMemo(() => {
+    const item = groups.flatMap((g) => g.items).find((it) => String(it.key) === String(active));
+    return (item?.status ?? 'pending') as keyof typeof stepStatusText;
+  }, [active]);
+
   const StatsBar = (
     <div className="flex flex-wrap items-center gap-4 text-sm text-gray-700">
-      <div>当前步骤: <span className="px-1.5 py-0.5 rounded bg-gray-100 text-gray-800">{active}</span></div>
+      <div className="flex items-center gap-2">
+        <span>当前步骤状态</span>
+        <Pill tone={stepStatusTone[activeStepStatus]}>{stepStatusText[activeStepStatus]}</Pill>
+      </div>
       <div>总计 <span className="tabular-nums font-semibold">{total}</span></div>
       <div className="text-success">通过 <span className="tabular-nums font-semibold">{pass}</span></div>
       <div className="text-error">错误 <span className="tabular-nums font-semibold">{fail}</span></div>
@@ -125,13 +149,16 @@ export default function RunbookDemo() {
                 <Button variant="default" icon={<RefreshCw className="h-4 w-4" />} size="small">刷新</Button>
               </div>
             </div>
-            <GridTable
-              columns={columnsWithSort}
-              data={scopedBase}
-              zebra
-              showIndex
-              rowKey={(r) => r.id}
-            />
+            <div className="flex-1 min-h-[360px] flex flex-col">
+              <GridTable
+                columns={columnsWithSort}
+                data={scopedBase}
+                zebra
+                showIndex
+                rowKey={(r) => r.id}
+                className="flex-1 min-h-0"
+              />
+            </div>
           </Card>
 
           <Card title="执行步骤" className='h-[520px]'>
