@@ -30,14 +30,12 @@ export default function StepsPanel({ groups, activeKey, onChange, className = ''
       {groups.map((g, i) => {
         const startIndex = baseIndex + groups.slice(0, i).reduce((sum, gg) => sum + (gg.items?.length || 0), 0);
         const isActive = g.items?.some((it) => it.key === activeKey);
-        const activeIndex = g.items?.findIndex((it) => it.key === activeKey) ?? -1;
-        const isActiveLast = activeIndex >= 0 && activeIndex === (g.items?.length || 0) - 1;
         return (
           <section
             key={g.key}
             className={[
               'rounded-lg border p-3 transition-colors overflow-hidden',
-              isActiveLast ? 'pb-0' : '',
+              'pb-0',
               'bg-white',
               isActive ? 'border-primary/30 bg-primary/5' : 'border-gray-100 hover:bg-gray-50/60',
             ].join(' ')}
