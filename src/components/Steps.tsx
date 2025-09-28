@@ -19,6 +19,11 @@ type StepsProps = {
   onChange?: (key: StepItem['key']) => void;
   size?: 'sm' | 'md';
   className?: string;
+  /**
+   * Display index offset for numbering.
+   * Used to make numbering continuous across grouped Steps.
+   */
+  startIndex?: number;
 };
 
 const toneByStatus: Record<StepStatus, string> = {
@@ -43,6 +48,7 @@ export default function Steps({
   onChange,
   size = 'md',
   className = '',
+  startIndex = 0,
 }: StepsProps) {
   const isVertical = orientation === 'vertical';
   const dotSize = size === 'sm' ? 'h-6 w-6 text-xs' : 'h-7 w-7 text-sm';
@@ -90,7 +96,7 @@ export default function Steps({
                     <path d="M6 6l8 8M14 6l-8 8" />
                   </svg>
                 ) : (
-                  <span>{idx + 1}</span>
+                  <span>{startIndex + idx + 1}</span>
                 )}
               </button>
               {isVertical && !isLast ? (

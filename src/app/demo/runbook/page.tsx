@@ -49,7 +49,7 @@ export default function RunbookDemo() {
       key: 'after',
       title: '闭市后',
       items: [
-        { key: 'shutdown', title: '停止系统', description: '优雅关闭服务', status: 'pending', meta: <Pill>未执行</Pill> },
+        { key: 'shutdown', title: '停止系统', description: '优雅关闭服务', status: 'disabled', meta: <Pill>未执行</Pill> },
         { key: 'archive', title: '数据归档', description: '备份并清理历史', status: 'disabled', meta: <Pill>未执行</Pill> },
         { key: 'init', title: '系统初始化', description: '重置参数/建库', status: 'disabled', meta: <Pill>未执行</Pill> },
       ],

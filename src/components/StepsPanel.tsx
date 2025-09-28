@@ -26,7 +26,9 @@ export default function StepsPanel({ groups, activeKey, onChange, className = ''
         className,
       ].join(' ')}
     >
-      {groups.map((g) => {
+      {groups.map((g, i) => {
+        // Calculate a continuous index offset so step numbers don't reset per group
+        const startIndex = groups.slice(0, i).reduce((sum, gg) => sum + (gg.items?.length || 0), 0);
         const isActive = g.items?.some((it) => it.key === activeKey);
         return (
           <section
@@ -41,7 +43,7 @@ export default function StepsPanel({ groups, activeKey, onChange, className = ''
               <span className={['inline-block h-1.5 w-1.5 rounded-full', isActive ? 'bg-primary' : 'bg-gray-300'].join(' ')} />
               <span className="truncate">{g.title}</span>
             </div>
-            <Steps items={g.items} activeKey={activeKey} onChange={onChange} />
+            <Steps items={g.items} activeKey={activeKey} onChange={onChange} startIndex={startIndex} />
           </section>
         );
       })}
