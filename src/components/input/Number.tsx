@@ -18,7 +18,7 @@ type Props = Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "value" | 
   size?: InputSize; // lg | md | sm
 };
 
-export default function NumberInput({ label, helper, className = "", value, defaultValue, step = 1, min, max, precision, onChange, status, size = 'md', ...props }: Props) {
+export default function NumberInput({ label, helper, className = "", value, defaultValue, step = 1, min, max, precision, onChange, status, size = 'md', disabled, ...props }: Props) {
   const id = useId();
   const isControlled = typeof value === "number" || value === null;
   const [internal, setInternal] = useState<number | null>(typeof defaultValue === "number" ? defaultValue : null);
@@ -42,10 +42,12 @@ export default function NumberInput({ label, helper, className = "", value, defa
   };
 
   const inc = () => {
+    if (disabled) return;
     const base = typeof val === "number" ? val : typeof min === "number" ? min : 0;
     commit(clamp(base + (step || 1)));
   };
   const dec = () => {
+    if (disabled) return;
     const base = typeof val === "number" ? val : typeof min === "number" ? min : 0;
     commit(clamp(base - (step || 1)));
   };
@@ -77,15 +79,21 @@ export default function NumberInput({ label, helper, className = "", value, defa
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (disabled) return;
     if (e.key === 'ArrowUp') { e.preventDefault(); inc(); }
     else if (e.key === 'ArrowDown') { e.preventDefault(); dec(); }
   };
 
   const handleWheel = (e: React.WheelEvent<HTMLInputElement>) => {
+    if (disabled) return;
     if (document.activeElement !== e.currentTarget) return;
     e.preventDefault();
     if (e.deltaY < 0) inc(); else if (e.deltaY > 0) dec();
   };
+
+  const s = step || 1;
+  const canInc = !disabled && (typeof max !== 'number' || (typeof val === 'number' ? val + s <= max : true));
+  const canDec = !disabled && (typeof min !== 'number' || (typeof val === 'number' ? val - s >= min : true));
 
   return (
     <label className="block">
@@ -100,22 +108,38 @@ export default function NumberInput({ label, helper, className = "", value, defa
             inputBase,
             inputSize[size],
             status ? inputStatus[status] : '',
-            size === 'lg' ? 'pr-12' : size === 'sm' ? 'pr-8' : 'pr-10'
+            // 更紧凑的右侧留白，避免空白过多
+            size === 'lg' ? 'pr-7' : size === 'sm' ? 'pr-5' : 'pr-6'
           ].filter(Boolean).join(" ")}
           value={text}
           onChange={handleInput}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           onWheel={handleWheel}
+          disabled={disabled}
           {...props}
         />
-        <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex flex-col items-center">
-          <button type="button" aria-label="增加" className={`${size === 'lg' ? 'h-6 w-8' : size === 'sm' ? 'h-4 w-6' : 'h-5 w-7'} rounded-md text-gray-600 hover:bg-gray-100 flex items-center justify-center`} onClick={inc}>
-            <ChevronUp size={14} />
-          </button>
-          <button type="button" aria-label="减少" className={`mt-0.5 ${size === 'lg' ? 'h-6 w-8' : size === 'sm' ? 'h-4 w-6' : 'h-5 w-7'} rounded-md text-gray-600 hover:bg-gray-100 flex items-center justify-center`} onClick={dec}>
-            <ChevronDown size={14} />
-          </button>
+        <div className={`absolute right-1 top-1/2 -translate-y-1/2 flex flex-col items-center`}>
+          <div
+            role="button"
+            tabIndex={0}
+            aria-label="增加"
+            onClick={() => { if (canInc) inc(); }}
+            onKeyDown={(e) => { if (!canInc) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inc(); } }}
+            className={`${size === 'lg' ? 'h-6 w-6' : size === 'sm' ? 'h-4 w-4' : 'h-5 w-5'} flex items-center justify-center select-none ${canInc ? 'text-gray-500 hover:text-gray-700 active:text-gray-800 cursor-pointer' : 'text-gray-300 cursor-not-allowed'}`}
+          >
+            <ChevronUp size={size === 'lg' ? 16 : size === 'sm' ? 12 : 14} aria-hidden />
+          </div>
+          <div
+            role="button"
+            tabIndex={0}
+            aria-label="减少"
+            onClick={() => { if (canDec) dec(); }}
+            onKeyDown={(e) => { if (!canDec) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dec(); } }}
+            className={`mt-0.5 ${size === 'lg' ? 'h-6 w-6' : size === 'sm' ? 'h-4 w-4' : 'h-5 w-5'} flex items-center justify-center select-none ${canDec ? 'text-gray-500 hover:text-gray-700 active:text-gray-800 cursor-pointer' : 'text-gray-300 cursor-not-allowed'}`}
+          >
+            <ChevronDown size={size === 'lg' ? 16 : size === 'sm' ? 12 : 14} aria-hidden />
+          </div>
         </div>
       </div>
       {helper && <span className={helperText}>{helper}</span>}
