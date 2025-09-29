@@ -121,6 +121,12 @@ export default function FormDemo() {
               </div>
 
               <div className="col-span-12 md:col-span-6">
+                <Form.Item name="budget" label="预算">
+                  <Input.Number placeholder="请输入预算" min={0} max={1000000} step={0.01} precision={2} group />
+                </Form.Item>
+              </div>
+
+              <div className="col-span-12 md:col-span-6">
                 <Form.Item name="period" label="有效期" rules={[{ validator: (v) => (Array.isArray(v) && v[0] && v[1]) ? undefined : '请选择起止日期' }]}>
                   <Input.DateRange />
                 </Form.Item>

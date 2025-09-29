@@ -16,17 +16,37 @@ type Props = Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "value" | 
   onChange?: (value: number | null) => void;
   status?: Status;
   size?: InputSize; // lg | md | sm
+  formatter?: (value: number) => string;
+  parser?: (text: string) => number | null;
+  group?: boolean; // thousands grouping display when blurred
 };
 
-export default function NumberInput({ label, helper, className = "", value, defaultValue, step = 1, min, max, precision, onChange, status, size = 'md', disabled, ...props }: Props) {
+export default function NumberInput({ label, helper, className = "", value, defaultValue, step = 1, min, max, precision, onChange, status, size = 'md', disabled, formatter, parser, group = false, ...props }: Props) {
   const id = useId();
   const isControlled = typeof value === "number" || value === null;
   const [internal, setInternal] = useState<number | null>(typeof defaultValue === "number" ? defaultValue : null);
   const val = isControlled ? value : internal;
   const [text, setText] = useState<string>(val !== null && typeof val === 'number' ? String(val) : "");
+  const [focused, setFocused] = useState(false);
+
+  const groupFormat = (n: number) => {
+    const s = String(n);
+    const [i, d] = s.split('.');
+    const g = i.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return d ? `${g}.${d}` : g;
+  };
+
+  const display = (n: number) => {
+    const rounded = typeof precision === "number" ? Number(n.toFixed(precision)) : n;
+    if (formatter) return formatter(rounded);
+    if (group) return groupFormat(rounded);
+    return String(rounded);
+  };
+
   useEffect(() => {
-    setText(val === null || typeof val === 'undefined' ? "" : String(val));
-  }, [val]);
+    if (val === null || typeof val === 'undefined') { setText(""); return; }
+    setText(focused ? String(val) : display(val));
+  }, [val, focused]);
 
   const fmt = (v: number) => (typeof precision === "number" ? Number(v.toFixed(precision)) : v);
   const clamp = (v: number) => {
@@ -41,40 +61,71 @@ export default function NumberInput({ label, helper, className = "", value, defa
     onChange?.(n);
   };
 
+  const decimalPlaces = (num: number) => {
+    if (!Number.isFinite(num)) return 0;
+    const s = String(num);
+    if (s.includes('e-')) {
+      const [, e] = s.split('e-');
+      const d = (s.split('.')[1]?.length || 0) + Number(e);
+      return d;
+    }
+    return s.split('.')[1]?.length || 0;
+  };
+  const scale = Math.pow(10, Math.max(decimalPlaces(step || 1), typeof precision === 'number' ? precision : 0));
+  const preciseAdd = (n: number, dir: 1 | -1) => Math.round(n * scale + dir * (step || 1) * scale) / scale;
+
   const inc = () => {
     if (disabled) return;
     const base = typeof val === "number" ? val : typeof min === "number" ? min : 0;
-    commit(clamp(base + (step || 1)));
+    commit(clamp(preciseAdd(base, 1)));
   };
   const dec = () => {
     if (disabled) return;
     const base = typeof val === "number" ? val : typeof min === "number" ? min : 0;
-    commit(clamp(base - (step || 1)));
+    commit(clamp(preciseAdd(base, -1)));
+  };
+
+  const sanitize = (raw: string) => {
+    let s = raw.replace(/[^0-9,.-]/g, '');
+    const neg = s.startsWith('-');
+    s = s.replace(/-/g, '');
+    if (neg) s = '-' + s;
+    const firstDot = s.indexOf('.');
+    if (firstDot !== -1) s = s.slice(0, firstDot + 1) + s.slice(firstDot + 1).replace(/\./g, '');
+    return s;
+  };
+
+  const parse = (raw: string): number | null => {
+    if (parser) return parser(raw);
+    const s = raw.replace(/,/g, '');
+    if (s.trim() === '' || s === '-' || s === '.' || s === '-.') return null;
+    const n = Number(s);
+    return Number.isFinite(n) ? n : null;
   };
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
-    setText(raw);
-    if (raw.trim() === "") { commit(null); return; }
-    // allow intermediate states like '-' or '1.' without committing invalid number
-    const maybe = Number(raw);
-    if (Number.isFinite(maybe)) {
-      // do not clamp while typing; clamp on blur/controls
+    const s = sanitize(raw);
+    setText(s);
+    if (s.trim() === "") { commit(null); return; }
+    const maybe = parse(s);
+    if (typeof maybe === 'number') {
       if (!isControlled) setInternal(maybe);
       onChange?.(maybe);
     }
   };
 
+  const handleFocus = () => { setFocused(true); };
   const handleBlur = () => {
+    setFocused(false);
     if (text.trim() === "") { commit(null); return; }
-    const maybe = Number(text);
-    if (Number.isFinite(maybe)) {
+    const maybe = parse(text);
+    if (typeof maybe === 'number') {
       const c = clamp(maybe);
-      setText(String(c));
+      setText(display(c));
       commit(c);
     } else {
-      // restore last valid
-      setText(val !== null && typeof val === 'number' ? String(val) : "");
+      setText(val !== null && typeof val === 'number' ? display(val) : "");
     }
   };
 
@@ -98,7 +149,9 @@ export default function NumberInput({ label, helper, className = "", value, defa
   return (
     <label className="block">
       {label && <span className={fieldLabel}>{label}</span>}
-      <div className={`relative flex items-center ${className}`}>
+      <div
+        className={`relative group flex items-center ${className}`}
+      >
         <input
           id={id}
           type="text"
@@ -108,21 +161,21 @@ export default function NumberInput({ label, helper, className = "", value, defa
             inputBase,
             inputSize[size],
             status ? inputStatus[status] : '',
-            // 更紧凑的右侧留白，避免空白过多
             size === 'lg' ? 'pr-7' : size === 'sm' ? 'pr-5' : 'pr-6'
           ].filter(Boolean).join(" ")}
           value={text}
           onChange={handleInput}
           onBlur={handleBlur}
+          onFocus={handleFocus}
           onKeyDown={handleKeyDown}
           onWheel={handleWheel}
           disabled={disabled}
           {...props}
         />
-        <div className={`absolute right-0 top-1/2 -translate-y-1/2 flex flex-col items-center`}>
+        <div className={`absolute right-0 top-1/2 -translate-y-1/2 flex flex-col items-center opacity-0 pointer-events-none transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 group-hover:pointer-events-auto group-focus-within:pointer-events-auto ${disabled ? '!opacity-0 !pointer-events-none' : ''}`}>
           <div
             role="button"
-            tabIndex={0}
+            tabIndex={-1}
             aria-label="增加"
             onClick={() => { if (canInc) inc(); }}
             onKeyDown={(e) => { if (!canInc) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inc(); } }}
@@ -132,7 +185,7 @@ export default function NumberInput({ label, helper, className = "", value, defa
           </div>
           <div
             role="button"
-            tabIndex={0}
+            tabIndex={-1}
             aria-label="减少"
             onClick={() => { if (canDec) dec(); }}
             onKeyDown={(e) => { if (!canDec) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dec(); } }}
