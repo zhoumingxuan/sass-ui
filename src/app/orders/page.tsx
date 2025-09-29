@@ -22,7 +22,7 @@ export default function Orders() {
       footerItems={footerItems}
       header={<div className="text-xl font-semibold text-gray-800">订单管理</div>}
     >
-      <Breadcrumbs />
+      <Breadcrumbs routesMap={{ orders: '订单' }} />
       <h2 className="mb-4">订单查询</h2>
       <Card>
         <form className="flex flex-col gap-4">

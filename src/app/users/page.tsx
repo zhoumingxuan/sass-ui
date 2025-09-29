@@ -134,7 +134,7 @@ const handleSearchChange = (value: string) => {
       footerItems={footerItems}
       header={<div className="text-xl font-semibold text-gray-800">用户管理</div>}
     >
-      <Breadcrumbs />
+      <Breadcrumbs routesMap={{ users: '用户管理' }} />
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-800">用户管理</h2>
         <Button onClick={() => setShowAdd(true)} icon={<Plus />}>

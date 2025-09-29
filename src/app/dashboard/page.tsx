@@ -13,7 +13,7 @@ export default function Dashboard() {
       footerItems={footerItems}
       header={<div className="text-xl font-semibold text-gray-800">仪表盘</div>}
     >
-      <Breadcrumbs />
+      <Breadcrumbs routesMap={{ dashboard: '仪表盘' }} />
       <Grid cols={3} gap={2} className="max-md:grid-cols-2">
         <Card title="今日访问量">1,234</Card>
         <Card title="新增用户">56</Card>
