@@ -34,6 +34,7 @@ export const menuItems: MenuItem[] = [
     children: [
       { label: '按钮', href: '/demo/buttons', icon: <FolderOpenDot /> },
       { label: '界面元素', href: '/demo/elements', icon: <Sparkles /> },
+      { label: '选择器 Select', href: '/demo/select', icon: <FormInput /> },
       { label: '表格', href: '/demo/table', icon: <TableIcon /> },
       { label: '表单', href: '/demo/form', icon: <FormInput /> },
       { label: '卡片', href: '/demo/card', icon: <CreditCard /> },
