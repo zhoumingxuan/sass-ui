@@ -25,6 +25,8 @@ export default function Slider({ label, helper, className = '', showValue = true
           disabled={disabled}
           className={[
             'w-full appearance-none h-2 rounded-full outline-none',
+            // 用 currentColor 作为填充色基准，配合 Tailwind 语义色避免常量
+            'text-primary',
             // Remove overall focus ring/border per UX, keep clean track
             controlRing,
             '[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary',
@@ -32,7 +34,8 @@ export default function Slider({ label, helper, className = '', showValue = true
             className,
           ].join(' ')}
           style={{
-            background: `linear-gradient(#1e80ff, #1e80ff) 0/ ${pct}% 100% no-repeat, #e5e7eb`,
+            // 左侧进度使用 currentColor，右侧轨道使用 Tailwind 的灰色变量，避免硬编码颜色
+            background: `linear-gradient(currentColor, currentColor) 0/ ${pct}% 100% no-repeat, var(--color-gray-200)`,
           }}
           {...props}
         />

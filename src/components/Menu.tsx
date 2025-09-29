@@ -121,7 +121,7 @@ export default function Menu({
           <Item key={idx} item={item} collapsed={collapsed} />
         ))}
       </div>
-      <div className="border-t border-white/10 bg-nav-footer backdrop-blur-md backdrop-saturate-150 px-2 py-3 space-y-1.5 shadow-[0_-6px_12px_-6px_rgba(0,0,0,0.35)]">
+      <div className="border-t border-white/10 bg-nav-footer backdrop-blur-md backdrop-saturate-150 px-2 py-3 space-y-1.5 shadow-md">
         {footerItems.map((item, idx) => (
           <Item key={idx} item={item} collapsed={collapsed} />
         ))}

@@ -24,7 +24,7 @@ export default function Pill({ tone = 'neutral', icon, children, className = '' 
   return (
     <span
       className={[
-        'inline-flex select-none items-center gap-1 rounded-full px-3 py-1 text-xs font-medium leading-none shadow-[0_1px_0_rgba(15,23,42,0.04)]',
+        'inline-flex select-none items-center gap-1 rounded-full px-3 py-1 text-xs font-medium leading-none',
         toneClasses[tone],
         className,
       ]

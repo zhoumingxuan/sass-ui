@@ -1082,15 +1082,10 @@ export default function SuperSearch({
                           <span>{sec.label}</span>
                           {(matchedCounts[sec.key] ?? sec.items.length) > 0 && (
                             <span
-                              className={`inline-flex items-center h-5 px-2 rounded-full text-xs font-medium text-[color:var(--badge-fg)] bg-[color:var(--badge-bg)] ring-1 ring-[color:var(--badge-br)] ${
-                                (si === activeSection || (selection?.[sec.key] ?? []).length > 0) ? "bg-[color:#DDEEFF]" : ""
+                              className={`inline-flex items-center h-5 px-2 rounded-full text-xs font-medium text-primary/70 bg-primary/10 ring-1 ring-primary/25 ${
+                                (si === activeSection || (selection?.[sec.key] ?? []).length > 0) ? "bg-primary/15" : ""
                               }`}
                               aria-label={`${sec.label} 匹配 ${matchedCounts[sec.key] ?? sec.items.length} 条`}
-                              style={{
-                                ["--badge-fg" as string]: "#0A66C2",
-                                ["--badge-bg" as string]: "#EAF3FF",
-                                ["--badge-br" as string]: "#CDE1FF",
-                              }}
                             >
                               {formatBadgeCount(matchedCounts[sec.key] ?? sec.items.length)}
                             </span>
