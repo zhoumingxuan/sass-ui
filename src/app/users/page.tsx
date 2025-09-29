@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from 'react';
 import Button from '@/components/Button';
 import Modal from '@/components/Modal';
-import Table, { Column } from '@/components/Table';
+import GridTable, { GridColumn } from '@/components/GridTable';
 import { TextInput } from '@/components/Input';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import Layout from '@/components/Layout';
@@ -44,34 +44,26 @@ export default function Users() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
   const [selectedKeys, setSelectedKeys] = useState<Array<string | number>>([]);
-  const [selectedRows, setSelectedRows] = useState<Row[]>([]);
 
-  const columns: Column<Row>[] = useMemo(
+  const columns = useMemo(
     () => [
-      { key: 'username', title: '用户名', minWidth: 160, flex: 1.2, sortable: true },
+      { key: 'username', title: '用户名', sortable: true },
       {
         key: 'email',
-        title: '邮箱',
-        minWidth: 220,
-        flex: 1.4,
-        tooltip: (row) => row.email,
+        title: '邮箱', tooltip: (row: Row) => row.email,
       },
-      { key: 'role', title: '角色', minWidth: 140, sortable: true },
+      { key: 'role', title: '角色', sortable: true },
       {
         key: 'status',
-        title: '状态',
-        minWidth: 140,
-        intent: 'status',
+        title: '状态', intent: 'status',
         sortable: true,
-        render: (row) => <Pill tone={STATUS_META[row.status].tone}>{STATUS_META[row.status].label}</Pill>,
+        render: (row: Row) => <Pill tone={STATUS_META[row.status].tone}>{STATUS_META[row.status].label}</Pill>,
       },
       {
         key: 'actions',
         title: '操作',
         intent: 'actions',
-        align: 'right',
-        minWidth: 220,
-        render: (row) => (
+        align: 'right', render: (row: Row) => (
           <div className="flex items-center justify-end gap-2" data-table-row-trigger="ignore">
             <ActionLink tone="primary" onClick={() => setEditingUser(row)}>
               修改
@@ -82,7 +74,7 @@ export default function Users() {
       },
     ],
     [],
-  );
+  ) as unknown as GridColumn<Row>[];
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -117,7 +109,6 @@ export default function Users() {
 
   useEffect(() => {
     setSelectedKeys((keys) => keys.filter((key) => filtered.some((row) => row.id === key)));
-    setSelectedRows((rows) => rows.filter((row) => filtered.some((item) => item.id === row.id)));
   }, [filtered]);
 
   const total = filtered.length;
@@ -126,21 +117,8 @@ export default function Users() {
     [filtered, page, pageSize],
   );
 
-  const sortableFields: Array<keyof Row> = ['username', 'role', 'status'];
-  const handleSort = (key: Column<Row>['key']) => {
-    if (!sortableFields.includes(key as keyof Row)) {
-      return;
-    }
-    const normalized = key as keyof Row;
-    if (normalized === sortKey) {
-      setSortDirection((dir) => (dir === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setSortKey(normalized);
-      setSortDirection('asc');
-    }
-  };
-
-  const handleSearchChange = (value: string) => {
+  
+const handleSearchChange = (value: string) => {
     setQuery(value);
     setPage(1);
   };
@@ -192,8 +170,7 @@ export default function Users() {
           </div>
         </div>
         <div className="mt-4">
-          <Table<Row>
-            card={false}
+          <GridTable<Row>
             columns={columns}
             data={paged}
             page={page}
@@ -202,27 +179,26 @@ export default function Users() {
             onPageChange={setPage}
             onPageSizeChange={handlePageSize}
             pageSizeOptions={[5, 10, 20]}
-            sortKey={sortKey}
-            sortDirection={sortDirection}
-            onSort={handleSort}
+            serverSideSort
+            onSortChange={(sorts) => {
+              if (sorts.length > 0) {
+                const s = sorts[0];
+                setSortKey(s.key as keyof Row);
+                setSortDirection(s.direction);
+              } else {
+                setSortKey('username');
+                setSortDirection('asc');
+              }
+            }}
             rowKey={(row) => row.id}
             selection={{
               selectedKeys,
-              onChange: (keys, rows) => {
+              onChange: (keys) => {
                 setSelectedKeys(keys);
-                setSelectedRows(rows);
               },
               headerTitle: '选择用户',
+              enableSelectAll: true,
             }}
-            footerExtra={
-              selectedRows.length > 0 ? (
-                <div className="flex items-center gap-2 text-gray-500">
-                  <span>批量操作：</span>
-                  <ActionLink onClick={() => console.log('disable', selectedRows.length)}>批量停用</ActionLink>
-                  <ActionLink onClick={() => console.log('reset-password', selectedRows.length)}>重置密码</ActionLink>
-                </div>
-              ) : null
-            }
           />
         </div>
       </Card>

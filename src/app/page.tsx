@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import Layout from "@/components/Layout";
@@ -13,7 +13,7 @@ import {
   DateInput,
   DateRangeInput,
 } from "@/components/Input";
-import Table, { Column } from "@/components/Table";
+import GridTable, { GridColumn } from "@/components/GridTable";
 import Alert from "@/components/Alert";
 import Pill from "@/components/Pill";
 import ActionLink from "@/components/ActionLink";
@@ -108,31 +108,27 @@ const MEMBERS: Row[] = [
 ];
 
 export default function Home() {
-  const columns: Column<Row>[] = useMemo(
+  const columns = useMemo(
     () => [
-      { key: "name", title: "姓名", minWidth: 160, flex: 1.2, sortable: true },
-      { key: "role", title: "职位", minWidth: 160, flex: 1, tooltip: (row) => row.role },
-      { key: "department", title: "部门", minWidth: 160, flex: 1 },
+      { key: "name", title: "姓名", sortable: true },
+      { key: "role", title: "职位", tooltip: (row: Row) => row.role },
+      { key: "department", title: "部门" },
       {
         key: "status",
         title: "状态",
-        minWidth: 140,
         intent: "status",
         sortable: true,
-        render: (row) => <Pill tone={STATUS_TONE[row.status]}>{STATUS_TEXT[row.status]}</Pill>,
+        render: (row: Row) => <Pill tone={STATUS_TONE[row.status]}>{STATUS_TEXT[row.status]}</Pill>,
       },
-      { key: "age", title: "年龄", align: "right", minWidth: 80, sortable: true },
+      { key: "age", title: "年龄", align: "right", sortable: true },
       {
         key: "email",
         title: "邮箱",
-        minWidth: 220,
-        flex: 1.6,
-        tooltip: (row) => row.email,
+        tooltip: (row: Row) => row.email,
       },
       {
         key: "updatedAt",
         title: "最近更新",
-        minWidth: 180,
         sortable: true,
       },
       {
@@ -140,8 +136,7 @@ export default function Home() {
         title: "操作",
         intent: "actions",
         align: "right",
-        minWidth: 200,
-        render: (row) => (
+        render: (row: Row) => (
           <div className="flex items-center gap-2" data-table-row-trigger="ignore">
             <ActionLink tone="primary">查看档案</ActionLink>
             <ActionLink onClick={() => console.log("edit", row.id)}>编辑</ActionLink>
@@ -150,7 +145,7 @@ export default function Home() {
       },
     ],
     [],
-  );
+  ) as unknown as GridColumn<Row>[];
 
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<keyof Row>("updatedAt");
@@ -158,7 +153,6 @@ export default function Home() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
   const [selectedKeys, setSelectedKeys] = useState<Array<string | number>>([]);
-  const [selectedRows, setSelectedRows] = useState<Row[]>([]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -208,7 +202,6 @@ export default function Home() {
 
   useEffect(() => {
     setSelectedKeys((keys) => keys.filter((key) => filtered.some((row) => row.id === key)));
-    setSelectedRows((rows) => rows.filter((row) => filtered.some((item) => item.id === row.id)));
   }, [filtered]);
 
   const total = filtered.length;
@@ -217,21 +210,8 @@ export default function Home() {
     [filtered, page, pageSize],
   );
 
-  const sortableFields: Array<keyof Row> = ["name", "age", "status", "updatedAt"];
-  const handleSort = (key: Column<Row>["key"]) => {
-    if (!sortableFields.includes(key as keyof Row)) {
-      return;
-    }
-    const normalized = key as keyof Row;
-    if (normalized === sortKey) {
-      setSortDirection((dir) => (dir === "asc" ? "desc" : "asc"));
-    } else {
-      setSortKey(normalized);
-      setSortDirection("asc");
-    }
-  };
-
-  const handlePageSize = (nextSize: number) => {
+  
+const handlePageSize = (nextSize: number) => {
     setPageSize(nextSize);
     setPage(1);
   };
@@ -313,8 +293,7 @@ export default function Home() {
           </div>
         </div>
         <div className="mt-4">
-          <Table<Row>
-            card={false}
+          <GridTable<Row>
             columns={columns}
             data={paged}
             page={page}
@@ -323,27 +302,27 @@ export default function Home() {
             onPageChange={setPage}
             onPageSizeChange={handlePageSize}
             pageSizeOptions={[5, 10, 20]}
-            sortKey={sortKey}
-            sortDirection={sortDirection}
-            onSort={handleSort}
+            serverSideSort
+            onSortChange={(sorts) => {
+              if (sorts.length > 0) {
+                const s = sorts[0];
+                setSortKey(s.key as keyof Row);
+                setSortDirection(s.direction);
+              } else {
+                setSortKey('updatedAt');
+                setSortDirection('desc');
+              }
+            }}
             rowKey={(row) => row.id}
             selection={{
               selectedKeys,
-              onChange: (keys, rows) => {
+              onChange: (keys) => {
                 setSelectedKeys(keys);
-                setSelectedRows(rows);
               },
               columnWidth: 48,
               headerTitle: "选择全部成员",
+              enableSelectAll: true,
             }}
-            footerExtra={
-              selectedRows.length > 0 ? (
-                <div className="flex items-center gap-2 text-gray-500">
-                  <span>批量操作：</span>
-                  <ActionLink onClick={() => console.log("export", selectedRows.length)}>导出选中</ActionLink>
-                </div>
-              ) : null
-            }
           />
         </div>
       </Card>
