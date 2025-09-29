@@ -20,7 +20,6 @@ type BaseProps = {
   /** —— 新增：多选展示能力 —— */
   maxTagCount?: number;         // 多选最多展示的 pill 数，超出用 +N 汇总；不传则不限制
   showSelectedSummary?: boolean;// 多选是否用一颗“已选 X 项”的 primary Pill 汇总展示
-  selectedPillTone?: PillTone;  // 多选单条 pill 的色调，默认 neutral
   pillCloseable?: boolean;      // 多选单条 pill 是否可在 pill 内关闭，默认 true
   summaryText?: (n: number) => string; // 自定义汇总 pill 文案，默认：已选 n 项
 };
@@ -56,7 +55,6 @@ export default function Select(props: Props) {
     // 新增展示控制
     maxTagCount,
     showSelectedSummary,
-    selectedPillTone = 'neutral',
     pillCloseable = true,
     summaryText,
   } = props;
@@ -237,7 +235,7 @@ export default function Select(props: Props) {
         {head.map(o => (
           <Pill
             key={o.value}
-            tone={selectedPillTone}
+            tone={'neutral'}
             className="max-w-full"
             closeable={pillCloseable}
             onClose={() => handlePillClose(o.value)}
