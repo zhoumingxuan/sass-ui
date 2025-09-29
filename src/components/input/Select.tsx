@@ -333,7 +333,7 @@ export default function Select(props: Props) {
                     onClick={() => (multiple ? toggleMulti(o.value) : commitSingle(o.value))}
                   >
                     <span className="truncate">{o.label}</span>
-                    {selected && <Check size={16} className="text-gray-500" aria-hidden />}
+                    {selected && <Check size={16} className="text-primary" aria-hidden />}
                   </button>
                 );
               })}
