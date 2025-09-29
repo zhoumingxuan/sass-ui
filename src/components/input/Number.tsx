@@ -119,7 +119,7 @@ export default function NumberInput({ label, helper, className = "", value, defa
           disabled={disabled}
           {...props}
         />
-        <div className={`absolute right-1 top-1/2 -translate-y-1/2 flex flex-col items-center`}>
+        <div className={`absolute right-0 top-1/2 -translate-y-1/2 flex flex-col items-center`}>
           <div
             role="button"
             tabIndex={0}
