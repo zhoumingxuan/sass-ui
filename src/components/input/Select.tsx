@@ -1,8 +1,8 @@
-import { CSSProperties, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { CSSProperties, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { inputBase, fieldLabel, helperText, inputStatus, Status, InputSize, inputSize } from "../formStyles";
-import { Check, ChevronDown } from "lucide-react";
-import Pill, { PillTone } from "@/components/Pill";
+import { Check, ChevronDown, X } from "lucide-react";
+import Pill from "@/components/Pill";
 
 export type Option = { value: string; label: string; disabled?: boolean };
 
@@ -17,8 +17,8 @@ type BaseProps = {
   status?: Status;
   size?: InputSize;             // lg | md | sm
 
-  /** —— 新增：多选展示能力 —— */
-  maxTagCount?: number;         // 多选最多展示的 pill 数，超出用 +N 汇总；不传则不限制
+  /** —— 多选展示能力 —— */
+  maxTagCount?: number;         // 多选最多展示的 pill 数；未传时将“自适应”计算
   showSelectedSummary?: boolean;// 多选是否用一颗“已选 X 项”的 primary Pill 汇总展示
   pillCloseable?: boolean;      // 多选单条 pill 是否可在 pill 内关闭，默认 true
   summaryText?: (n: number) => string; // 自定义汇总 pill 文案，默认：已选 n 项
@@ -52,7 +52,7 @@ export default function Select(props: Props) {
     status,
     size = 'md',
 
-    // 新增展示控制
+    // 多选展示控制
     maxTagCount,
     showSelectedSummary,
     pillCloseable = true,
@@ -71,6 +71,7 @@ export default function Select(props: Props) {
 
   const [open, setOpen] = useState(false);
   const anchor = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const pop = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const [mountNode, setMountNode] = useState<Element | null>(null);
@@ -127,14 +128,13 @@ export default function Select(props: Props) {
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
 
-  // portal
+  // Portal 容器
   useEffect(() => {
     if (typeof document !== 'undefined') setMountNode(document.getElementById('layout-body') || document.body);
   }, []);
 
-  // 定位
+  // 预定位，减少首次打开闪动
   useEffect(() => {
-    if (!open) return;
     const update = () => {
       const el = anchor.current;
       if (!el) return;
@@ -144,10 +144,16 @@ export default function Select(props: Props) {
       setPos({ top, left, width: r.width });
     };
     update();
+    const ro = 'ResizeObserver' in window ? new ResizeObserver(update) : null;
+    if (ro && anchor.current) ro.observe(anchor.current);
     window.addEventListener('resize', update);
     window.addEventListener('scroll', update, true);
-    return () => { window.removeEventListener('resize', update); window.removeEventListener('scroll', update, true); };
-  }, [open]);
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+    };
+  }, []);
 
   // 打开时设置 activeIndex 到第一个可用项 / 当前选中项
   useEffect(() => {
@@ -195,7 +201,6 @@ export default function Select(props: Props) {
       e.preventDefault();
       setOpen(false);
     } else if (e.key === 'Backspace' && multiple) {
-      // 多选时回退删除最后一项
       if (Array.isArray(val) && val.length > 0) {
         handlePillClose(val[val.length - 1]);
       }
@@ -206,9 +211,86 @@ export default function Select(props: Props) {
     ? (typeof val === 'string' && val ? (options.find(o => o.value === val)?.label ?? '') : '')
     : '';
 
-  // 多选展示策略
+  // —— 多选：自适应 maxTagCount ——
   const n = selectedLabels.length;
-  const _summaryText = useMemo(() => summaryText ?? ((k: number) => `已选 ${k} 项`), [summaryText]);
+  const _summaryText = useMemo(() => summaryText ?? ((k: number) => `已选${k} 项`), [summaryText]);
+
+  const [autoCount, setAutoCount] = useState<number>(Infinity);
+  const measureRef = useRef<HTMLDivElement>(null);
+
+  // 计算可展示的 Pill 数量，保证单行不换行，多余用 +N
+  useLayoutEffect(() => {
+    if (!multiple) return;
+    const btn = buttonRef.current;
+    const meas = measureRef.current;
+    if (!btn || !meas) return;
+
+    const measure = () => {
+      const btnEl = buttonRef.current;
+      const measEl = measureRef.current;
+      if (!btnEl || !measEl) return;
+
+      const style = window.getComputedStyle(btnEl);
+      const contentWidth = btnEl.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+      if (!Number.isFinite(contentWidth) || contentWidth <= 0) {
+        setAutoCount(0);
+        return;
+      }
+
+      const children = Array.from(measEl.children) as HTMLElement[];
+      const gapStyle = window.getComputedStyle(measEl);
+      const gap = parseFloat(gapStyle.columnGap || gapStyle.gap || '0') || 0;
+
+      let used = 0;
+      let count = 0;
+
+      for (const el of children) {
+        const w = el.offsetWidth;
+        const add = count > 0 ? gap : 0;
+        if (used + add + w <= contentWidth) {
+          used += add + w;
+          count++;
+        } else {
+          break;
+        }
+      }
+
+      if (count < n) {
+        const rest = n - count;
+        const approxPlus = 44 + Math.max(0, String(rest).length - 1) * 10;
+        while (count > 0 && (used + gap + approxPlus) > contentWidth) {
+          const lastEl = children[count - 1];
+          const lastW = lastEl?.offsetWidth ?? 0;
+          used -= (count > 1 ? gap : 0) + lastW;
+          count--;
+        }
+      }
+
+      setAutoCount(count);
+    };
+
+    let frame = requestAnimationFrame(measure);
+    const schedule = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(measure);
+    };
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(schedule);
+      resizeObserver.observe(btn);
+    } else {
+      window.addEventListener('resize', schedule);
+    }
+
+    return () => {
+      cancelAnimationFrame(frame);
+      resizeObserver?.disconnect();
+      if (!resizeObserver) {
+        window.removeEventListener('resize', schedule);
+      }
+    };
+  }, [multiple, n, selectedOptions, size]);
 
   // 组装多选可视内容
   const renderMultiContent = () => {
@@ -226,17 +308,18 @@ export default function Select(props: Props) {
         </Pill>
       );
     }
-    // 2) 限制展示数量 + 剩余 primary 汇总
-    const limit = typeof maxTagCount === 'number' && maxTagCount >= 0 ? maxTagCount : Infinity;
+    // 2) 限制展示数量 + 剩余 primary 汇总（未传 maxTagCount 则用自适应 autoCount）
+    const limit = typeof maxTagCount === 'number' && maxTagCount >= 0 ? maxTagCount : autoCount;
     const head = selectedOptions.slice(0, limit);
     const rest = n - head.length;
+
     return (
-      <div className="flex flex-wrap gap-2">
+      <div className="flex min-w-0 flex-nowrap items-center gap-2 overflow-hidden">
         {head.map(o => (
           <Pill
             key={o.value}
             tone={'neutral'}
-            className="max-w-full"
+            className="max-w-full shrink-0"
             closeable={pillCloseable}
             onClose={() => handlePillClose(o.value)}
           >
@@ -244,7 +327,7 @@ export default function Select(props: Props) {
           </Pill>
         ))}
         {rest > 0 && (
-          <Pill tone="primary" className="max-w-full">
+          <Pill tone="primary" className="max-w-full shrink-0">
             +{rest}
           </Pill>
         )}
@@ -255,8 +338,21 @@ export default function Select(props: Props) {
   return (
     <label className="block">
       {label && <span className={fieldLabel}>{label}{required ? <span className="ml-0.5 text-error">*</span> : null}</span>}
+
+      {/* 不可见测量区：用于计算每个 Pill 的真实宽度（含 gap） */}
+      {multiple && (
+        <div ref={measureRef} className="invisible fixed -z-50 top-0 left-0 flex flex-nowrap gap-2">
+          {selectedOptions.map(o => (
+            <Pill key={`m-${o.value}`} tone="neutral" className="max-w-full shrink-0" closeable={pillCloseable}>
+              <span className="truncate">{o.label}</span>
+            </Pill>
+          ))}
+        </div>
+      )}
+
       <div ref={anchor} className={`relative ${className}`}>
         <button
+          ref={buttonRef}
           type="button"
           id={id}
           onClick={() => setOpen(o => !o)}
@@ -288,9 +384,7 @@ export default function Select(props: Props) {
             aria-label="清空"
             className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
           >
-            {/* X 图标移除，遵循“多选在 Pill 内关闭”的原则 */}
-            {/* 这里不渲染图标，仅保留交互结构可随时扩展 */}
-            <span className="block h-4 w-4">×</span>
+            <X size={16} className="text-gray-500" aria-hidden />
           </button>
         )}
 

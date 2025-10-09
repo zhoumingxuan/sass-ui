@@ -4,7 +4,7 @@ import { InputHTMLAttributes, useEffect, useId, useState } from "react";
 import { inputBase, fieldLabel, helperText, inputStatus, Status, InputSize, inputSize } from "../formStyles";
 import { ChevronUp, ChevronDown } from "lucide-react";
 
-type Props = Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "value" | "defaultValue"> & {
+type Props = Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "value" | "defaultValue" | "size"> & {
   label?: string;
   helper?: string;
   value?: number;

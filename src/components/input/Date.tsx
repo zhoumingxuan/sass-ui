@@ -3,7 +3,7 @@
 import { InputHTMLAttributes, useId, useState } from "react";
 import { inputBase, fieldLabel, helperText, InputSize, inputSize } from "../formStyles";
 
-type DateProps = Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "value" | "defaultValue"> & {
+type DateProps = Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "value" | "defaultValue" | "size"> & {
   label?: string;
   helper?: string;
   value?: string; // yyyy-mm-dd
