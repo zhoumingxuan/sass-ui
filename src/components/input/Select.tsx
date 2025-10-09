@@ -34,7 +34,7 @@ type BaseProps = {
   className?: string;
   status?: Status;
   size?: InputSize;
-  maxTagCount?: number;
+  maxTagCount?: number; // 若提供，走固定数量；未提供时走“首行自适应计数”
   showSelectedSummary?: boolean;
   pillCloseable?: boolean;
   summaryText?: (n: number) => string;
@@ -123,8 +123,14 @@ export default function Select(props: Props) {
   const measureRef = useRef<HTMLDivElement>(null);
   const [mountNode, setMountNode] = useState<Element | null>(null);
 
-  const selectedSet = useMemo(() => new Set(Array.isArray(value) ? value : value ? [value] : []), [value]);
-  const selectedOptions = useMemo(() => options.filter(option => selectedSet.has(option.value)), [options, selectedSet]);
+  const selectedSet = useMemo(
+    () => new Set(Array.isArray(value) ? value : value ? [value] : []),
+    [value],
+  );
+  const selectedOptions = useMemo(
+    () => options.filter(option => selectedSet.has(option.value)),
+    [options, selectedSet],
+  );
   const labelSet = useMemo(() => selectedOptions.map(option => option.label), [selectedOptions]);
 
   const itemTextClass = size === "sm" ? "text-xs" : size === "lg" ? "text-base" : "text-sm";
@@ -134,8 +140,12 @@ export default function Select(props: Props) {
   const multiVars: SelectVars | undefined = multiple
     ? { "--select-multi-reserve": RESERVE_VAR_MAP[size] }
     : undefined;
-  const reserveStyle = useMemo<CSSProperties>(() => ({ width: "var(--select-multi-reserve)", minWidth: "var(--select-multi-reserve)" }), []);
+  const reserveStyle = useMemo<CSSProperties>(
+    () => ({ width: "var(--select-multi-reserve)", minWidth: "var(--select-multi-reserve)" }),
+    [],
+  );
 
+  // “首行自适应计数”结果；如果用户传入 maxTagCount 则忽略该值
   const [autoCount, setAutoCount] = useState(() => (multiple ? selectedOptions.length : 0));
   const [isMeasured, setIsMeasured] = useState(!multiple || selectedOptions.length === 0);
 
@@ -143,7 +153,10 @@ export default function Select(props: Props) {
     ? (typeof value === "string" && value ? options.find(option => option.value === value)?.label ?? "" : "")
     : "";
 
-  const summaryFormatter = useMemo(() => summaryText ?? ((count: number) => `已选${count}项`), [summaryText]);
+  const summaryFormatter = useMemo(
+    () => summaryText ?? ((count: number) => `已选${count}项`),
+    [summaryText],
+  );
 
   const commitSingle = useCallback(
     (next: string) => {
@@ -312,6 +325,7 @@ export default function Select(props: Props) {
     [activeIndex, commitSingle, handlePillClose, moveActive, multiple, open, options, toggleMulti, value],
   );
 
+  // —— 关键改造：按“换行触发→统计首行元素数”的思路做自适应 maxTagCount ——
   useLayoutEffect(() => {
     if (!multiple) return;
     const button = buttonRef.current;
@@ -322,12 +336,6 @@ export default function Select(props: Props) {
     const plusEl = group?.querySelector(`[${MEASURE_PLUS_ATTR}="true"]`) as HTMLElement | null;
     const plusLabelEl = plusEl?.querySelector(`[${MEASURE_PLUS_LABEL_ATTR}="true"]`) as HTMLElement | null;
 
-    const readPlusWidth = (rest: number) => {
-      if (!plusEl || rest <= 0) return 0;
-      if (plusLabelEl) plusLabelEl.textContent = `+${rest}`;
-      return plusEl.offsetWidth;
-    };
-
     const resolveReserveWidth = () => {
       const raw = getComputedStyle(button).getPropertyValue("--select-multi-reserve");
       return raw ? parseCssSizeToPx(raw, button) : 0;
@@ -336,15 +344,10 @@ export default function Select(props: Props) {
     const collectPills = () =>
       (group ? Array.from(group.querySelectorAll(`[${MEASURE_PILL_ATTR}="true"]`)) : []) as HTMLElement[];
 
-    const readGap = () => {
-      if (!group) return 0;
-      const style = getComputedStyle(group);
-      return parseFloat(style.columnGap || style.gap || "0") || 0;
-    };
-
     const updateMetrics = () => {
       const style = getComputedStyle(button);
       const contentWidth = button.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+
       if (!Number.isFinite(contentWidth) || contentWidth <= 0) {
         setAutoCount(0);
         setIsMeasured(true);
@@ -358,43 +361,48 @@ export default function Select(props: Props) {
         return;
       }
 
-      const gap = readGap();
       const reserveWidth = resolveReserveWidth();
       const available = Math.max(0, contentWidth - reserveWidth);
 
-      let used = 0;
-      let count = 0;
-
-      for (const pillEl of pillEls) {
-        const width = pillEl.offsetWidth;
-        const next = used + (count > 0 ? gap : 0) + width;
-        if (next > available) break;
-        used = next;
-        count += 1;
+      // 将测量组的宽度“设成可用宽度”，并启用 wrap，以让项目自然换行
+      if (group) {
+        group.style.width = `${available}px`;
+        group.style.maxWidth = `${available}px`;
+        // 保底确保启用换行（JSX已写 flex-wrap，这里再兜底）
+        group.style.display = "flex";
+        (group.style as any).flexWrap = "wrap";
+        group.style.overflow = "hidden"; // 多行仅显示首行
       }
 
-      let rest = Math.max(0, selectedOptions.length - count);
-      let plusWidth = rest > 0 ? readPlusWidth(rest) : 0;
+      // 先假设不需要 +N，占位为 0；随后根据余量更新
+      if (plusLabelEl) plusLabelEl.textContent = "+0";
 
-      while (rest > 0 && count > 0 && (used + gap + plusWidth) > available) {
-        const last = pillEls[count - 1];
-        used -= (count > 1 ? gap : 0) + last.offsetWidth;
-        count -= 1;
-        rest = Math.max(0, selectedOptions.length - count);
-        plusWidth = rest > 0 ? readPlusWidth(rest) : 0;
+      // 统计首行：取最小 offsetTop 为首行基线
+      const firstTop = Math.min(...pillEls.map(el => el.offsetTop));
+      let firstLineCount = pillEls.filter(el => el.offsetTop === firstTop).length;
+
+      // 计算余量并让 +N 参与首行排版，若 +N 被挤到下一行，就递减首行可见数量直至 +N 回到首行
+      let rest = Math.max(0, selectedOptions.length - firstLineCount);
+      if (plusLabelEl) plusLabelEl.textContent = `+${rest}`;
+
+      // 如果存在余量，确保 +N 也能位于首行
+      if (rest > 0 && plusEl) {
+        let safety = 128; // 防御性上限，避免极端情况下死循环
+        while (safety-- > 0 && firstLineCount > 0 && plusEl.offsetTop > firstTop) {
+          firstLineCount -= 1;
+          rest = Math.max(0, selectedOptions.length - firstLineCount);
+          if (plusLabelEl) plusLabelEl.textContent = `+${rest}`;
+        }
       }
 
-      if (rest === 0 && plusLabelEl) {
-        plusLabelEl.textContent = "+0";
-      }
-
-      const nextCount = Math.max(0, Math.min(count, selectedOptions.length));
-      setAutoCount(previous => (previous === nextCount ? previous : nextCount));
+      const nextCount = Math.max(0, Math.min(firstLineCount, selectedOptions.length));
+      setAutoCount(prev => (prev === nextCount ? prev : nextCount));
       setIsMeasured(true);
     };
 
     updateMetrics();
 
+    // 仅在“尺寸变化/滚动/候选变化”时触发测量，避免实时抖动
     let frame: number | null = null;
     const schedule = () => {
       if (frame !== null) cancelAnimationFrame(frame);
@@ -426,6 +434,7 @@ export default function Select(props: Props) {
     if (showSelectedSummary) {
       return (
         <div className="flex w-full items-center gap-2 overflow-hidden">
+          {/* 右侧图标/清空预留 */}
           <span aria-hidden className="pointer-events-none shrink-0" style={reserveStyle} />
           <div className="ml-auto flex min-w-0 items-center justify-end gap-2 overflow-hidden">
             <Pill tone="primary" className="max-w-full shrink-0" closeable={!!clearable} onClose={handleClearAll}>
@@ -447,7 +456,9 @@ export default function Select(props: Props) {
 
     return (
       <div className="flex w-full items-center gap-2 overflow-hidden">
+        {/* 右侧图标/清空预留 */}
         <span aria-hidden className="pointer-events-none shrink-0" style={reserveStyle} />
+        {/* 实际展示区：单行、不换行，超出隐藏；不做实时测算 */}
         <div className="ml-auto flex min-w-0 items-center justify-end gap-2 overflow-hidden">
           {visible.map(option => (
             <Pill
@@ -479,6 +490,7 @@ export default function Select(props: Props) {
         </span>
       )}
 
+      {/* 隐形测量容器：启用换行，仅用于统计首行可容纳的 Pills 数量 */}
       {multiple && (
         <div
           ref={measureRef}
@@ -487,7 +499,10 @@ export default function Select(props: Props) {
           aria-hidden
         >
           <span aria-hidden className="pointer-events-none shrink-0" style={reserveStyle} />
-          <div className="ml-auto flex min-w-0 items-center justify-end gap-2 overflow-hidden" data-measure-group="true">
+          <div
+            className="ml-auto flex min-w-0 items-center justify-end gap-2 overflow-hidden flex-wrap"
+            data-measure-group="true"
+          >
             {selectedOptions.map(option => (
               <Pill key={`measure-${option.value}`} tone="neutral" className="max-w-full shrink-0" data-measure-pill="true">
                 {option.label}
