@@ -1,17 +1,16 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 
 export type PillTone = 'neutral' | 'primary' | 'success' | 'warning' | 'danger' | 'info';
 
-type PillProps = {
+type PillProps = HTMLAttributes<HTMLSpanElement> & {
   tone?: PillTone;
   icon?: ReactNode;
   children: ReactNode;
-  className?: string;
-  closeable?: boolean; // 是否可关闭
-  onClose?: () => void; // 关闭回调
+  closeable?: boolean;
+  onClose?: () => void;
 };
 
 const toneClasses: Record<PillTone, string> = {
@@ -23,7 +22,6 @@ const toneClasses: Record<PillTone, string> = {
   info:    'border border-info/20 bg-info/10 text-info',
 };
 
-// 让 X 跟随 tone
 const toneCloseClasses: Record<PillTone, string> = {
   neutral: 'text-gray-500 hover:text-gray-700',
   primary: 'text-primary hover:text-primary/80',
@@ -33,16 +31,22 @@ const toneCloseClasses: Record<PillTone, string> = {
   info:    'text-info hover:text-info/80',
 };
 
-export default function Pill({
-  tone = 'neutral',
-  icon,
-  children,
-  className = '',
-  closeable = false,
-  onClose,
-}: PillProps) {
+const Pill = forwardRef<HTMLSpanElement, PillProps>(function Pill(
+  {
+    tone = 'neutral',
+    icon,
+    children,
+    className = '',
+    closeable = false,
+    onClose,
+    ...rest
+  },
+  ref,
+) {
   return (
     <span
+      ref={ref}
+      {...rest}
       className={[
         'inline-flex select-none items-center gap-1 rounded-full px-2 py-1 text-xs font-medium leading-none',
         toneClasses[tone],
@@ -53,7 +57,10 @@ export default function Pill({
       <span className="truncate">{children}</span>
       {closeable && onClose && (
         <button
-          onClick={(e) => { e.stopPropagation(); onClose?.(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose?.();
+          }}
           aria-label="关闭"
           className={['ml-1 rounded-full p-0.5 focus:outline-none', toneCloseClasses[tone]].join(' ')}
         >
@@ -62,4 +69,6 @@ export default function Pill({
       )}
     </span>
   );
-}
+});
+
+export default Pill;
