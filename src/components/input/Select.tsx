@@ -34,7 +34,11 @@ type BaseProps = {
   className?: string;
   status?: Status;
   size?: InputSize;
-  maxTagCount?: number; // 若提供，走固定数量；未提供时走“首行自适应计数”
+  /**
+   * 若提供固定数量，走固定展示；
+   * 未提供时走“首行自适应计数”（以可视容器换行与 Resize 触发统计）。
+   */
+  maxTagCount?: number;
   showSelectedSummary?: boolean;
   pillCloseable?: boolean;
   summaryText?: (n: number) => string;
@@ -64,24 +68,11 @@ const RESERVE_VAR_MAP: Record<InputSize, string> = {
   lg: "var(--select-multi-reserve-lg)",
 };
 
-const MEASURE_GROUP_ATTR = "data-measure-group";
-const MEASURE_PILL_ATTR = "data-measure-pill";
-const MEASURE_PLUS_ATTR = "data-measure-plus";
-const MEASURE_PLUS_LABEL_ATTR = "data-measure-plus-label";
-
-const parseCssSizeToPx = (value: string, context: HTMLElement): number => {
-  const trimmed = value.trim();
-  if (!trimmed) return 0;
-  if (trimmed.endsWith("px")) return parseFloat(trimmed);
-  if (trimmed.endsWith("rem") || trimmed.endsWith("em")) {
-    const factor = parseFloat(trimmed);
-    const fontSize = parseFloat(getComputedStyle(context).fontSize || "16");
-    if (!Number.isFinite(factor) || !Number.isFinite(fontSize)) return 0;
-    return factor * fontSize;
-  }
-  const numeric = parseFloat(trimmed);
-  return Number.isFinite(numeric) ? numeric : 0;
-};
+// —— 使用“可视容器自身”做统计，不再用隐藏测量层 ——
+const DISPLAY_GROUP_ATTR = "data-display-group";
+const DISPLAY_PILL_ATTR = "data-display-pill"; // 包裹 Pill 的 span，用于测量 offsetTop/Height
+const DISPLAY_PLUS_ATTR = "data-display-plus"; // +N 的包裹 span
+const DISPLAY_PLUS_LABEL_ATTR = "data-display-plus-label";
 
 export default function Select(props: Props) {
   const {
@@ -120,8 +111,11 @@ export default function Select(props: Props) {
   const listRef = useRef<HTMLDivElement>(null);
   const listScrollRef = useRef(0);
   const enforceVisibilityRef = useRef(false);
-  const measureRef = useRef<HTMLDivElement>(null);
   const [mountNode, setMountNode] = useState<Element | null>(null);
+
+  const displayGroupRef = useRef<HTMLDivElement>(null);
+  const plusWrapRef = useRef<HTMLSpanElement>(null);
+  const plusLabelRef = useRef<HTMLSpanElement>(null);
 
   const selectedSet = useMemo(
     () => new Set(Array.isArray(value) ? value : value ? [value] : []),
@@ -145,9 +139,10 @@ export default function Select(props: Props) {
     [],
   );
 
-  // “首行自适应计数”结果；如果用户传入 maxTagCount 则忽略该值
+  // 首行自适应计数（只在多选且未传 maxTagCount 时启用）——不测宽度
   const [autoCount, setAutoCount] = useState(() => (multiple ? selectedOptions.length : 0));
-  const [isMeasured, setIsMeasured] = useState(!multiple || selectedOptions.length === 0);
+  // 需要重算时，先“全量渲染”让浏览器自然换行，再统计首行数量
+  const [needsRecalc, setNeedsRecalc] = useState<boolean>(multiple && typeof (props as any).maxTagCount !== "number");
 
   const labelText = !multiple
     ? (typeof value === "string" && value ? options.find(option => option.value === value)?.label ?? "" : "")
@@ -325,103 +320,39 @@ export default function Select(props: Props) {
     [activeIndex, commitSingle, handlePillClose, moveActive, multiple, open, options, toggleMulti, value],
   );
 
-  // —— 关键改造：按“换行触发→统计首行元素数”的思路做自适应 maxTagCount ——
+  // —— 关键：不测宽/高。让容器自然换行；统计首行 offsetTop 相同的元素个数；如有剩余项，为 N 预留 1 个坑位。
   useLayoutEffect(() => {
     if (!multiple) return;
-    const button = buttonRef.current;
-    const measure = measureRef.current;
-    if (!button || !measure) return;
+    const explicit = typeof (props as any).maxTagCount === "number";
+    if (explicit) return; // 固定上限时无需自适应
+    const group = displayGroupRef.current;
+    if (!group) return;
 
-    const group = measure.querySelector(`[${MEASURE_GROUP_ATTR}="true"]`) as HTMLElement | null;
-    const plusEl = group?.querySelector(`[${MEASURE_PLUS_ATTR}="true"]`) as HTMLElement | null;
-    const plusLabelEl = plusEl?.querySelector(`[${MEASURE_PLUS_LABEL_ATTR}="true"]`) as HTMLElement | null;
-
-    const resolveReserveWidth = () => {
-      const raw = getComputedStyle(button).getPropertyValue("--select-multi-reserve");
-      return raw ? parseCssSizeToPx(raw, button) : 0;
-    };
-
-    const collectPills = () =>
-      (group ? Array.from(group.querySelectorAll(`[${MEASURE_PILL_ATTR}="true"]`)) : []) as HTMLElement[];
-
-    const updateMetrics = () => {
-      const style = getComputedStyle(button);
-      const contentWidth = button.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-
-      if (!Number.isFinite(contentWidth) || contentWidth <= 0) {
+    const recompute = () => {
+      const pills = Array.from(group.querySelectorAll(`[${DISPLAY_PILL_ATTR}="true"]`)) as HTMLElement[];
+      if (pills.length === 0) {
         setAutoCount(0);
-        setIsMeasured(true);
+        setNeedsRecalc(false);
         return;
       }
-
-      const pillEls = collectPills();
-      if (pillEls.length === 0) {
-        setAutoCount(0);
-        setIsMeasured(true);
-        return;
-      }
-
-      const reserveWidth = resolveReserveWidth();
-      const available = Math.max(0, contentWidth - reserveWidth);
-
-      // 将测量组的宽度“设成可用宽度”，并启用 wrap，以让项目自然换行
-      if (group) {
-        group.style.width = `${available}px`;
-        group.style.maxWidth = `${available}px`;
-        // 保底确保启用换行（JSX已写 flex-wrap，这里再兜底）
-        group.style.display = "flex";
-        (group.style as any).flexWrap = "wrap";
-        group.style.overflow = "hidden"; // 多行仅显示首行
-      }
-
-      // 先假设不需要 +N，占位为 0；随后根据余量更新
-      if (plusLabelEl) plusLabelEl.textContent = "+0";
-
-      // 统计首行：取最小 offsetTop 为首行基线
-      const firstTop = Math.min(...pillEls.map(el => el.offsetTop));
-      let firstLineCount = pillEls.filter(el => el.offsetTop === firstTop).length;
-
-      // 计算余量并让 +N 参与首行排版，若 +N 被挤到下一行，就递减首行可见数量直至 +N 回到首行
-      let rest = Math.max(0, selectedOptions.length - firstLineCount);
-      if (plusLabelEl) plusLabelEl.textContent = `+${rest}`;
-
-      // 如果存在余量，确保 +N 也能位于首行
-      if (rest > 0 && plusEl) {
-        let safety = 128; // 防御性上限，避免极端情况下死循环
-        while (safety-- > 0 && firstLineCount > 0 && plusEl.offsetTop > firstTop) {
-          firstLineCount -= 1;
-          rest = Math.max(0, selectedOptions.length - firstLineCount);
-          if (plusLabelEl) plusLabelEl.textContent = `+${rest}`;
-        }
-      }
-
-      const nextCount = Math.max(0, Math.min(firstLineCount, selectedOptions.length));
-      setAutoCount(prev => (prev === nextCount ? prev : nextCount));
-      setIsMeasured(true);
+      const firstTop = Math.min(...pills.map(el => el.offsetTop));
+      const firstLineCount = pills.filter(el => el.offsetTop === firstTop).length;
+      const total = selectedOptions.length;
+      const hasRest = total > firstLineCount;
+      const next = Math.max(0, Math.min(total, hasRest ? firstLineCount - 1 : firstLineCount));
+      setAutoCount(next);
+      setNeedsRecalc(false);
     };
 
-    updateMetrics();
+    // 初次或依赖变化后立即重算
+    recompute();
 
-    // 仅在“尺寸变化/滚动/候选变化”时触发测量，避免实时抖动
-    let frame: number | null = null;
-    const schedule = () => {
-      if (frame !== null) cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(updateMetrics);
-    };
+    // 容器尺寸变化时重算（不读宽度数值，只触发）
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => setNeedsRecalc(true)) : null;
+    if (ro) ro.observe(group);
 
-    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(schedule) : null;
-    if (observer) observer.observe(button);
-
-    window.addEventListener("resize", schedule);
-    window.addEventListener("scroll", schedule, true);
-
-    return () => {
-      if (frame !== null) cancelAnimationFrame(frame);
-      observer?.disconnect();
-      window.removeEventListener("resize", schedule);
-      window.removeEventListener("scroll", schedule, true);
-    };
-  }, [multiple, options.length, selectedOptions.length, size]);
+    return () => ro?.disconnect();
+  }, [multiple, selectedOptions.length, props]);
 
   useLayoutEffect(() => {
     if (!open || !listRef.current) return;
@@ -446,7 +377,7 @@ export default function Select(props: Props) {
     }
 
     const explicitLimit = typeof maxTagCount === "number" && maxTagCount >= 0 ? maxTagCount : null;
-    const baseLimit = explicitLimit ?? (isMeasured ? autoCount : selectedOptions.length);
+    const baseLimit = explicitLimit ?? (needsRecalc ? selectedOptions.length : autoCount);
     const limit = Number.isFinite(baseLimit)
       ? Math.max(0, Math.min(selectedOptions.length, baseLimit))
       : selectedOptions.length;
@@ -458,23 +389,31 @@ export default function Select(props: Props) {
       <div className="flex w-full items-center gap-2 overflow-hidden">
         {/* 右侧图标/清空预留 */}
         <span aria-hidden className="pointer-events-none shrink-0" style={reserveStyle} />
-        {/* 实际展示区：单行、不换行，超出隐藏；不做实时测算 */}
-        <div className="ml-auto flex min-w-0 items-center justify-end gap-2 overflow-hidden">
+
+        {/* 可视容器：flex-wrap + max-h-full，仅展示首行；不做任何宽度测量 */}
+        <div
+          ref={displayGroupRef}
+          className="ml-auto flex min-w-0 items-center justify-end gap-2 overflow-hidden flex-wrap max-h-full"
+          data-display-group="true"
+        >
           {visible.map(option => (
-            <Pill
-              key={option.value}
-              tone="neutral"
-              className="max-w-full shrink-0"
-              closeable={pillCloseable}
-              onClose={() => handlePillClose(option.value)}
-            >
-              <span className="truncate">{option.label}</span>
-            </Pill>
+            <span key={option.value} data-display-pill="true" className="inline-flex max-w-full shrink-0">
+              <Pill
+                tone="neutral"
+                className="max-w-full shrink-0"
+                closeable={pillCloseable}
+                onClose={() => handlePillClose(option.value)}
+              >
+                <span className="truncate">{option.label}</span>
+              </Pill>
+            </span>
           ))}
           {rest > 0 && (
-            <Pill tone="primary" className="max-w-full shrink-0" aria-label={`还有 ${rest} 项`}>
-              +{rest}
-            </Pill>
+            <span ref={plusWrapRef} data-display-plus="true" className="inline-flex max-w-full shrink-0">
+              <Pill tone="primary" className="max-w-full shrink-0" aria-label={`还有 ${rest} 项`}>
+                <span ref={plusLabelRef} data-display-plus-label="true">+{rest}</span>
+              </Pill>
+            </span>
           )}
         </div>
       </div>
@@ -488,31 +427,6 @@ export default function Select(props: Props) {
           {label}
           {required ? <span className="ml-0.5 text-error">*</span> : null}
         </span>
-      )}
-
-      {/* 隐形测量容器：启用换行，仅用于统计首行可容纳的 Pills 数量 */}
-      {multiple && (
-        <div
-          ref={measureRef}
-          className="pointer-events-none fixed left-0 top-0 -z-50 flex w-full items-center gap-2 opacity-0"
-          style={multiVars}
-          aria-hidden
-        >
-          <span aria-hidden className="pointer-events-none shrink-0" style={reserveStyle} />
-          <div
-            className="ml-auto flex min-w-0 items-center justify-end gap-2 overflow-hidden flex-wrap"
-            data-measure-group="true"
-          >
-            {selectedOptions.map(option => (
-              <Pill key={`measure-${option.value}`} tone="neutral" className="max-w-full shrink-0" data-measure-pill="true">
-                {option.label}
-              </Pill>
-            ))}
-            <Pill tone="primary" className="max-w-full shrink-0" data-measure-plus="true">
-              <span data-measure-plus-label="true">+0</span>
-            </Pill>
-          </div>
-        </div>
       )}
 
       <div ref={anchorRef} className={`relative ${className}`}>
