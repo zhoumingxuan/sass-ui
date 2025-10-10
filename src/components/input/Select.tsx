@@ -74,6 +74,7 @@ const RESERVE_VAR_MAP: Record<InputSize, string> = {
   lg: "var(--select-multi-reserve-lg)",
 };
 
+
 // Use the visible container itself for statistics; no hidden measuring layer.
 const DISPLAY_GROUP_ATTR = "data-display-group";
 const DISPLAY_PILL_ATTR = "data-display-pill"; // Wrapper span around Pill, used to read offsetTop/Height.
@@ -126,16 +127,15 @@ export default function Select(props: Props) {
     return singleKey ? [singleKey] : [];
   }, [multiple, rawValue]);
 
-  const selectedSet = useMemo(() => new Set(selectionKeys), [selectionKeys]);
   const selectedOptions = useMemo(
-    () => options.filter(option => selectedSet.has(option.value)),
-    [options, selectedSet],
+    () => options.filter(option => selectionKeys.includes(option.value)),
+    [options, selectionKeys],
   );
   // 多选恒定自适应（不再使用 maxTagCount 固定数量）
   const enableAutoCount = multiple;
 
   const itemTextClass = size === "sm" ? "text-xs" : size === "lg" ? "text-base" : "text-sm";
-  const hasSelection = multiple ? selectedOptions.length > 0 : selectionKeys.length > 0;
+  const hasSelection = selectionKeys.length > 0 ;
   const textTone = hasSelection ? "text-gray-700" : "text-gray-400";
 
   const multiVars: SelectVars | undefined = multiple
@@ -147,9 +147,7 @@ export default function Select(props: Props) {
   );
 
   // Auto-fit the number of visible tags based on the first line (when no explicit max is provided).
-  const [autoVisibleCount, setAutoVisibleCount] = useState(() =>
-    enableAutoCount ? selectedOptions.length : 0,
-  );
+  const [autoVisibleCount, setAutoVisibleCount] = useState(-1);
 
   const currentSingleKey = !multiple ? selectionKeys[0] : undefined;
   const currentSingleOption = !multiple && currentSingleKey
@@ -211,6 +209,7 @@ export default function Select(props: Props) {
     const nextValue = (labelAndValue ? undefined : "") as SingleValue;
     if (!isControlled) setInternal(nextValue);
     onChange?.(nextValue);
+
   }, [buildMultiPayload, isControlled, labelAndValue, multiple, onChange]);
 
   const handlePillClose = useCallback(
@@ -247,27 +246,38 @@ export default function Select(props: Props) {
 
     const group = displayGroupRef.current;
     if (!group) {
-      setAutoVisibleCount(0);
+      setAutoVisibleCount(-1);
       return;
     }
 
     const pills = Array.from(group.querySelectorAll(`[${DISPLAY_PILL_ATTR}="true"]`)) as HTMLElement[];
     if (pills.length === 0) {
-      setAutoVisibleCount(0);
+      setAutoVisibleCount(-1);
       return;
     }
 
-    const firstTop = Math.min(...pills.map(el => el.offsetTop));
-    const firstLineCount = pills.filter(el => el.offsetTop === firstTop).length;
+    
+    const topsArr=[...pills.map(el => el.offsetTop)];
+
+    const minTop = Math.min(...topsArr);
+    const maxTop = Math.max(...topsArr);
+
+    if(minTop===maxTop)
+    {
+        setAutoVisibleCount(-1);
+        return;
+    }
+
+    const firstLineCount = pills.filter(el => el.offsetTop === minTop).length;
 
     if (firstLineCount <= 0) {
-      setAutoVisibleCount(0);
+      setAutoVisibleCount(-1);
       return;
     }
 
     setAutoVisibleCount(firstLineCount);
 
-  }, [enableAutoCount, selectedOptions]);
+  }, [enableAutoCount, selectionKeys,selectionKeys.length]);
 
   useEffect(() => {
     const updatePosition = () => {
@@ -338,11 +348,16 @@ export default function Select(props: Props) {
   useEffect(() => {
     if (!open || !listRef.current) return;
     listRef.current.scrollTop = listScrollRef.current;
-  }, [open, selectedOptions.length]);
+  }, [open, selectionKeys.length]);
+
+  
+  const rest = useMemo(() => {
+    return autoVisibleCount < 0 ? -1 : (selectionKeys.length - autoVisibleCount);
+  }, [autoVisibleCount, selectionKeys]);
 
   const renderMultiContent = () => {
     // 空态时也按与已选态一致的布局，保证占位与省略号表现正确
-    if (selectedOptions.length === 0) {
+    if (selectionKeys.length === 0) {
       return (
         <div className="flex h-full w-full items-center gap-2">
           <span aria-hidden className="pointer-events-none shrink-0" style={reserveStyle} />
@@ -350,10 +365,6 @@ export default function Select(props: Props) {
         </div>
       );
     }
-
-
-    const rest = selectedOptions.length - autoVisibleCount;
-
     return (
       <div className="flex h-full w-full items-center gap-2">
         {/* Reserve space for trailing icons / clear button */}
@@ -388,6 +399,19 @@ export default function Select(props: Props) {
               <span>+{rest}</span>
             </Pill>
           </span>
+        )}
+        {multiple && clearable && selectionKeys.length > 0 && (
+          <a
+            href="#"
+            onClick={event => {
+              event.preventDefault();
+              handleClearAll();
+            }}
+            aria-label="清空"
+            className={`whitespace-nowrap text-xs font-medium text-gray-400 hover:text-gray-600 ${open?"":"hidden"}`}
+          >
+            清空
+          </a>
         )}
       </div>
     );
@@ -430,8 +454,11 @@ export default function Select(props: Props) {
 
         {!multiple && clearable && selectionKeys.length > 0 && (
           <a
-            type="button"
-            onClick={handleClearAll}
+            href="#"
+            onClick={event => {
+              event.preventDefault();
+              handleClearAll();
+            }}
             aria-label="清空"
             className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
           >
@@ -461,7 +488,7 @@ export default function Select(props: Props) {
                 }}
               >
                 {options.map((option, index) => {
-                  const selected = selectedSet.has(option.value);
+                  const selected = selectionKeys.includes(option.value);
                   const active = index === activeIndex;
                   const optionId = `${id}-opt-${index}`;
                   return (
