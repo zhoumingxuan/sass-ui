@@ -21,7 +21,7 @@ import {
 import { Check, ChevronDown, X } from "lucide-react";
 import Pill from "@/components/Pill";
 
-export type Option = { value: string; label: string; disabled?: boolean };
+export type Option = { value: string; label: string; title?: string; disabled?: boolean };
 
 type BaseProps = {
   label?: string;
@@ -39,27 +39,31 @@ type BaseProps = {
    */
   maxTagCount?: number;
   pillCloseable?: boolean;
+  labelAndValue?: boolean;
 };
+
+type SingleValue = string | Option | undefined;
+type MultiValue = string[] | Option[] | undefined;
 
 type SingleProps = BaseProps & {
   multiple?: false;
-  value?: string;
-  defaultValue?: string;
-  onChange?: (value: string) => void;
+  value?: SingleValue;
+  defaultValue?: SingleValue;
+  onChange?: (value: SingleValue) => void;
 };
 
 type MultiProps = BaseProps & {
   multiple: true;
-  value?: string[];
-  defaultValue?: string[];
-  onChange?: (value: string[]) => void;
+  value?: MultiValue;
+  defaultValue?: MultiValue;
+  onChange?: (value: MultiValue) => void;
 };
 
 type Props = SingleProps | MultiProps;
 type ValueProps = {
-  value?: string | string[];
-  defaultValue?: string | string[];
-  onChange?: (value: string | string[]) => void;
+  value?: SingleValue | MultiValue;
+  defaultValue?: SingleValue | MultiValue;
+  onChange?: (value: SingleValue | MultiValue) => void;
 };
 
 type SelectVars = CSSProperties & { "--select-multi-reserve": string };
@@ -90,11 +94,12 @@ export default function Select(props: Props) {
 
   const { value: controlledValue, defaultValue, onChange } = props as ValueProps;
   const multiple = props.multiple === true;
+  const labelAndValue = props.labelAndValue === true;
 
   const id = useId();
-  const [internal, setInternal] = useState<string | string[] | undefined>(defaultValue);
+  const [internal, setInternal] = useState<SingleValue | MultiValue | undefined>(defaultValue);
   const isControlled = typeof controlledValue !== "undefined";
-  const value = (isControlled ? controlledValue : internal) as string | string[] | undefined;
+  const rawValue = (isControlled ? controlledValue : internal) as SingleValue | MultiValue | undefined;
 
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
@@ -109,10 +114,19 @@ export default function Select(props: Props) {
 
   const displayGroupRef = useRef<HTMLDivElement>(null);
 
-  const selectedSet = useMemo(
-    () => new Set(Array.isArray(value) ? value : value ? [value] : []),
-    [value],
-  );
+  const selectionKeys = useMemo(() => {
+    if (rawValue == null) return [];
+    if (Array.isArray(rawValue)) {
+      const list = rawValue
+        .map(item => (typeof item === "string" ? item : item?.value))
+        .filter((key): key is string => Boolean(key));
+      return multiple ? list : list.slice(0, 1);
+    }
+    const singleKey = typeof rawValue === "string" ? rawValue : rawValue.value;
+    return singleKey ? [singleKey] : [];
+  }, [multiple, rawValue]);
+
+  const selectedSet = useMemo(() => new Set(selectionKeys), [selectionKeys]);
   const selectedOptions = useMemo(
     () => options.filter(option => selectedSet.has(option.value)),
     [options, selectedSet],
@@ -121,7 +135,7 @@ export default function Select(props: Props) {
   const enableAutoCount = multiple;
 
   const itemTextClass = size === "sm" ? "text-xs" : size === "lg" ? "text-base" : "text-sm";
-  const hasSelection = multiple ? selectedOptions.length > 0 : typeof value === "string" && !!value;
+  const hasSelection = multiple ? selectedOptions.length > 0 : selectionKeys.length > 0;
   const textTone = hasSelection ? "text-gray-700" : "text-gray-400";
 
   const multiVars: SelectVars | undefined = multiple
@@ -137,19 +151,37 @@ export default function Select(props: Props) {
     enableAutoCount ? selectedOptions.length : 0,
   );
 
+  const currentSingleKey = !multiple ? selectionKeys[0] : undefined;
+  const currentSingleOption = !multiple && currentSingleKey
+    ? options.find(option => option.value === currentSingleKey)
+    : undefined;
 
   const labelText = !multiple
-    ? (typeof value === "string" && value ? options.find(option => option.value === value)?.label ?? "" : "")
+    ? currentSingleOption
+      ? currentSingleOption.title ?? currentSingleOption.label ?? ""
+      : ""
     : "";
 
 
+  const buildMultiPayload = useCallback(
+    (keys: string[]): MultiValue => {
+      if (!labelAndValue) return keys as MultiValue;
+      return keys
+        .map(key => options.find(option => option.value === key))
+        .filter((option): option is Option => Boolean(option)) as MultiValue;
+    },
+    [labelAndValue, options],
+  );
+
   const commitSingle = useCallback(
     (next: string) => {
-      if (!isControlled) setInternal(next);
-      onChange?.(next);
+      const option = options.find(item => item.value === next);
+      const payload = (labelAndValue ? option : next) as SingleValue;
+      if (!isControlled) setInternal(payload);
+      onChange?.(payload);
       setOpen(false);
     },
-    [isControlled, onChange],
+    [isControlled, labelAndValue, onChange, options],
   );
 
   const toggleMulti = useCallback(
@@ -157,29 +189,39 @@ export default function Select(props: Props) {
       if (listRef.current) listScrollRef.current = listRef.current.scrollTop;
       enforceVisibilityRef.current = false;
 
-      const current = Array.isArray(value) ? value : [];
-      const next = current.includes(nextValue) ? current.filter(item => item !== nextValue) : [...current, nextValue];
-      if (!isControlled) setInternal(next);
-      onChange?.(next);
+      const exists = selectionKeys.includes(nextValue);
+      const nextKeys = exists
+        ? selectionKeys.filter(item => item !== nextValue)
+        : [...selectionKeys, nextValue];
+      const payload = buildMultiPayload(nextKeys);
+      if (!isControlled) setInternal(payload);
+      onChange?.(payload);
       setActiveIndex(index);
     },
-    [isControlled, onChange, value],
+    [buildMultiPayload, isControlled, onChange, selectionKeys],
   );
 
   const handleClearAll = useCallback(() => {
-    const nextValue: string | string[] = multiple ? [] : "";
+    if (multiple) {
+      const nextValue = buildMultiPayload([]);
+      if (!isControlled) setInternal(nextValue);
+      onChange?.(nextValue);
+      return;
+    }
+    const nextValue = (labelAndValue ? undefined : "") as SingleValue;
     if (!isControlled) setInternal(nextValue);
     onChange?.(nextValue);
-  }, [isControlled, multiple, onChange]);
+  }, [buildMultiPayload, isControlled, labelAndValue, multiple, onChange]);
 
   const handlePillClose = useCallback(
     (target: string) => {
-      if (!Array.isArray(value)) return;
-      const filtered = value.filter(item => item !== target);
-      if (!isControlled) setInternal(filtered);
-      onChange?.(filtered);
+      if (!multiple) return;
+      const nextKeys = selectionKeys.filter(item => item !== target);
+      const payload = buildMultiPayload(nextKeys);
+      if (!isControlled) setInternal(payload);
+      onChange?.(payload);
     },
-    [isControlled, onChange, value],
+    [buildMultiPayload, isControlled, multiple, onChange, selectionKeys],
   );
 
   useEffect(() => {
@@ -260,9 +302,9 @@ export default function Select(props: Props) {
       return;
     }
 
-    const selectedIndex = options.findIndex(option => option.value === value);
+    const selectedIndex = options.findIndex(option => option.value === currentSingleKey);
     setActiveIndex(selectedIndex >= 0 ? selectedIndex : 0);
-  }, [activeIndex, multiple, open, options, value]);
+  }, [activeIndex, currentSingleKey, multiple, open, options]);
 
   useEffect(() => {
     if (!open || activeIndex < 0) return;
@@ -335,7 +377,7 @@ export default function Select(props: Props) {
                 closeable={pillCloseable}
                 onClose={() => handlePillClose(option.value)}
               >
-                <span className="truncate">{option.label}</span>
+                <span className="truncate">{option.title ?? option.label}</span>
               </Pill>
             </span>
           ))}
@@ -386,7 +428,7 @@ export default function Select(props: Props) {
           {!multiple ? (labelText || placeholder || "") : renderMultiContent()}
         </div>
 
-        {!multiple && clearable && value && (
+        {!multiple && clearable && selectionKeys.length > 0 && (
           <a
             type="button"
             onClick={handleClearAll}
