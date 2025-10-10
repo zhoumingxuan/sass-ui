@@ -35,8 +35,8 @@ type BaseProps = {
   status?: Status;
   size?: InputSize;
   /**
-   * 若提供固定数量，走固定展示；
-   * 未提供时走“首行自适应计数”（以可视容器换行与 Resize 触发统计）。
+   * If a fixed number is provided, always render that many tags.
+   * Otherwise auto-fit by counting the first visual row after wrapping and resize.
    */
   maxTagCount?: number;
   showSelectedSummary?: boolean;
@@ -68,11 +68,9 @@ const RESERVE_VAR_MAP: Record<InputSize, string> = {
   lg: "var(--select-multi-reserve-lg)",
 };
 
-// —— 使用“可视容器自身”做统计，不再用隐藏测量层 ——
+// Use the visible container itself for statistics; no hidden measuring layer.
 const DISPLAY_GROUP_ATTR = "data-display-group";
-const DISPLAY_PILL_ATTR = "data-display-pill"; // 包裹 Pill 的 span，用于测量 offsetTop/Height
-const DISPLAY_PLUS_ATTR = "data-display-plus"; // +N 的包裹 span
-const DISPLAY_PLUS_LABEL_ATTR = "data-display-plus-label";
+const DISPLAY_PILL_ATTR = "data-display-pill"; // Wrapper span around Pill, used to read offsetTop/Height.
 
 export default function Select(props: Props) {
   const {
@@ -114,8 +112,6 @@ export default function Select(props: Props) {
   const [mountNode, setMountNode] = useState<Element | null>(null);
 
   const displayGroupRef = useRef<HTMLDivElement>(null);
-  const plusWrapRef = useRef<HTMLSpanElement>(null);
-  const plusLabelRef = useRef<HTMLSpanElement>(null);
 
   const selectedSet = useMemo(
     () => new Set(Array.isArray(value) ? value : value ? [value] : []),
@@ -125,7 +121,12 @@ export default function Select(props: Props) {
     () => options.filter(option => selectedSet.has(option.value)),
     [options, selectedSet],
   );
-  const labelSet = useMemo(() => selectedOptions.map(option => option.label), [selectedOptions]);
+  const explicitLimit = typeof maxTagCount === "number" && maxTagCount >= 0 ? maxTagCount : null;
+  const enableAutoCount = multiple && explicitLimit === null;
+  const selectionKey = useMemo(
+    () => selectedOptions.map(option => option.value).join("|"),
+    [selectedOptions],
+  );
 
   const itemTextClass = size === "sm" ? "text-xs" : size === "lg" ? "text-base" : "text-sm";
   const hasSelection = multiple ? selectedOptions.length > 0 : typeof value === "string" && !!value;
@@ -139,10 +140,10 @@ export default function Select(props: Props) {
     [],
   );
 
-  // 首行自适应计数（只在多选且未传 maxTagCount 时启用）——不测宽度
-  const [autoCount, setAutoCount] = useState(() => (multiple ? selectedOptions.length : 0));
-  // 需要重算时，先“全量渲染”让浏览器自然换行，再统计首行数量
-  const [needsRecalc, setNeedsRecalc] = useState<boolean>(multiple && typeof (props as any).maxTagCount !== "number");
+  // Auto-fit the number of visible tags based on the first line (when no explicit max is provided).
+  const [autoCount, setAutoCount] = useState(() => (enableAutoCount ? selectedOptions.length : 0));
+  // When recalculation is required, temporarily render all tags so the browser wraps naturally, then recount.
+  const [needsRecalc, setNeedsRecalc] = useState(enableAutoCount);
 
   const labelText = !multiple
     ? (typeof value === "string" && value ? options.find(option => option.value === value)?.label ?? "" : "")
@@ -320,39 +321,62 @@ export default function Select(props: Props) {
     [activeIndex, commitSingle, handlePillClose, moveActive, multiple, open, options, toggleMulti, value],
   );
 
-  // —— 关键：不测宽/高。让容器自然换行；统计首行 offsetTop 相同的元素个数；如有剩余项，为 N 预留 1 个坑位。
-  useLayoutEffect(() => {
-    if (!multiple) return;
-    const explicit = typeof (props as any).maxTagCount === "number";
-    if (explicit) return; // 固定上限时无需自适应
+  // Core idea: avoid manual measurement. Let the container wrap naturally, count first-row pills,
+  // and keep one slot free for the +N summary when there are hidden tags.
+  useEffect(() => {
+    if (!enableAutoCount) {
+      setAutoCount(0);
+      setNeedsRecalc(false);
+      return;
+    }
+    setNeedsRecalc(true);
+  }, [enableAutoCount, selectionKey]);
+
+  useEffect(() => {
+    if (!enableAutoCount) return;
+    if (typeof ResizeObserver === "undefined") return;
     const group = displayGroupRef.current;
     if (!group) return;
 
-    const recompute = () => {
-      const pills = Array.from(group.querySelectorAll(`[${DISPLAY_PILL_ATTR}="true"]`)) as HTMLElement[];
-      if (pills.length === 0) {
-        setAutoCount(0);
-        setNeedsRecalc(false);
-        return;
-      }
-      const firstTop = Math.min(...pills.map(el => el.offsetTop));
-      const firstLineCount = pills.filter(el => el.offsetTop === firstTop).length;
-      const total = selectedOptions.length;
-      const hasRest = total > firstLineCount;
-      const next = Math.max(0, Math.min(total, hasRest ? firstLineCount - 1 : firstLineCount));
-      setAutoCount(next);
+    const observer = new ResizeObserver(() => {
+      setNeedsRecalc(prev => (prev ? prev : true));
+    });
+
+    observer.observe(group);
+    return () => observer.disconnect();
+  }, [enableAutoCount]);
+
+  useEffect(() => {
+    if (!enableAutoCount || !needsRecalc) return;
+    const group = displayGroupRef.current;
+    if (!group) {
+      setAutoCount(0);
       setNeedsRecalc(false);
-    };
+      return;
+    }
 
-    // 初次或依赖变化后立即重算
-    recompute();
+    const pills = Array.from(group.querySelectorAll(`[${DISPLAY_PILL_ATTR}="true"]`)) as HTMLElement[];
+    if (pills.length === 0) {
+      setAutoCount(0);
+      setNeedsRecalc(false);
+      return;
+    }
 
-    // 容器尺寸变化时重算（不读宽度数值，只触发）
-    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => setNeedsRecalc(true)) : null;
-    if (ro) ro.observe(group);
+    const firstTop = Math.min(...pills.map(el => el.offsetTop));
+    const firstLineCount = pills.filter(el => el.offsetTop === firstTop).length;
+    const total = selectedOptions.length;
 
-    return () => ro?.disconnect();
-  }, [multiple, selectedOptions.length, props]);
+    if (firstLineCount <= 0) {
+      setAutoCount(0);
+      setNeedsRecalc(false);
+      return;
+    }
+
+    const next = total <= firstLineCount ? firstLineCount : Math.max(0, firstLineCount - 1);
+
+    setAutoCount(previous => (previous === next ? previous : next));
+    setNeedsRecalc(false);
+  }, [enableAutoCount, needsRecalc, selectedOptions.length, selectionKey]);
 
   useLayoutEffect(() => {
     if (!open || !listRef.current) return;
@@ -365,18 +389,17 @@ export default function Select(props: Props) {
     if (showSelectedSummary) {
       return (
         <div className="flex w-full items-center gap-2 overflow-hidden">
-          {/* 右侧图标/清空预留 */}
+          {/* Reserve space for trailing icons / clear button */}
           <span aria-hidden className="pointer-events-none shrink-0" style={reserveStyle} />
-          <div className="ml-auto flex min-w-0 items-center justify-end gap-2 overflow-hidden">
-            <Pill tone="primary" className="max-w-full shrink-0" closeable={!!clearable} onClose={handleClearAll}>
-              {summaryFormatter(selectedOptions.length)}
-            </Pill>
+          <div className="ml-auto flex min-w-0 justify-end gap-2 overflow-hidden">
+              <Pill tone="primary" className="max-w-full shrink-0" closeable={!!clearable} onClose={handleClearAll}>
+                {summaryFormatter(selectedOptions.length)}
+              </Pill>
           </div>
         </div>
       );
     }
 
-    const explicitLimit = typeof maxTagCount === "number" && maxTagCount >= 0 ? maxTagCount : null;
     const baseLimit = explicitLimit ?? (needsRecalc ? selectedOptions.length : autoCount);
     const limit = Number.isFinite(baseLimit)
       ? Math.max(0, Math.min(selectedOptions.length, baseLimit))
@@ -386,18 +409,22 @@ export default function Select(props: Props) {
     const rest = selectedOptions.length - visible.length;
 
     return (
-      <div className="flex w-full items-center gap-2 overflow-hidden">
-        {/* 右侧图标/清空预留 */}
+      <div className="flex h-full w-full items-center gap-2 overflow-hidden">
+        {/* Reserve space for trailing icons / clear button */}
         <span aria-hidden className="pointer-events-none shrink-0" style={reserveStyle} />
 
-        {/* 可视容器：flex-wrap + max-h-full，仅展示首行；不做任何宽度测量 */}
+        {/* Visible container: flex-wrap + h-full, only reveal the first line; no manual width measuring */}
         <div
           ref={displayGroupRef}
-          className="ml-auto flex min-w-0 items-center justify-end gap-2 overflow-hidden flex-wrap max-h-full"
+          className="ml-auto flex h-full min-w-0 flex-wrap items-center justify-end gap-2 overflow-hidden"
           data-display-group="true"
         >
           {visible.map(option => (
-            <span key={option.value} data-display-pill="true" className="inline-flex max-w-full shrink-0">
+            <span
+              key={option.value}
+              data-display-pill="true"
+              className="flex h-full max-w-full shrink-0 items-center justify-center py-1"
+            >
               <Pill
                 tone="neutral"
                 className="max-w-full shrink-0"
@@ -409,9 +436,9 @@ export default function Select(props: Props) {
             </span>
           ))}
           {rest > 0 && (
-            <span ref={plusWrapRef} data-display-plus="true" className="inline-flex max-w-full shrink-0">
+            <span className="inline-flex max-w-full shrink-0">
               <Pill tone="primary" className="max-w-full shrink-0" aria-label={`还有 ${rest} 项`}>
-                <span ref={plusLabelRef} data-display-plus-label="true">+{rest}</span>
+                <span>+{rest}</span>
               </Pill>
             </span>
           )}
@@ -443,7 +470,7 @@ export default function Select(props: Props) {
             inputBase,
             inputSize[size],
             status ? inputStatus[status] : "",
-            "text-left flex items-center",
+            "text-left flex items-center overflow-hidden",
             textTone,
             size === "lg" ? "pr-12" : size === "sm" ? "pr-8" : "pr-10",
           ]
