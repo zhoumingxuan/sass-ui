@@ -1,40 +1,40 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import type { Option } from '@/components/input/Select';
-import Layout from '@/components/Layout';
-import Card from '@/components/Card';
-import { Input } from '@/components/Input';
-import { menuItems, footerItems } from '@/components/menuItems';
+import { useState } from "react";
+import type { Option } from "@/components/input/Select";
+import Layout from "@/components/Layout";
+import Card from "@/components/Card";
+import { Input } from "@/components/Input";
+import { menuItems, footerItems } from "@/components/menuItems";
 
 const cityOptions: Option[] = [
-  { value: 'sh', title: '上海', label: '上海（Shanghai）' },
-  { value: 'bj', title: '北京', label: '北京（Beijing）' },
-  { value: 'gz', title: '广州', label: '广州（Guangzhou）' },
-  { value: 'sz', title: '深圳', label: '深圳（Shenzhen）' },
-  { value: 'hz', title: '杭州', label: '杭州（Hangzhou）' },
-  { value: 'cd', title: '成都', label: '成都（Chengdu）' },
+  { value: "sh", title: "上海", label: "上海（Shanghai）" },
+  { value: "bj", title: "北京", label: "北京（Beijing）" },
+  { value: "gz", title: "广州", label: "广州（Guangzhou）" },
+  { value: "sz", title: "深圳", label: "深圳（Shenzhen）" },
+  { value: "hz", title: "杭州", label: "杭州（Hangzhou）" },
+  { value: "cd", title: "成都", label: "成都（Chengdu）" },
 ];
 
 const tagOptions: Option[] = [
-  { value: 't1', title: '研发', label: '研发（Product Dev）' },
-  { value: 't2', title: '设计', label: '设计（Design）' },
-  { value: 't3', title: '产品', label: '产品（Product）' },
-  { value: 't4', title: '测试', label: '测试（QA）' },
-  { value: 't5', title: '运营', label: '运营（Ops）' },
-  { value: 't6', title: '市场', label: '市场（Marketing）' },
-  { value: 't7', title: '销售', label: '销售（Sales）' },
-  { value: 't8', title: '客服', label: '客服（Support）' },
-  { value: 't9', title: '财务', label: '财务（Finance）' },
-  { value: 't10', title: '行政', label: '行政（Admin）' },
-  { value: 't11', title: '人事', label: '人事（HR）' },
-  { value: 't12', title: '法务', label: '法务（Legal）' },
+  { value: "t1", title: "研发", label: "研发（Product Dev）" },
+  { value: "t2", title: "设计", label: "设计（Design）" },
+  { value: "t3", title: "产品", label: "产品（Product）" },
+  { value: "t4", title: "测试", label: "测试（QA）" },
+  { value: "t5", title: "运营", label: "运营（Ops）" },
+  { value: "t6", title: "市场", label: "市场（Marketing）" },
+  { value: "t7", title: "销售", label: "销售（Sales）" },
+  { value: "t8", title: "客服", label: "客服（Support）" },
+  { value: "t9", title: "财务", label: "财务（Finance）" },
+  { value: "t10", title: "行政", label: "行政（Admin）" },
+  { value: "t11", title: "人事", label: "人事（HR）" },
+  { value: "t12", title: "法务", label: "法务（Legal）" },
 ];
 
 export default function SelectDemo() {
-  const [multiAuto, setMultiAuto] = useState<string[]>(['t1', 't2', 't3', 't4', 't5', 't6']);
-  const [multiFixed, setMultiFixed] = useState<string[]>(['t1', 't2', 't3', 't4', 't5']);
-  const [multiSummary, setMultiSummary] = useState<string[]>(['t2', 't5']);
+  const [multiAuto, setMultiAuto] = useState<string[]>(["t1", "t2", "t3", "t4", "t5", "t6"]);
+  const [multiFixed, setMultiFixed] = useState<string[]>(["t1", "t2", "t3", "t4", "t5"]);
+  const [multiSummary, setMultiSummary] = useState<string[]>(["t2", "t5"]);
   const [singleObjectValue, setSingleObjectValue] = useState<Option | undefined>();
   const [multiObjectValue, setMultiObjectValue] = useState<Option[]>([]);
 
@@ -55,6 +55,26 @@ export default function SelectDemo() {
             </div>
             <div>
               <Input.Select placeholder="请选择城市" options={cityOptions} size="lg" required />
+            </div>
+          </div>
+        </Card>
+
+        <Card title="单选 · 预览卡片（悬停选项显示）">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div>
+              <Input.Select
+                placeholder="请选择城市"
+                options={cityOptions}
+                size="md"
+                clearable
+                renderPreview={(opt) => (
+                  <div>
+                    <div className="font-medium">{opt.title ?? opt.label}</div>
+                    <div className="mt-1 text-gray-500">下拉显示：{opt.label}</div>
+                    <div className="mt-1 text-gray-500">值：{opt.value}</div>
+                  </div>
+                )}
+              />
             </div>
           </div>
         </Card>
@@ -115,7 +135,7 @@ export default function SelectDemo() {
                 value={singleObjectValue}
                 onChange={(v) => {
                   if (!Array.isArray(v)) {
-                    setSingleObjectValue(typeof v === 'object' ? (v as Option | undefined) : undefined);
+                    setSingleObjectValue(typeof v === "object" ? (v as Option | undefined) : undefined);
                   }
                 }}
                 clearable
@@ -124,7 +144,7 @@ export default function SelectDemo() {
               <div className="mt-2 text-xs text-gray-500">
                 当前值：
                 <code className="ml-1 rounded bg-gray-100 px-2 py-1 whitespace-pre-wrap break-all">
-                  {singleObjectValue ? JSON.stringify(singleObjectValue, ['value', 'title', 'label']) : '无'}
+                  {singleObjectValue ? JSON.stringify(singleObjectValue, ["value", "title", "label"]) : "无"}
                 </code>
               </div>
             </div>
@@ -137,9 +157,7 @@ export default function SelectDemo() {
                 value={multiObjectValue}
                 onChange={(v) => {
                   if (Array.isArray(v)) {
-                    const objectValues = v.filter(
-                      (item): item is Option => typeof item === 'object' && item !== null,
-                    );
+                    const objectValues = v.filter((item): item is Option => typeof item === "object" && item !== null);
                     setMultiObjectValue(objectValues);
                   }
                 }}
@@ -149,9 +167,7 @@ export default function SelectDemo() {
               <div className="mt-2 text-xs text-gray-500">
                 当前值：
                 <code className="ml-1 block rounded bg-gray-100 px-2 py-1 whitespace-pre-wrap break-all">
-                  {multiObjectValue.length
-                    ? JSON.stringify(multiObjectValue, ['value', 'title', 'label'])
-                    : '[]'}
+                  {multiObjectValue.length ? JSON.stringify(multiObjectValue, ["value", "title", "label"]) : "[]"}
                 </code>
               </div>
             </div>
@@ -162,3 +178,4 @@ export default function SelectDemo() {
     </Layout>
   );
 }
+

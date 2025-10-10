@@ -1,6 +1,7 @@
 import {
   type CSSProperties,
   type KeyboardEvent,
+  type ReactNode,
   useCallback,
   useEffect,
   useId,
@@ -40,6 +41,7 @@ type BaseProps = {
   maxTagCount?: number;
   pillCloseable?: boolean;
   labelAndValue?: boolean;
+  renderPreview?: (option: Option) => ReactNode;
 };
 
 type SingleValue = string | Option | undefined;
@@ -91,6 +93,7 @@ export default function Select(props: Props) {
     status,
     size = "md",
     pillCloseable = true,
+    renderPreview,
   } = props;
 
   const { value: controlledValue, defaultValue, onChange } = props as ValueProps;
@@ -105,6 +108,8 @@ export default function Select(props: Props) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [previewAt, setPreviewAt] = useState<{ top: number; left: number } | null>(null);
+  const [previewOption, setPreviewOption] = useState<Option | null>(null);
 
   const anchorRef = useRef<HTMLDivElement>(null);
   const popRef = useRef<HTMLDivElement>(null);
@@ -350,6 +355,25 @@ export default function Select(props: Props) {
     listRef.current.scrollTop = listScrollRef.current;
   }, [open, selectionKeys.length]);
 
+  // 跟随列表滚动/窗口尺寸更新预览位置（仅开启预览时）
+  useEffect(() => {
+    if (!open || !renderPreview || activeIndex < 0) return;
+    const update = () => {
+      const el = document.getElementById(`${id}-opt-${activeIndex}`);
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      setPreviewAt({ top: r.top + window.scrollY, left: r.right + 8 + window.scrollX });
+    };
+    update();
+    const onScroll = () => update();
+    window.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll, true);
+      window.removeEventListener('resize', onScroll);
+    };
+  }, [activeIndex, id, open, renderPreview]);
+
   
   const rest = useMemo(() => {
     return autoVisibleCount < 0 ? -1 : (selectionKeys.length - autoVisibleCount);
@@ -516,7 +540,20 @@ export default function Select(props: Props) {
                         option.disabled ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
                         active ? "bg-gray-100" : selected ? "bg-gray-50" : "hover:bg-gray-50",
                       ].join(" ")}
-                      onMouseEnter={() => setActiveIndex(index)}
+                      onMouseEnter={() => {
+                        setActiveIndex(index);
+                        if (renderPreview) {
+                          const el = document.getElementById(optionId);
+                          if (el) {
+                            const r = el.getBoundingClientRect();
+                            setPreviewAt({ top: r.top + window.scrollY, left: r.right + 8 + window.scrollX });
+                            setPreviewOption(option);
+                          }
+                        }
+                      }}
+                      onMouseLeave={() => {
+                        if (renderPreview) setPreviewOption(null);
+                      }}
                       onMouseDown={() => {
                         if (listRef.current) listScrollRef.current = listRef.current.scrollTop;
                         enforceVisibilityRef.current = false;
@@ -536,6 +573,16 @@ export default function Select(props: Props) {
                   );
                 })}
               </div>
+              {previewOption && previewAt && (
+                <div
+                  className="fixed z-[1201] rounded-lg border border-gray-200 bg-white p-3 text-sm shadow-elevation-1 whitespace-normal break-words"
+                  style={{ top: previewAt.top, left: previewAt.left } as CSSProperties}
+                >
+                  {renderPreview && (
+                    renderPreview(previewOption)
+                  ) }
+                </div>
+              )}
             </div>,
             mountNode,
           )}
