@@ -290,7 +290,7 @@ export default function Select(props: Props) {
       const anchor = anchorRef.current;
       if (!anchor) return;
       const rect = anchor.getBoundingClientRect();
-      setPos({ top: rect.bottom + 4 + window.scrollY, left: rect.left + window.scrollX, width: rect.width });
+      setPos({ top: rect.bottom + window.scrollY, left: rect.left + window.scrollX, width: rect.width });
     };
 
     updatePosition();
@@ -312,13 +312,13 @@ export default function Select(props: Props) {
     if (multiple) {
       if (activeIndex < 0 || activeIndex >= options.length) {
         const firstEnabled = options.findIndex(option => !option.disabled);
-        setActiveIndex(firstEnabled >= 0 ? firstEnabled : 0);
+        setActiveIndex(firstEnabled >= 0 ? firstEnabled : -1);
       }
       return;
     }
 
     const selectedIndex = options.findIndex(option => option.value === currentSingleKey);
-    setActiveIndex(selectedIndex >= 0 ? selectedIndex : 0);
+    setActiveIndex(selectedIndex >= 0 ? selectedIndex : -1);
   }, [activeIndex, currentSingleKey, multiple, open, options]);
 
   useEffect(() => {
@@ -354,6 +354,16 @@ export default function Select(props: Props) {
     if (!open || !listRef.current) return;
     listRef.current.scrollTop = listScrollRef.current;
   }, [open, selectionKeys.length]);
+
+  // Fix preview card position relative to dropdown
+  useEffect(() => {
+    if (!open || !renderPreview) {
+      setPreviewAt(null);
+      setPreviewOption(null);
+      return;
+    }
+    setPreviewAt({ top: pos.top, left: pos.left + pos.width + 4 });
+  }, [open, renderPreview, pos.top, pos.left, pos.width]);
 
   // 跟随列表滚动/窗口尺寸更新预览位置（仅开启预览时）
   useEffect(() => {
@@ -463,6 +473,7 @@ export default function Select(props: Props) {
             status ? inputStatus[status] : "",
             "text-left flex items-center overflow-hidden",
             textTone,
+            open? "rounded-none rounded-t-lg border-b-0":"",
             // 单选且可清空时为右侧清空+箭头多留出少量空间
             size === "lg"
               ? (!multiple && clearable && selectionKeys.length > 0 ? "pr-14" : "pr-12")
@@ -511,7 +522,7 @@ export default function Select(props: Props) {
               ref={popRef}
               role="listbox"
               id={`${id}-listbox`}
-              className="fixed z-[1200] max-h-56 overflow-auto rounded-lg border border-gray-200 bg-white shadow-elevation-1 nice-scrollbar"
+              className="fixed z-[1200] max-h-56 overflow-auto border-t-gray-20 rounded-b-lg border border-gray-200 bg-white shadow-elevation-1 nice-scrollbar"
               style={{ top: pos.top, left: pos.left, minWidth: pos.width, ['--sb-track']: 'transparent' } as unknown as CSSProperties}
               aria-multiselectable={multiple || undefined}
             >
@@ -535,21 +546,14 @@ export default function Select(props: Props) {
                       aria-selected={selected}
                       disabled={option.disabled}
                       className={[
-                        "flex w-full items-center justify-between px-3 py-2",
+                        "flex w-full items-center justify-between px-3 py-2 transition-colors",
                         itemTextClass,
                         option.disabled ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
-                        active ? "bg-gray-100" : selected ? "bg-gray-50" : "hover:bg-gray-50",
+                        active ? "bg-gray-100" : "hover:bg-gray-50",
                       ].join(" ")}
                       onMouseEnter={() => {
                         setActiveIndex(index);
-                        if (renderPreview) {
-                          const el = document.getElementById(optionId);
-                          if (el) {
-                            const r = el.getBoundingClientRect();
-                            setPreviewAt({ top: r.top + window.scrollY, left: r.right + 8 + window.scrollX });
-                            setPreviewOption(option);
-                          }
-                        }
+                        if (renderPreview) setPreviewOption(option);
                       }}
                       onMouseLeave={() => {
                         if (renderPreview) setPreviewOption(null);
@@ -573,14 +577,12 @@ export default function Select(props: Props) {
                   );
                 })}
               </div>
-              {previewOption && previewAt && (
+              {renderPreview && previewOption && previewAt && (
                 <div
                   className="fixed z-[1201] rounded-lg border border-gray-200 bg-white p-3 text-sm shadow-elevation-1 whitespace-normal break-words"
-                  style={{ top: previewAt.top, left: previewAt.left } as CSSProperties}
+                  style={{ top: pos.top, left: previewAt.left } as CSSProperties}
                 >
-                  {renderPreview && (
-                    renderPreview(previewOption)
-                  ) }
+                  {renderPreview(previewOption)}
                 </div>
               )}
             </div>,
