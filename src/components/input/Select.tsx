@@ -38,9 +38,7 @@ type BaseProps = {
    * Otherwise auto-fit by counting the first visual row after wrapping and resize.
    */
   maxTagCount?: number;
-  showSelectedSummary?: boolean;
   pillCloseable?: boolean;
-  summaryText?: (n: number) => string;
 };
 
 type SingleProps = BaseProps & {
@@ -58,6 +56,11 @@ type MultiProps = BaseProps & {
 };
 
 type Props = SingleProps | MultiProps;
+type ValueProps = {
+  value?: string | string[];
+  defaultValue?: string | string[];
+  onChange?: (value: string | string[]) => void;
+};
 
 type SelectVars = CSSProperties & { "--select-multi-reserve": string };
 
@@ -84,13 +87,10 @@ export default function Select(props: Props) {
     size = "md",
     maxTagCount,
     pillCloseable = true,
-    summaryText,
   } = props;
 
-  const multiple = (props as MultiProps).multiple === true;
-  const controlledValue = (props as any).value as string | string[] | undefined;
-  const defaultValue = (props as any).defaultValue as string | string[] | undefined;
-  const onChange = (props as any).onChange as ((value: string | string[]) => void) | undefined;
+  const { value: controlledValue, defaultValue, onChange } = props as ValueProps;
+  const multiple = props.multiple === true;
 
   const id = useId();
   const [internal, setInternal] = useState<string | string[] | undefined>(defaultValue);
@@ -120,10 +120,6 @@ export default function Select(props: Props) {
   );
   const explicitLimit = typeof maxTagCount === "number" && maxTagCount >= 0 ? maxTagCount : null;
   const enableAutoCount = multiple && explicitLimit === null;
-  const selectionKey = useMemo(
-    () => selectedOptions.map(option => option.value).join("|"),
-    [selectedOptions],
-  );
 
   const itemTextClass = size === "sm" ? "text-xs" : size === "lg" ? "text-base" : "text-sm";
   const hasSelection = multiple ? selectedOptions.length > 0 : typeof value === "string" && !!value;
@@ -138,7 +134,9 @@ export default function Select(props: Props) {
   );
 
   // Auto-fit the number of visible tags based on the first line (when no explicit max is provided).
-  const [visibleCount, setVisibleCount] = useState(() => (enableAutoCount ? selectedOptions.length : 0));
+  const [autoVisibleCount, setAutoVisibleCount] = useState(() =>
+    enableAutoCount ? selectedOptions.length : 0,
+  );
 
 
   const labelText = !multiple
@@ -170,13 +168,9 @@ export default function Select(props: Props) {
   );
 
   const handleClearAll = useCallback(() => {
-    if (multiple) {
-      if (!isControlled) setInternal([]);
-      onChange?.([]);
-    } else {
-      if (!isControlled) setInternal("");
-      onChange?.("");
-    }
+    const nextValue: string | string[] = multiple ? [] : "";
+    if (!isControlled) setInternal(nextValue);
+    onChange?.(nextValue);
   }, [isControlled, multiple, onChange]);
 
   const handlePillClose = useCallback(
@@ -206,8 +200,37 @@ export default function Select(props: Props) {
     }
   }, []);
 
+    //设计一个计算函数，用useCallBack处理，内部参数随着选项更新
+  const calNeedCount=useCallback(() => {
+    if (!enableAutoCount) return;
+
+    const group = displayGroupRef.current;
+    if (!group) {
+      setAutoVisibleCount(0);
+      return;
+    }
+
+    const pills = Array.from(group.querySelectorAll(`[${DISPLAY_PILL_ATTR}="true"]`)) as HTMLElement[];
+    if (pills.length === 0) {
+      setAutoVisibleCount(0);
+      return;
+    }
+
+    const firstTop = Math.min(...pills.map(el => el.offsetTop));
+    const firstLineCount = pills.filter(el => el.offsetTop === firstTop).length;
+
+    if (firstLineCount <= 0) {
+      setAutoVisibleCount(0);
+      return;
+    }
+
+    setAutoVisibleCount(firstLineCount);
+
+  }, [enableAutoCount, selectedOptions]);
+
   useEffect(() => {
     const updatePosition = () => {
+      calNeedCount()
       const anchor = anchorRef.current;
       if (!anchor) return;
       const rect = anchor.getBoundingClientRect();
@@ -250,51 +273,6 @@ export default function Select(props: Props) {
     enforceVisibilityRef.current = false;
   }, [activeIndex, id, open]);
 
-  const moveActive = useCallback(
-    (delta: number) => {
-      if (!open) setOpen(true);
-      setActiveIndex(previous => {
-        const length = options.length;
-        if (length === 0) return -1;
-        let next = previous;
-        let safety = length;
-        do {
-          next = (next + delta + length) % length;
-          safety -= 1;
-        } while (options[next].disabled && safety > 0);
-        return next;
-      });
-    },
-    [open, options],
-  );
-  
-  //设计一个计算函数，用useCallBack处理，内部参数随着选项更新
-  const calNeedCount=useCallback(() => {
-    if (!enableAutoCount) return;
-
-    const group = displayGroupRef.current;
-    if (!group) {
-      setVisibleCount(0);
-      return;
-    }
-
-    const pills = Array.from(group.querySelectorAll(`[${DISPLAY_PILL_ATTR}="true"]`)) as HTMLElement[];
-    if (pills.length === 0) {
-      setVisibleCount(0);
-      return;
-    }
-
-    const firstTop = Math.min(...pills.map(el => el.offsetTop));
-    const firstLineCount = pills.filter(el => el.offsetTop === firstTop).length;
-
-    if (firstLineCount <= 0) {
-      setVisibleCount(0);
-      return;
-    }
-
-    setVisibleCount(firstLineCount);
-
-  }, [enableAutoCount, selectedOptions.length, selectionKey]);
 
   useEffect(() => {
     if (!enableAutoCount) return;
@@ -315,8 +293,6 @@ export default function Select(props: Props) {
   }, [enableAutoCount]);
 
 
-
-
   // Restore list scroll position after options render; do not use layout effect.
   useEffect(() => {
     if (!open || !listRef.current) return;
@@ -327,7 +303,7 @@ export default function Select(props: Props) {
     if (selectedOptions.length === 0) return placeholder ?? "";
 
 
-    const rest = selectedOptions.length-visibleCount;
+    const rest = selectedOptions.length - autoVisibleCount;
 
     return (
       <div className="flex h-full w-full items-center gap-2">
