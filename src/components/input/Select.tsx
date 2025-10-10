@@ -140,6 +140,7 @@ export default function Select(props: Props) {
   const enableAutoCount = multiple;
 
   const itemTextClass = size === "sm" ? "text-xs" : size === "lg" ? "text-base" : "text-sm";
+  const itemPadding = size === "sm" ? "py-1.5" : size === "lg" ? "py-3" : "py-2";
   const hasSelection = selectionKeys.length > 0 ;
   const textTone = hasSelection ? "text-gray-700" : "text-gray-400";
 
@@ -546,9 +547,11 @@ export default function Select(props: Props) {
                       aria-selected={selected}
                       disabled={option.disabled}
                       className={[
-                        "flex w-full items-center justify-between px-3 py-2 transition-colors",
+                        "flex w-full items-center justify-between px-3 transition-colors text-left",
+                        itemPadding,
                         itemTextClass,
                         option.disabled ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
+                        selected ? "bg-primary/5 text-gray-900" : "",
                         active ? "bg-gray-100" : "hover:bg-gray-50",
                       ].join(" ")}
                       onMouseEnter={() => {
@@ -579,8 +582,8 @@ export default function Select(props: Props) {
               </div>
               {renderPreview && previewOption && previewAt && (
                 <div
-                  className="fixed z-[1201] rounded-lg border border-gray-200 bg-white p-3 text-sm shadow-elevation-1 whitespace-normal break-words"
-                  style={{ top: pos.top, left: previewAt.left } as CSSProperties}
+                  className="fixed z-[1201] rounded-lg border border-gray-200 bg-white p-3 text-sm shadow-elevation-2-left whitespace-normal break-words"
+                  style={{ top: previewAt.top, left: previewAt.left } as CSSProperties}
                 >
                   {renderPreview(previewOption)}
                 </div>
