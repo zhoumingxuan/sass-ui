@@ -371,7 +371,7 @@ export default function Select(props: Props) {
             inputBase,
             inputSize[size],
             status ? inputStatus[status] : "",
-            "text-left flex items-start overflow-hidden",
+            "text-left flex items-center overflow-hidden",
             textTone,
             size === "lg" ? "pr-12" : size === "sm" ? "pr-8" : "pr-10",
           ]
