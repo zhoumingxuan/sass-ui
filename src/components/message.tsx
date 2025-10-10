@@ -78,13 +78,15 @@ function MessageHolder() {
               </div>
             </div>
             {m.showClose && (
-              <button
+              <a
+                href="#"
+                role="button"
                 aria-label="关闭"
-                onClick={(e) => { e.stopPropagation(); setList((arr) => arr.filter((x) => x.id !== m.id)); }}
-                className="absolute right-1.5 top-1.5 inline-flex h-6 w-6 items-center justify-center rounded text-gray-400"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setList((arr) => arr.filter((x) => x.id !== m.id)); }}
+                className="absolute right-1.5 top-1.5 inline-flex h-6 w-6 items-center justify-center rounded text-gray-400 no-underline"
               >
                 <Close className="h-4 w-4 text-gray-500" strokeWidth={2} aria-hidden />
-              </button>
+              </a>
             )}
           </div>
         );

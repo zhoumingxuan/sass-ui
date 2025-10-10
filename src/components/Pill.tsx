@@ -48,7 +48,7 @@ const Pill = forwardRef<HTMLSpanElement, PillProps>(function Pill(
       ref={ref}
       {...rest}
       className={[
-        'inline-flex select-none items-center gap-1 rounded-full px-2 py-1 text-xs font-medium leading-none',
+        'inline-flex select-none items-center gap-1 rounded-full px-2 py-1 text-xs font-medium leading-none whitespace-nowrap min-w-0',
         toneClasses[tone],
         className,
       ].filter(Boolean).join(' ')}
@@ -56,16 +56,22 @@ const Pill = forwardRef<HTMLSpanElement, PillProps>(function Pill(
       {icon ? <span className="inline-flex h-3.5 w-3.5 items-center justify-center">{icon}</span> : null}
       <span className="truncate">{children}</span>
       {closeable && onClose && (
-        <button
+        <a
+          href="#"
+          role="button"
           onClick={(e) => {
+            e.preventDefault();
             e.stopPropagation();
             onClose?.();
           }}
           aria-label="关闭"
-          className={['ml-1 rounded-full p-0.5 focus:outline-none', toneCloseClasses[tone]].join(' ')}
+          className={[
+            'ml-1 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full p-0.5 leading-none focus:outline-none no-underline',
+            toneCloseClasses[tone],
+          ].join(' ')}
         >
-          <X size={12} />
-        </button>
+          <X size={12} className="pointer-events-none" />
+        </a>
       )}
     </span>
   );

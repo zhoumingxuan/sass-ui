@@ -26,13 +26,15 @@ export default function Card({
           <div className="flex justify-between items-center px-6 pt-5 pb-3 shrink-0">
             <div className="text-gray-700 font-medium text-lg">{title}</div>
             {closable && (
-              <button
-                onClick={onClose}
+              <a
+                href="#"
+                role="button"
+                onClick={(e) => { e.preventDefault(); onClose?.(); }}
                 aria-label="关闭"
-                className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2"
+                className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2 no-underline inline-flex items-center justify-center"
               >
                 ×
-              </button>
+              </a>
             )}
           </div>
           <div className="px-6 pb-6 flex-1 min-h-0 flex flex-col">{children}</div>

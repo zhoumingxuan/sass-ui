@@ -4,7 +4,6 @@ import {
   useCallback,
   useEffect,
   useId,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -378,7 +377,8 @@ export default function Select(props: Props) {
     setNeedsRecalc(false);
   }, [enableAutoCount, needsRecalc, selectedOptions.length, selectionKey]);
 
-  useLayoutEffect(() => {
+  // Restore list scroll position after options render; do not use layout effect.
+  useEffect(() => {
     if (!open || !listRef.current) return;
     listRef.current.scrollTop = listScrollRef.current;
   }, [open, selectedOptions.length]);

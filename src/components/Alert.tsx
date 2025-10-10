@@ -24,13 +24,15 @@ export default function Alert({
   return (
     <div role="alert" className={`${base} ${variants[variant]} ${className}`}>
       <div className="flex-1">{children}</div>
-      <button
-        onClick={() => setOpen(false)}
-        className="ml-4 text-gray-400 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2"
+      <a
+        href="#"
+        role="button"
+        onClick={(e) => { e.preventDefault(); setOpen(false); }}
+        className="ml-4 inline-flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2 no-underline"
         aria-label="关闭"
       >
         ×
-      </button>
+      </a>
     </div>
   );
 }

@@ -209,13 +209,15 @@ export default function Modal({
           <div className={`px-5 ${isDrawer ? 'py-4' : 'pt-4 pb-3'} flex items-center justify-between gap-2 border-b border-gray-100`}>
             <div id={headerId} className="min-h-6">{titleNode}</div>
             {closable && (
-              <button
-                onClick={onClose}
+              <a
+                href="#"
+                role="button"
+                onClick={(e) => { e.preventDefault(); onClose?.(); }}
                 aria-label="关闭"
-                className="h-8 w-8 inline-flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2"
+                className="h-8 w-8 inline-flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2 no-underline"
               >
                 <X size={18} aria-hidden />
-              </button>
+              </a>
             )}
           </div>
           <div id={bodyId} className={`px-5 py-4 text-sm leading-6 text-gray-700 ${isDrawer ? 'h-[calc(100%-3.25rem-3.25rem)] overflow-auto nice-scrollbar' : ''}`}>
