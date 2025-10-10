@@ -85,7 +85,6 @@ export default function Select(props: Props) {
     required,
     status,
     size = "md",
-    maxTagCount,
     pillCloseable = true,
   } = props;
 
@@ -118,8 +117,8 @@ export default function Select(props: Props) {
     () => options.filter(option => selectedSet.has(option.value)),
     [options, selectedSet],
   );
-  const explicitLimit = typeof maxTagCount === "number" && maxTagCount >= 0 ? maxTagCount : null;
-  const enableAutoCount = multiple && explicitLimit === null;
+  // 多选恒定自适应（不再使用 maxTagCount 固定数量）
+  const enableAutoCount = multiple;
 
   const itemTextClass = size === "sm" ? "text-xs" : size === "lg" ? "text-base" : "text-sm";
   const hasSelection = multiple ? selectedOptions.length > 0 : typeof value === "string" && !!value;
@@ -300,7 +299,15 @@ export default function Select(props: Props) {
   }, [open, selectedOptions.length]);
 
   const renderMultiContent = () => {
-    if (selectedOptions.length === 0) return placeholder ?? "";
+    // 空态时也按与已选态一致的布局，保证占位与省略号表现正确
+    if (selectedOptions.length === 0) {
+      return (
+        <div className="flex h-full w-full items-center gap-2">
+          <span aria-hidden className="pointer-events-none shrink-0" style={reserveStyle} />
+          <span className="ml-auto block min-w-0 truncate text-gray-400">{placeholder ?? ""}</span>
+        </div>
+      );
+    }
 
 
     const rest = selectedOptions.length - autoVisibleCount;
