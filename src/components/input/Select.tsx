@@ -439,7 +439,12 @@ export default function Select(props: Props) {
             status ? inputStatus[status] : "",
             "text-left flex items-center overflow-hidden",
             textTone,
-            size === "lg" ? "pr-12" : size === "sm" ? "pr-8" : "pr-10",
+            // 单选且可清空时为右侧清空+箭头多留出少量空间
+            size === "lg"
+              ? (!multiple && clearable && selectionKeys.length > 0 ? "pr-14" : "pr-12")
+              : size === "sm"
+              ? (!multiple && clearable && selectionKeys.length > 0 ? "pr-10" : "pr-8")
+              : (!multiple && clearable && selectionKeys.length > 0 ? "pr-12" : "pr-10"),
           ]
             .filter(Boolean)
             .join(" ")}
@@ -449,8 +454,27 @@ export default function Select(props: Props) {
           aria-invalid={status === "error" ? true : undefined}
           aria-controls={`${id}-listbox`}
         >
-          {!multiple ? (labelText || placeholder || "") : renderMultiContent()}
+          {!multiple ? (
+            <span className="block min-w-0 truncate">{labelText || placeholder || ""}</span>
+          ) : (
+            renderMultiContent()
+          )}
         </div>
+
+        {!multiple && clearable && selectionKeys.length > 0 && open  && (
+          <a
+            href="#"
+            onClick={event => {
+              event.preventDefault();
+              event.stopPropagation();
+              handleClearAll();
+            }}
+            aria-label="清空"
+            className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            <X size={16} className="text-gray-500" aria-hidden />
+          </a>
+        )}
 
         <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
           <ChevronDown size={16} aria-hidden />
@@ -464,20 +488,9 @@ export default function Select(props: Props) {
               role="listbox"
               id={`${id}-listbox`}
               className="fixed z-[1200] max-h-56 overflow-auto rounded-lg border border-gray-200 bg-white shadow-elevation-1 nice-scrollbar"
-              style={{ top: pos.top, left: pos.left, minWidth: pos.width } as CSSProperties}
+              style={{ top: pos.top, left: pos.left, minWidth: pos.width, ['--sb-track']: 'transparent' } as unknown as CSSProperties}
               aria-multiselectable={multiple || undefined}
             >
-              {!multiple && clearable && selectionKeys.length > 0 && (
-                <div className="sticky top-0 z-10 flex items-center justify-end border-b border-gray-100 bg-white px-3 py-2 text-xs">
-                  <a
-                    href="#"
-                    onClick={e => { e.preventDefault(); handleClearAll(); }}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    清空
-                  </a>
-                </div>
-              )}
               <div
                 ref={listRef}
                 onScroll={event => {
