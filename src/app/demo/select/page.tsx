@@ -56,7 +56,7 @@ export default function SelectDemo() {
           </div>
         </Card>
 
-        <Card title="多选 · 自适应 maxTagCount（不传该属性，按宽度自动）">
+        <Card title="多选 · 自适应（按容器宽度自动）">
           <div className="space-y-2">
             <Input.Select
               multiple
@@ -65,9 +65,40 @@ export default function SelectDemo() {
               value={multiAuto}
               onChange={(v) => Array.isArray(v) && setMultiAuto(v)}
               clearable
-              // 不传 maxTagCount -> 按宽度自适应计算
+              // 涓嶄紶 maxTagCount -> 鎸夊搴﹁嚜閫傚簲璁＄畻
             />
             <div className="text-sm text-gray-600">当前选择：{multiAuto.length} 项（你可以缩放窗口或改变容器宽度观察 +N 的变化）</div>
+          </div>
+        </Card>
+
+        <Card title="多选 · 自适应（不同容器宽度示例）">
+          <div className="space-y-4">
+            <div>
+              <div className="mb-2 text-sm text-gray-600">w-80 宽度</div>
+              <div className="w-80">
+                <Input.Select
+                  multiple
+                  placeholder="请选择标签"
+                  options={tagOptions}
+                  value={multiFixed}
+                  onChange={(v) => Array.isArray(v) && setMultiFixed(v)}
+                  clearable
+                />
+              </div>
+            </div>
+            <div>
+              <div className="mb-2 text-sm text-gray-600">w-full 宽度</div>
+              <div className="w-full">
+                <Input.Select
+                  multiple
+                  placeholder="请选择标签"
+                  options={tagOptions}
+                  value={multiSummary}
+                  onChange={(v) => Array.isArray(v) && setMultiSummary(v)}
+                  clearable
+                />
+              </div>
+            </div>
           </div>
         </Card>
 
@@ -75,3 +106,4 @@ export default function SelectDemo() {
     </Layout>
   );
 }
+
