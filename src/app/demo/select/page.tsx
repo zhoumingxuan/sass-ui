@@ -71,38 +71,6 @@ export default function SelectDemo() {
           </div>
         </Card>
 
-        <Card title="多选 · 固定 maxTagCount=2（其余用 +N）">
-          <div className="space-y-2">
-            <Input.Select
-              multiple
-              placeholder="请选择标签"
-              options={tagOptions}
-              value={multiFixed}
-              onChange={(v) => Array.isArray(v) && setMultiFixed(v)}
-              clearable
-              maxTagCount={2}
-              pillCloseable
-            />
-            <div className="text-sm text-gray-600">当前选择：{multiFixed.length} 项</div>
-          </div>
-        </Card>
-
-        <Card title="多选 · 汇总为一颗 primary Pill（提示“已选X项”）">
-          <div className="space-y-2">
-            <Input.Select
-              multiple
-              placeholder="请选择标签"
-              options={tagOptions}
-              value={multiSummary}
-              onChange={(v) => Array.isArray(v) && setMultiSummary(v)}
-              clearable
-              showSelectedSummary
-              // 也可自定义汇总文案：
-              // summaryText={(n) => `共选择 ${n} 项`}
-            />
-            <div className="text-sm text-gray-600">当前选择：{multiSummary.length} 项</div>
-          </div>
-        </Card>
       </div>
     </Layout>
   );

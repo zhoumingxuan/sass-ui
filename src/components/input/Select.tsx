@@ -83,7 +83,6 @@ export default function Select(props: Props) {
     status,
     size = "md",
     maxTagCount,
-    showSelectedSummary,
     pillCloseable = true,
     summaryText,
   } = props;
@@ -103,7 +102,6 @@ export default function Select(props: Props) {
   const [activeIndex, setActiveIndex] = useState(-1);
 
   const anchorRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
   const popRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const listScrollRef = useRef(0);
@@ -140,18 +138,13 @@ export default function Select(props: Props) {
   );
 
   // Auto-fit the number of visible tags based on the first line (when no explicit max is provided).
-  const [autoCount, setAutoCount] = useState(() => (enableAutoCount ? selectedOptions.length : 0));
-  // When recalculation is required, temporarily render all tags so the browser wraps naturally, then recount.
-  const [needsRecalc, setNeedsRecalc] = useState(enableAutoCount);
+  const [visibleCount, setVisibleCount] = useState(() => (enableAutoCount ? selectedOptions.length : 0));
+
 
   const labelText = !multiple
     ? (typeof value === "string" && value ? options.find(option => option.value === value)?.label ?? "" : "")
     : "";
 
-  const summaryFormatter = useMemo(
-    () => summaryText ?? ((count: number) => `已选${count}项`),
-    [summaryText],
-  );
 
   const commitSingle = useCallback(
     (next: string) => {
@@ -274,108 +267,55 @@ export default function Select(props: Props) {
     },
     [open, options],
   );
+  
+  //设计一个计算函数，用useCallBack处理，内部参数随着选项更新
+  const calNeedCount=useCallback(() => {
+    if (!enableAutoCount) return;
 
-  const handleKeyDown = useCallback(
-    (event: KeyboardEvent<HTMLButtonElement>) => {
-      if (event.key === "ArrowDown") {
-        event.preventDefault();
-        enforceVisibilityRef.current = true;
-        moveActive(1);
-        return;
-      }
-      if (event.key === "ArrowUp") {
-        event.preventDefault();
-        enforceVisibilityRef.current = true;
-        moveActive(-1);
-        return;
-      }
-      if (event.key === "Enter") {
-        event.preventDefault();
-        if (!open) {
-          setOpen(true);
-          return;
-        }
-        if (activeIndex < 0 || activeIndex >= options.length) return;
-        const option = options[activeIndex];
-        if (option.disabled) return;
-        if (multiple) {
-          enforceVisibilityRef.current = true;
-          toggleMulti(option.value, activeIndex);
-        } else {
-          commitSingle(option.value);
-        }
-        return;
-      }
-      if (event.key === "Escape") {
-        event.preventDefault();
-        setOpen(false);
-        return;
-      }
-      if (event.key === "Backspace" && multiple) {
-        if (Array.isArray(value) && value.length > 0) {
-          handlePillClose(value[value.length - 1]);
-        }
-      }
-    },
-    [activeIndex, commitSingle, handlePillClose, moveActive, multiple, open, options, toggleMulti, value],
-  );
-
-  // Core idea: avoid manual measurement. Let the container wrap naturally, count first-row pills,
-  // and keep one slot free for the +N summary when there are hidden tags.
-  useEffect(() => {
-    if (!enableAutoCount) {
-      setAutoCount(0);
-      setNeedsRecalc(false);
+    const group = displayGroupRef.current;
+    if (!group) {
+      setVisibleCount(0);
       return;
     }
-    setNeedsRecalc(true);
-  }, [enableAutoCount, selectionKey]);
+
+    const pills = Array.from(group.querySelectorAll(`[${DISPLAY_PILL_ATTR}="true"]`)) as HTMLElement[];
+    if (pills.length === 0) {
+      setVisibleCount(0);
+      return;
+    }
+
+    const firstTop = Math.min(...pills.map(el => el.offsetTop));
+    const firstLineCount = pills.filter(el => el.offsetTop === firstTop).length;
+
+    if (firstLineCount <= 0) {
+      setVisibleCount(0);
+      return;
+    }
+
+    setVisibleCount(firstLineCount);
+
+  }, [enableAutoCount, selectedOptions.length, selectionKey]);
 
   useEffect(() => {
     if (!enableAutoCount) return;
     if (typeof ResizeObserver === "undefined") return;
     const group = displayGroupRef.current;
     if (!group) return;
+    
+    //初始化时候触发一次
+    calNeedCount();
 
     const observer = new ResizeObserver(() => {
-      setNeedsRecalc(prev => (prev ? prev : true));
+       //换行的时候触发一次
+       calNeedCount();
     });
 
     observer.observe(group);
     return () => observer.disconnect();
   }, [enableAutoCount]);
 
-  useEffect(() => {
-    if (!enableAutoCount || !needsRecalc) return;
-    const group = displayGroupRef.current;
-    if (!group) {
-      setAutoCount(0);
-      setNeedsRecalc(false);
-      return;
-    }
 
-    const pills = Array.from(group.querySelectorAll(`[${DISPLAY_PILL_ATTR}="true"]`)) as HTMLElement[];
-    if (pills.length === 0) {
-      setAutoCount(0);
-      setNeedsRecalc(false);
-      return;
-    }
 
-    const firstTop = Math.min(...pills.map(el => el.offsetTop));
-    const firstLineCount = pills.filter(el => el.offsetTop === firstTop).length;
-    const total = selectedOptions.length;
-
-    if (firstLineCount <= 0) {
-      setAutoCount(0);
-      setNeedsRecalc(false);
-      return;
-    }
-
-    const next = total <= firstLineCount ? firstLineCount : Math.max(0, firstLineCount - 1);
-
-    setAutoCount(previous => (previous === next ? previous : next));
-    setNeedsRecalc(false);
-  }, [enableAutoCount, needsRecalc, selectedOptions.length, selectionKey]);
 
   // Restore list scroll position after options render; do not use layout effect.
   useEffect(() => {
@@ -386,40 +326,21 @@ export default function Select(props: Props) {
   const renderMultiContent = () => {
     if (selectedOptions.length === 0) return placeholder ?? "";
 
-    if (showSelectedSummary) {
-      return (
-        <div className="flex w-full items-center gap-2 overflow-hidden">
-          {/* Reserve space for trailing icons / clear button */}
-          <span aria-hidden className="pointer-events-none shrink-0" style={reserveStyle} />
-          <div className="ml-auto flex min-w-0 justify-end gap-2 overflow-hidden">
-              <Pill tone="primary" className="max-w-full shrink-0" closeable={!!clearable} onClose={handleClearAll}>
-                {summaryFormatter(selectedOptions.length)}
-              </Pill>
-          </div>
-        </div>
-      );
-    }
 
-    const baseLimit = explicitLimit ?? (needsRecalc ? selectedOptions.length : autoCount);
-    const limit = Number.isFinite(baseLimit)
-      ? Math.max(0, Math.min(selectedOptions.length, baseLimit))
-      : selectedOptions.length;
-
-    const visible = selectedOptions.slice(0, limit);
-    const rest = selectedOptions.length - visible.length;
+    const rest = selectedOptions.length-visibleCount;
 
     return (
-      <div className="flex h-full w-full items-center gap-2 overflow-hidden">
+      <div className="flex h-full w-full items-center gap-2">
         {/* Reserve space for trailing icons / clear button */}
         <span aria-hidden className="pointer-events-none shrink-0" style={reserveStyle} />
 
         {/* Visible container: flex-wrap + h-full, only reveal the first line; no manual width measuring */}
         <div
           ref={displayGroupRef}
-          className="ml-auto flex h-full min-w-0 flex-wrap items-center justify-end gap-2 overflow-hidden"
+          className="ml-auto h-full flex min-w-0 flex-wrap items-center justify-end gap-2"
           data-display-group="true"
         >
-          {visible.map(option => (
+          {selectedOptions.map(option => (
             <span
               key={option.value}
               data-display-pill="true"
@@ -435,14 +356,14 @@ export default function Select(props: Props) {
               </Pill>
             </span>
           ))}
-          {rest > 0 && (
-            <span className="inline-flex max-w-full shrink-0">
-              <Pill tone="primary" className="max-w-full shrink-0" aria-label={`还有 ${rest} 项`}>
-                <span>+{rest}</span>
-              </Pill>
-            </span>
-          )}
         </div>
+        {rest > 0 && (
+          <span className="inline-flex max-w-full shrink-0">
+            <Pill tone="primary" className="max-w-full shrink-0" aria-label={`还有 ${rest} 项`}>
+              <span>+{rest}</span>
+            </Pill>
+          </span>
+        )}
       </div>
     );
   };
@@ -457,12 +378,9 @@ export default function Select(props: Props) {
       )}
 
       <div ref={anchorRef} className={`relative ${className}`}>
-        <button
-          ref={buttonRef}
-          type="button"
+        <div
           id={id}
           onClick={() => setOpen(previous => !previous)}
-          onKeyDown={handleKeyDown}
           onFocus={event => {
             if (event.currentTarget.matches(":focus-visible")) setOpen(true);
           }}
@@ -470,7 +388,7 @@ export default function Select(props: Props) {
             inputBase,
             inputSize[size],
             status ? inputStatus[status] : "",
-            "text-left flex items-center overflow-hidden",
+            "text-left flex items-start overflow-hidden",
             textTone,
             size === "lg" ? "pr-12" : size === "sm" ? "pr-8" : "pr-10",
           ]
@@ -483,17 +401,17 @@ export default function Select(props: Props) {
           aria-controls={`${id}-listbox`}
         >
           {!multiple ? (labelText || placeholder || "") : renderMultiContent()}
-        </button>
+        </div>
 
         {!multiple && clearable && value && (
-          <button
+          <a
             type="button"
             onClick={handleClearAll}
             aria-label="清空"
             className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
           >
             <X size={16} className="text-gray-500" aria-hidden />
-          </button>
+          </a>
         )}
 
         <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -507,7 +425,7 @@ export default function Select(props: Props) {
               ref={popRef}
               role="listbox"
               id={`${id}-listbox`}
-              className="fixed z-[1200] max-h-56 overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-elevation-1"
+              className="fixed z-[1200] max-h-56 overflow-auto rounded-lg border border-gray-200 bg-white shadow-elevation-1"
               style={{ top: pos.top, left: pos.left, minWidth: pos.width } as CSSProperties}
               aria-multiselectable={multiple || undefined}
             >
