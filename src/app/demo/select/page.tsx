@@ -51,7 +51,7 @@ export default function SelectDemo() {
               <Input.Select placeholder="请选择城市" options={cityOptions} size="sm" clearable />
             </div>
             <div>
-              <Input.Select placeholder="请选择城市" options={cityOptions} size="md" />
+              <Input.Select placeholder="请选择城市" clearable options={cityOptions} size="md" />
             </div>
             <div>
               <Input.Select placeholder="请选择城市" options={cityOptions} size="lg" required />

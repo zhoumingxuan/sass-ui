@@ -452,20 +452,6 @@ export default function Select(props: Props) {
           {!multiple ? (labelText || placeholder || "") : renderMultiContent()}
         </div>
 
-        {!multiple && clearable && selectionKeys.length > 0 && (
-          <a
-            href="#"
-            onClick={event => {
-              event.preventDefault();
-              handleClearAll();
-            }}
-            aria-label="清空"
-            className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-          >
-            <X size={16} className="text-gray-500" aria-hidden />
-          </a>
-        )}
-
         <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
           <ChevronDown size={16} aria-hidden />
         </span>
@@ -477,10 +463,21 @@ export default function Select(props: Props) {
               ref={popRef}
               role="listbox"
               id={`${id}-listbox`}
-              className="fixed z-[1200] max-h-56 overflow-auto rounded-lg border border-gray-200 bg-white shadow-elevation-1"
+              className="fixed z-[1200] max-h-56 overflow-auto rounded-lg border border-gray-200 bg-white shadow-elevation-1 nice-scrollbar"
               style={{ top: pos.top, left: pos.left, minWidth: pos.width } as CSSProperties}
               aria-multiselectable={multiple || undefined}
             >
+              {!multiple && clearable && selectionKeys.length > 0 && (
+                <div className="sticky top-0 z-10 flex items-center justify-end border-b border-gray-100 bg-white px-3 py-2 text-xs">
+                  <a
+                    href="#"
+                    onClick={e => { e.preventDefault(); handleClearAll(); }}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    清空
+                  </a>
+                </div>
+              )}
               <div
                 ref={listRef}
                 onScroll={event => {
