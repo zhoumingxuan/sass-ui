@@ -687,7 +687,7 @@ export default function TransferSelect(props: TransferSelectProps) {
     }
     else {
       return (
-        <div className="flex h-full flex-col">
+        <div className="flex-1 flex-col overflow-auto rounded border border-gray-200 nice-scrollbar">
           {list.map(option => {
             const checked = selected.includes(option.value);
             const disabled = Boolean(option.disabled);
