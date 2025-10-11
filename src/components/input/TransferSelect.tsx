@@ -587,7 +587,7 @@ export default function TransferSelect(props: TransferSelectProps) {
               className={[
                 "fixed z-[1200] border border-gray-200 bg-white block overflow-hidden",
                 panelPos.placement === "top"
-                  ? "rounded-t-lg border-b-1"
+                  ? "rounded-t-lg border-b-1 shadow-elevation-1-up"
                   : "rounded-b-lg shadow-elevation-1",
               ].join(" ")}
               style={{
@@ -596,7 +596,7 @@ export default function TransferSelect(props: TransferSelectProps) {
                 minWidth: panelPos.width,
                 minHeight: resolvedMinHeight,
                 maxHeight: panelPos.maxHeight,
-                height:panelPos.maxHeight
+                height:panelPos.maxHeight,
               }}
             >
               <div className="grid h-full max-h-full grid-cols-[1fr_auto_1fr] gap-4 p-4">

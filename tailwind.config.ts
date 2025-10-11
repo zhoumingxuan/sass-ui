@@ -19,6 +19,7 @@ export default {
       boxShadow: {
         // Elevation scale for consistent depth
         'elevation-1': '0 6px 12px -6px rgba(0,0,0,0.12)',
+        'elevation-1-up': '0 -6px 12px -6px rgba(0,0,0,0.12)',
         'elevation-2': '8px 0 16px -14px rgba(2,6,23,0.45)',
         'elevation-2-left': '-8px 0 16px -14px rgba(2,6,23,0.45)',
         'elevation-3': '0 16px 32px -16px rgba(0,0,0,0.24)',
