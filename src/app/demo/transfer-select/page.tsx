@@ -100,46 +100,7 @@ export default function TransferSelectDemo() {
           </div>
         </Card>
 
-        <Card title="labelAndValue 模式 + 搜索自定义文案">
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className="space-y-2">
-              <Input.TransferSelect
-                options={skillOptions}
-                value={skillMatrix}
-                onChange={(value) => {
-                  if (Array.isArray(value)) {
-                    const objects = value.filter((item): item is Option => typeof item === "object" && item !== null);
-                    setSkillMatrix(objects);
-                  }
-                }}
-                labelAndValue
-                placeholder="请选择能力标签"
-                sourceTitle="技能池"
-                targetTitle="我的技能"
-                searchPlaceholder={{ source: "过滤技能池", target: "过滤已选技能" }}
-                emptyText={{ source: "暂无匹配的技能", target: "尚未选择技能" }}
-                helper="开启 labelAndValue 后，onChange 会返回 Option 对象数组。"
-              />
-              <div className="text-xs text-gray-500">
-                当前值：
-                <code className="ml-1 block rounded bg-gray-100 px-2 py-1 whitespace-pre-wrap break-all">
-                  {skillMatrix.length
-                    ? JSON.stringify(skillMatrix, ["value", "title", "label"], 2)
-                    : "[]"}
-                </code>
-              </div>
-            </div>
-            <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-              <ul className="list-disc space-y-2 pl-5">
-                <li>穿梭面板沿用了 Select 的多选展示逻辑，标签会根据容器宽度自动折行并显示 +N。</li>
-                <li>默认带搜索输入，可通过 showSearch 关闭或自定义 placeholder 文案。</li>
-                <li>移动按钮以及双击操作都可将选项快速在左右列表间切换。</li>
-              </ul>
-            </div>
-          </div>
-        </Card>
-
-        <Card title="批量股票选择（大量选项场景）">
+                <Card title="批量股票选择（大量选项场景）">
           <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
             <div className="space-y-2">
               <Input.TransferSelect
@@ -180,6 +141,47 @@ export default function TransferSelectDemo() {
             </div>
           </div>
         </Card>
+
+        <Card title="labelAndValue 模式 + 搜索自定义文案">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="space-y-2">
+              <Input.TransferSelect
+                options={skillOptions}
+                value={skillMatrix}
+                onChange={(value) => {
+                  if (Array.isArray(value)) {
+                    const objects = value.filter((item): item is Option => typeof item === "object" && item !== null);
+                    setSkillMatrix(objects);
+                  }
+                }}
+                labelAndValue
+                placeholder="请选择能力标签"
+                sourceTitle="技能池"
+                targetTitle="我的技能"
+                searchPlaceholder={{ source: "过滤技能池", target: "过滤已选技能" }}
+                emptyText={{ source: "暂无匹配的技能", target: "尚未选择技能" }}
+                helper="开启 labelAndValue 后，onChange 会返回 Option 对象数组。"
+              />
+              <div className="text-xs text-gray-500">
+                当前值：
+                <code className="ml-1 block rounded bg-gray-100 px-2 py-1 whitespace-pre-wrap break-all">
+                  {skillMatrix.length
+                    ? JSON.stringify(skillMatrix, ["value", "title", "label"], 2)
+                    : "[]"}
+                </code>
+              </div>
+            </div>
+            <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+              <ul className="list-disc space-y-2 pl-5">
+                <li>穿梭面板沿用了 Select 的多选展示逻辑，标签会根据容器宽度自动折行并显示 +N。</li>
+                <li>默认带搜索输入，可通过 showSearch 关闭或自定义 placeholder 文案。</li>
+                <li>移动按钮以及双击操作都可将选项快速在左右列表间切换。</li>
+              </ul>
+            </div>
+          </div>
+        </Card>
+
+
       </div>
     </Layout>
   );

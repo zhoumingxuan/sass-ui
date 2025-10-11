@@ -86,7 +86,11 @@ export default function SelectDemo() {
               placeholder="请选择标签"
               options={tagOptions}
               value={multiAuto}
-              onChange={(v) => Array.isArray(v) && setMultiAuto(v)}
+              onChange={value => {
+                if (Array.isArray(value) && value.every(item => typeof item === "string")) {
+                  setMultiAuto(value);
+                }
+              }}
               clearable
               // 自适应：不传 maxTagCount，按容器宽度自动计算
             />
@@ -104,7 +108,11 @@ export default function SelectDemo() {
                   placeholder="请选择标签"
                   options={tagOptions}
                   value={multiFixed}
-                  onChange={(v) => Array.isArray(v) && setMultiFixed(v)}
+                  onChange={value => {
+                    if (Array.isArray(value) && value.every(item => typeof item === "string")) {
+                      setMultiFixed(value);
+                    }
+                  }}
                   clearable
                 />
               </div>
@@ -117,7 +125,11 @@ export default function SelectDemo() {
                   placeholder="请选择标签"
                   options={tagOptions}
                   value={multiSummary}
-                  onChange={(v) => Array.isArray(v) && setMultiSummary(v)}
+                  onChange={value => {
+                    if (Array.isArray(value) && value.every(item => typeof item === "string")) {
+                      setMultiSummary(value);
+                    }
+                  }}
                   clearable
                 />
               </div>
@@ -178,4 +190,3 @@ export default function SelectDemo() {
     </Layout>
   );
 }
-

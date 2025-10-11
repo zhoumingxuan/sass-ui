@@ -340,8 +340,58 @@ export default function TransferSelect(props: TransferSelectProps) {
     });
   }, [effectiveFilter, selectedOptions, showSearch, targetQuery]);
 
+  // Tri-state select-all checkbox logic
+  const sourceEnabledKeys = useMemo(
+    () => filteredSourceItems.filter(item => !item.disabled).map(item => item.value),
+    [filteredSourceItems],
+  );
+  const targetEnabledKeys = useMemo(
+    () => filteredTargetItems.filter(item => !item.disabled).map(item => item.value),
+    [filteredTargetItems],
+  );
+
   const [sourceSelected, setSourceSelected] = useState<string[]>([]);
   const [targetSelected, setTargetSelected] = useState<string[]>([]);
+
+  const sourceSelectedInFilter = useMemo(() => {
+    const set = new Set(sourceEnabledKeys);
+    return sourceSelected.filter(k => set.has(k)).length;
+  }, [sourceEnabledKeys, sourceSelected]);
+  const targetSelectedInFilter = useMemo(() => {
+    const set = new Set(targetEnabledKeys);
+    return targetSelected.filter(k => set.has(k)).length;
+  }, [targetEnabledKeys, targetSelected]);
+
+  const sourceAllSelected = sourceEnabledKeys.length > 0 && sourceSelectedInFilter === sourceEnabledKeys.length;
+  const sourceIndeterminate = sourceSelectedInFilter > 0 && !sourceAllSelected;
+  const targetAllSelected = targetEnabledKeys.length > 0 && targetSelectedInFilter === targetEnabledKeys.length;
+  const targetIndeterminate = targetSelectedInFilter > 0 && !targetAllSelected;
+
+  const handleToggleSourceAll = useCallback(
+    (checked: boolean) => {
+      const set = new Set(sourceEnabledKeys);
+      if (checked) {
+        setSourceSelected(prev => Array.from(new Set([...prev, ...sourceEnabledKeys])));
+      } else {
+        setSourceSelected(prev => prev.filter(k => !set.has(k)));
+      }
+    },
+    [sourceEnabledKeys],
+  );
+
+  const handleToggleTargetAll = useCallback(
+    (checked: boolean) => {
+      const set = new Set(targetEnabledKeys);
+      if (checked) {
+        setTargetSelected(prev => Array.from(new Set([...prev, ...targetEnabledKeys])));
+      } else {
+        setTargetSelected(prev => prev.filter(k => !set.has(k)));
+      }
+    },
+    [targetEnabledKeys],
+  );
+
+
 
   useEffect(() => {
     setSourceSelected(prev => prev.filter(key => !selectionSet.has(key)));
@@ -604,6 +654,16 @@ export default function TransferSelect(props: TransferSelectProps) {
                   <div className="mb-2 text-sm font-medium text-gray-700">
                     {sourceTitle}（{filteredSourceItems.length}）
                   </div>
+                  {/* Select-all tri-state, aligned with title (right) */}
+                  <div className="mb-2 -mt-7 flex items-center justify-end">
+                    <Checkbox
+                      label="全选"
+                      checked={sourceAllSelected}
+                      indeterminate={sourceIndeterminate}
+                      onChange={e => handleToggleSourceAll(e.currentTarget.checked)}
+                      className="text-xs [&>span>span]:text-xs [&>span>span]:text-gray-500"
+                    />
+                  </div>
                   {showSearch && (
                     <div className="relative mb-2">
                       <input
@@ -657,6 +717,16 @@ export default function TransferSelect(props: TransferSelectProps) {
                 <div className="flex min-h-0 flex-col">
                   <div className="mb-2 text-sm font-medium text-gray-700">
                     {targetTitle}（{filteredTargetItems.length}/{selectionKeys.length}）
+                  </div>
+                  {/* Select-all tri-state, aligned with title (right) */}
+                  <div className="mb-2 -mt-7 flex items-center justify-end">
+                    <Checkbox
+                      label="全选"
+                      checked={targetAllSelected}
+                      indeterminate={targetIndeterminate}
+                      onChange={e => handleToggleTargetAll(e.currentTarget.checked)}
+                      className="text-xs [&>span>span]:text-xs [&>span>span]:text-gray-500"
+                    />
                   </div>
                   {showSearch && (
                     <div className="relative mb-2">
