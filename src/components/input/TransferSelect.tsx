@@ -22,11 +22,27 @@ import type { Option } from "./Select";
 import { Checkbox } from "@/components/Checkbox";
 import { ChevronDown, ChevronLeft, ChevronRight, Search as SearchIcon } from "lucide-react";
 
+const DISPLAY_PILL_ATTR = "data-display-pill";
+
+const MIN_PANEL_WIDTH = 520;
+const DEFAULT_PANEL_MIN_HEIGHT = 264;
+const DEFAULT_PANEL_MAX_HEIGHT = 480;
+const VIEWPORT_MARGIN = 12;
+
+/** ===== 虚拟滚动常量（可按需调整） ===== */
+const ITEM_HEIGHT = 36; // 每行固定高度（px），与下方行样式相匹配
+const OVERSCAN = 8;     // 预渲染的上下缓冲行数
+
 type MultiValue = string[] | Option[] | undefined;
 
 type FilterDirection = "source" | "target";
 
 type FilterOption = (query: string, option: Option, direction: FilterDirection) => boolean;
+
+type VirtualProps = {
+   itemHeight?:number,
+   overscan?:number,
+}
 
 type TransferSelectProps = {
   label?: string;
@@ -51,6 +67,7 @@ type TransferSelectProps = {
   filterOption?: FilterOption;
   panelMinHeight?: number;
   panelMaxHeight?: number;
+  virtual?:VirtualProps|boolean;
 };
 
 type SelectVars = CSSProperties & { "--select-multi-reserve": string };
@@ -60,17 +77,6 @@ const RESERVE_VAR_MAP: Record<InputSize, string> = {
   md: "var(--select-multi-reserve-md)",
   lg: "var(--select-multi-reserve-lg)",
 };
-
-const DISPLAY_PILL_ATTR = "data-display-pill";
-
-const MIN_PANEL_WIDTH = 520;
-const DEFAULT_PANEL_MIN_HEIGHT = 264;
-const DEFAULT_PANEL_MAX_HEIGHT = 480;
-const VIEWPORT_MARGIN = 12;
-
-/** ===== 虚拟滚动常量（可按需调整） ===== */
-const ITEM_HEIGHT = 36; // 每行固定高度（px），与下方行样式相匹配
-const OVERSCAN = 8;     // 预渲染的上下缓冲行数
 
 const defaultFilter: FilterOption = (query, option) => {
   if (!query) return true;
@@ -164,6 +170,7 @@ export default function TransferSelect(props: TransferSelectProps) {
     filterOption,
     panelMinHeight,
     panelMaxHeight,
+    virtual
   } = props;
 
   const { value: controlledValue, defaultValue, onChange } = props;
@@ -649,19 +656,67 @@ export default function TransferSelect(props: TransferSelectProps) {
       );
     }
 
-    return (
-      <VirtualList<Option>
-        items={list}
-        itemHeight={ITEM_HEIGHT}
-        overscan={OVERSCAN}
-        className="flex-1 overflow-auto rounded border border-gray-200 nice-scrollbar"
-        renderItem={(option) => {
-          const checked = selected.includes(option.value);
-          const disabled = Boolean(option.disabled);
-          return renderRow(option, checked, disabled, onToggle, onDouble);
-        }}
-      />
-    );
+    if (virtual) {
+      const virt:{
+        itemHeight?:number;
+        overscan?:number;
+      }={
+        itemHeight:0,
+        overscan:0
+      };
+      if(typeof(virtual)!=='boolean')
+      {
+          virt.itemHeight=virtual.itemHeight;
+          virt.overscan=virtual.overscan;
+      }
+      const itemHeight = (virt.itemHeight && virt.itemHeight > 0) ? virt.itemHeight : ITEM_HEIGHT;
+      const overscan = (virt.overscan && virt.overscan > 0) ? virt.overscan : OVERSCAN;
+      return (
+        <VirtualList<Option>
+          items={list}
+          itemHeight={itemHeight}
+          overscan={overscan}
+          className="flex-1 overflow-auto rounded border border-gray-200 nice-scrollbar"
+          renderItem={(option) => {
+            const checked = selected.includes(option.value);
+            const disabled = Boolean(option.disabled);
+            return renderRow(option, checked, disabled, onToggle, onDouble);
+          }}
+        />
+      );
+    }
+    else {
+      return (
+        <div className="flex h-full flex-col">
+          {list.map(option => {
+            const checked = selected.includes(option.value);
+            const disabled = Boolean(option.disabled);
+            return (
+              <div
+                key={option.value}
+                onDoubleClick={() => onDouble(option.value, option.disabled)}
+                className={[
+                  "transition-colors",
+                  checked ? "bg-primary/5 text-primary" : "bg-white text-gray-700",
+                  disabled ? "cursor-not-allowed text-gray-300" : "hover:bg-gray-100",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                <Checkbox
+                  label={option.label}
+                  checked={checked}
+                  disabled={disabled}
+                  onChange={() => onToggle(option.value, option.disabled)}
+                  className="w-full px-3 py-2 text-sm [&>span>span]:truncate"
+                />
+              </div>
+            );
+          })}
+        </div>
+      )
+    }
+
   };
 
   return (

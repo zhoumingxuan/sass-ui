@@ -100,12 +100,13 @@ export default function TransferSelectDemo() {
           </div>
         </Card>
 
-                <Card title="批量股票选择（大量选项场景）">
+        <Card title="批量股票选择（大量选项场景）">
           <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
             <div className="space-y-2">
               <Input.TransferSelect
                 options={stockOptions}
                 value={watchList}
+                virtual
                 onChange={(value) => {
                   if (Array.isArray(value)) {
                     const next = value.filter((item): item is string => typeof item === "string");
