@@ -2,6 +2,7 @@ export { default as TextInput } from './input/Text';
 export { default as NumberInput } from './input/Number';
 export { default as PasswordInput } from './input/Password';
 export { default as SelectInput } from './input/Select';
+export { default as TransferSelectInput } from './input/TransferSelect';
 export { default as DateInput } from './date/DatePicker';
 export { default as DateRangeInput } from './date/DateRangePicker';
 
@@ -16,6 +17,7 @@ export const Input = {
   Number: InputNs.Number,
   Password: InputNs.Password,
   Select: InputNs.Select,
+  TransferSelect: InputNs.TransferSelect,
   Date: DatePicker,
   DateRange: DateRangePicker,
   TextArea: TextArea,
