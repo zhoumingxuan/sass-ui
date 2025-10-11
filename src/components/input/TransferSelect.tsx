@@ -68,11 +68,80 @@ const DEFAULT_PANEL_MIN_HEIGHT = 264;
 const DEFAULT_PANEL_MAX_HEIGHT = 480;
 const VIEWPORT_MARGIN = 12;
 
+/** ===== 虚拟滚动常量（可按需调整） ===== */
+const ITEM_HEIGHT = 36; // 每行固定高度（px），与下方行样式相匹配
+const OVERSCAN = 8;     // 预渲染的上下缓冲行数
+
 const defaultFilter: FilterOption = (query, option) => {
   if (!query) return true;
   const merged = `${option.title ?? ""} ${option.label ?? ""}`.toLowerCase();
   return merged.includes(query);
 };
+
+/** 轻量虚拟列表（不依赖第三方库） */
+function VirtualList<T>({
+  items,
+  itemHeight,
+  overscan = 6,
+  className,
+  renderItem,
+}: {
+  items: T[];
+  itemHeight: number;
+  overscan?: number;
+  className?: string;
+  renderItem: (item: T, index: number) => React.ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [scrollTop, setScrollTop] = useState(0);
+  const [containerHeight, setContainerHeight] = useState(0);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const update = () => setContainerHeight(el.clientHeight);
+    update();
+
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(update);
+      ro.observe(el);
+    }
+    return () => ro?.disconnect();
+  }, []);
+
+  const onScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    setScrollTop((e.currentTarget as HTMLDivElement).scrollTop);
+  };
+
+  const total = items.length;
+  const totalHeight = total * itemHeight;
+  const start = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan);
+  const end = Math.min(
+    total,
+    Math.ceil((scrollTop + containerHeight) / itemHeight) + overscan
+  );
+  const offsetY = start * itemHeight;
+  const slice = items.slice(start, end);
+
+  return (
+    <div ref={ref} className={className} onScroll={onScroll}>
+      <div style={{ height: totalHeight, position: "relative" }}>
+        <div style={{ transform: `translateY(${offsetY}px)` }}>
+          {slice.map((item, i) => (
+            <div
+              key={(item as any)?.value ?? start + i}
+              style={{ height: itemHeight }}
+              className="relative"
+            >
+              {renderItem(item, start + i)}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function TransferSelect(props: TransferSelectProps) {
   const {
@@ -391,8 +460,6 @@ export default function TransferSelect(props: TransferSelectProps) {
     [targetEnabledKeys],
   );
 
-
-
   useEffect(() => {
     setSourceSelected(prev => prev.filter(key => !selectionSet.has(key)));
     setTargetSelected(prev => prev.filter(key => selectionSet.has(key)));
@@ -537,6 +604,36 @@ export default function TransferSelect(props: TransferSelectProps) {
     target: emptyText?.target ?? "暂无数据",
   };
 
+  /** 渲染一行的函数（与虚拟列表配合，固定行高 ITEM_HEIGHT） */
+  const renderRow = (
+    option: Option,
+    checked: boolean,
+    disabled: boolean,
+    onToggle: (key: string, disabled?: boolean) => void,
+    onDouble: (key: string, disabled?: boolean) => void,
+  ) => {
+    return (
+      <div
+        onDoubleClick={() => onDouble(option.value, option.disabled)}
+        className={[
+          "flex h-9 items-center transition-colors", // h-9 对应 ITEM_HEIGHT=36
+          checked ? "bg-primary/5 text-primary" : "bg-white text-gray-700",
+          disabled ? "cursor-not-allowed text-gray-300" : "hover:bg-gray-100",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        <Checkbox
+          label={option.label}
+          checked={checked}
+          disabled={disabled}
+          onChange={() => onToggle(option.value, option.disabled)}
+          className="w-full px-3 text-sm [&>span>span]:truncate"
+        />
+      </div>
+    );
+  };
+
   const renderList = (
     list: Option[],
     selected: string[],
@@ -553,33 +650,17 @@ export default function TransferSelect(props: TransferSelectProps) {
     }
 
     return (
-      <div className="flex h-full flex-col">
-        {list.map(option => {
+      <VirtualList<Option>
+        items={list}
+        itemHeight={ITEM_HEIGHT}
+        overscan={OVERSCAN}
+        className="flex-1 overflow-auto rounded border border-gray-200 nice-scrollbar"
+        renderItem={(option) => {
           const checked = selected.includes(option.value);
           const disabled = Boolean(option.disabled);
-          return (
-            <div
-              key={option.value}
-              onDoubleClick={() => onDouble(option.value, option.disabled)}
-              className={[
-                "transition-colors",
-                checked ? "bg-primary/5 text-primary" : "bg-white text-gray-700",
-                disabled ? "cursor-not-allowed text-gray-300" : "hover:bg-gray-100",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-            >
-              <Checkbox
-                label={option.label}
-                checked={checked}
-                disabled={disabled}
-                onChange={() => onToggle(option.value, option.disabled)}
-                className="w-full px-3 py-2 text-sm [&>span>span]:truncate"
-              />
-            </div>
-          );
-        })}
-      </div>
+          return renderRow(option, checked, disabled, onToggle, onDouble);
+        }}
+      />
     );
   };
 
@@ -651,18 +732,19 @@ export default function TransferSelect(props: TransferSelectProps) {
             >
               <div className="grid h-full max-h-full grid-cols-[1fr_auto_1fr] gap-4 p-4">
                 <div className="flex min-h-0 flex-col">
-                  <div className="mb-2 text-sm font-medium text-gray-700">
-                    {sourceTitle}（{filteredSourceItems.length}）
-                  </div>
-                  {/* Select-all tri-state, aligned with title (right) */}
-                  <div className="mb-2 -mt-7 flex items-center justify-end">
-                    <Checkbox
-                      label="全选"
-                      checked={sourceAllSelected}
-                      indeterminate={sourceIndeterminate}
-                      onChange={e => handleToggleSourceAll(e.currentTarget.checked)}
-                      className="text-xs [&>span>span]:text-xs [&>span>span]:text-gray-500"
-                    />
+                  <div className="mb-2 block flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">
+                      {sourceTitle}（{filteredSourceItems.length}）
+                    </span>
+                    <div className="flex justify-end">
+                      <Checkbox
+                       label="全选"
+                       checked={sourceAllSelected}
+                       indeterminate={sourceIndeterminate}
+                       onChange={e => handleToggleSourceAll(e.currentTarget.checked)}
+                       className="text-xs [&>span>span]:text-xs [&>span>span]:text-gray-500"
+                      />
+                    </div>
                   </div>
                   {showSearch && (
                     <div className="relative mb-2">
@@ -680,9 +762,13 @@ export default function TransferSelect(props: TransferSelectProps) {
                       />
                     </div>
                   )}
-                  <div className="flex-1 overflow-auto rounded border border-gray-200 nice-scrollbar">
-                    {renderList(filteredSourceItems, sourceSelected, handleSourceToggle, handleSourceDoubleClick, "source")}
-                  </div>
+                  {renderList(
+                    filteredSourceItems,
+                    sourceSelected,
+                    handleSourceToggle,
+                    handleSourceDoubleClick,
+                    "source"
+                  )}
                 </div>
 
                 <div className="flex flex-col items-center justify-center gap-2">
@@ -715,18 +801,19 @@ export default function TransferSelect(props: TransferSelectProps) {
                 </div>
 
                 <div className="flex min-h-0 flex-col">
-                  <div className="mb-2 text-sm font-medium text-gray-700">
-                    {targetTitle}（{filteredTargetItems.length}/{selectionKeys.length}）
-                  </div>
-                  {/* Select-all tri-state, aligned with title (right) */}
-                  <div className="mb-2 -mt-7 flex items-center justify-end">
-                    <Checkbox
-                      label="全选"
-                      checked={targetAllSelected}
-                      indeterminate={targetIndeterminate}
-                      onChange={e => handleToggleTargetAll(e.currentTarget.checked)}
-                      className="text-xs [&>span>span]:text-xs [&>span>span]:text-gray-500"
-                    />
+                  <div className="mb-2 block flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">
+                      {targetTitle}（{filteredTargetItems.length}/{selectionKeys.length}）
+                    </span>
+                    <div className="flex items-center justify-end">
+                      <Checkbox
+                        label="全选"
+                        checked={targetAllSelected}
+                        indeterminate={targetIndeterminate}
+                        onChange={e => handleToggleTargetAll(e.currentTarget.checked)}
+                        className="text-xs [&>span>span]:text-xs [&>span>span]:text-gray-500"
+                      />
+                    </div>
                   </div>
                   {showSearch && (
                     <div className="relative mb-2">
@@ -744,9 +831,13 @@ export default function TransferSelect(props: TransferSelectProps) {
                       />
                     </div>
                   )}
-                  <div className="flex-1 overflow-auto rounded border border-gray-200 nice-scrollbar">
-                    {renderList(filteredTargetItems, targetSelected, handleTargetToggle, handleTargetDoubleClick, "target")}
-                  </div>
+                  {renderList(
+                    filteredTargetItems,
+                    targetSelected,
+                    handleTargetToggle,
+                    handleTargetDoubleClick,
+                    "target"
+                  )}
                 </div>
               </div>
             </div>,
