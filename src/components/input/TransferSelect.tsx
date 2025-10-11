@@ -19,6 +19,7 @@ import {
 } from "../formStyles";
 import Pill from "@/components/Pill";
 import type { Option } from "./Select";
+import { Checkbox } from "@/components/Checkbox";
 import { ChevronDown, ChevronLeft, ChevronRight, Search as SearchIcon } from "lucide-react";
 
 type MultiValue = string[] | Option[] | undefined;
@@ -48,6 +49,8 @@ type TransferSelectProps = {
   targetTitle?: string;
   emptyText?: { source?: string; target?: string };
   filterOption?: FilterOption;
+  panelMinHeight?: number;
+  panelMaxHeight?: number;
 };
 
 type SelectVars = CSSProperties & { "--select-multi-reserve": string };
@@ -61,6 +64,9 @@ const RESERVE_VAR_MAP: Record<InputSize, string> = {
 const DISPLAY_PILL_ATTR = "data-display-pill";
 
 const MIN_PANEL_WIDTH = 520;
+const DEFAULT_PANEL_MIN_HEIGHT = 264;
+const DEFAULT_PANEL_MAX_HEIGHT = 480;
+const VIEWPORT_MARGIN = 12;
 
 const defaultFilter: FilterOption = (query, option) => {
   if (!query) return true;
@@ -87,6 +93,8 @@ export default function TransferSelect(props: TransferSelectProps) {
     targetTitle = "已选项",
     emptyText,
     filterOption,
+    panelMinHeight,
+    panelMaxHeight,
   } = props;
 
   const { value: controlledValue, defaultValue, onChange } = props;
@@ -96,8 +104,17 @@ export default function TransferSelect(props: TransferSelectProps) {
   const isControlled = typeof controlledValue !== "undefined";
   const rawValue = (isControlled ? controlledValue : internal) as MultiValue;
 
+  const resolvedMinHeight = panelMinHeight ?? DEFAULT_PANEL_MIN_HEIGHT;
+  const resolvedMaxHeight = panelMaxHeight ?? DEFAULT_PANEL_MAX_HEIGHT;
+
   const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
+  const [panelPos, setPanelPos] = useState({
+    top: 0,
+    left: 0,
+    width: 0,
+    placement: "bottom" as "bottom" | "top",
+    maxHeight: resolvedMaxHeight,
+  });
 
   const anchorRef = useRef<HTMLDivElement>(null);
   const popRef = useRef<HTMLDivElement>(null);
@@ -228,12 +245,40 @@ export default function TransferSelect(props: TransferSelectProps) {
       const scrollX = window.scrollX;
       const scrollY = window.scrollY;
       const viewportWidth = window.innerWidth;
-      const width = Math.max(rect.width, MIN_PANEL_WIDTH);
-      const minLeft = scrollX + 8;
-      const maxLeft = Math.max(minLeft, scrollX + viewportWidth - width - 8);
-      const desiredLeft = rect.left + scrollX;
-      const left = Math.min(Math.max(desiredLeft, minLeft), maxLeft);
-      setPos({ top: rect.bottom + scrollY, left, width });
+      const viewportHeight = window.innerHeight;
+
+      const width = Math.min(
+        Math.max(rect.width, MIN_PANEL_WIDTH),
+        viewportWidth - VIEWPORT_MARGIN * 2,
+      );
+
+      const availableBelow = Math.max(0, viewportHeight - rect.bottom);
+      const availableAbove = Math.max(0, rect.top);
+      const limitHeight = Math.max(resolvedMinHeight, viewportHeight - VIEWPORT_MARGIN * 2);
+
+      const belowHeight = Math.min(resolvedMaxHeight, Math.max(resolvedMinHeight, availableBelow));
+      const aboveHeight = Math.min(resolvedMaxHeight, Math.max(resolvedMinHeight, availableAbove));
+
+      const useBottom = availableBelow >= resolvedMinHeight || availableBelow >= availableAbove;
+
+      const placement: "bottom" | "top" = useBottom ? "bottom" : "top";
+      let maxHeight = Math.min(limitHeight, placement === "bottom" ? belowHeight : aboveHeight);
+
+      if (maxHeight < resolvedMinHeight) {
+        maxHeight = Math.min(limitHeight, resolvedMinHeight);
+      }
+
+      const top =
+        placement === "bottom"
+          ? rect.bottom + scrollY
+          : rect.top + scrollY - maxHeight;
+
+      const left = Math.min(
+        Math.max(rect.left + scrollX, scrollX + VIEWPORT_MARGIN),
+        scrollX + viewportWidth - width - VIEWPORT_MARGIN,
+      );
+
+      setPanelPos({ top, left, width, placement, maxHeight });
     };
 
     updatePosition();
@@ -248,7 +293,7 @@ export default function TransferSelect(props: TransferSelectProps) {
       window.removeEventListener("resize", updatePosition);
       window.removeEventListener("scroll", updatePosition, true);
     };
-  }, [calNeedCount]);
+  }, [calNeedCount, resolvedMinHeight, resolvedMaxHeight]);
 
   useEffect(() => {
     if (typeof ResizeObserver === "undefined") return;
@@ -403,7 +448,7 @@ export default function TransferSelect(props: TransferSelectProps) {
                 closeable={pillCloseable}
                 onClose={() => handlePillClose(option.value)}
               >
-                <span className="truncate">{option.title ?? option.label}</span>
+                <span className="truncate">{option.title}</span>
               </Pill>
             </span>
           ))}
@@ -458,31 +503,30 @@ export default function TransferSelect(props: TransferSelectProps) {
     }
 
     return (
-      <div className="flex h-full flex-col gap-1 py-1">
+      <div className="flex h-full flex-col">
         {list.map(option => {
           const checked = selected.includes(option.value);
           const disabled = Boolean(option.disabled);
           return (
-            <label
+            <div
               key={option.value}
+              onDoubleClick={() => onDouble(option.value, option.disabled)}
               className={[
-                "flex cursor-pointer select-none items-center gap-2 rounded px-3 py-2 text-sm transition-colors",
-                disabled ? "cursor-not-allowed text-gray-300" : "hover:bg-gray-50 text-gray-700",
-                checked ? "bg-primary/5 text-primary" : "",
+                "transition-colors",
+                checked ? "bg-primary/5 text-primary" : "bg-white text-gray-700",
+                disabled ? "cursor-not-allowed text-gray-300" : "hover:bg-gray-100",
               ]
                 .filter(Boolean)
                 .join(" ")}
-              onDoubleClick={() => onDouble(option.value, option.disabled)}
             >
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/40"
+              <Checkbox
+                label={option.label}
                 checked={checked}
                 disabled={disabled}
                 onChange={() => onToggle(option.value, option.disabled)}
+                className="w-full px-3 py-2 text-sm [&>span>span]:truncate"
               />
-              <span className="min-w-0 flex-1 truncate">{option.title ?? option.label}</span>
-            </label>
+            </div>
           );
         })}
       </div>
@@ -512,7 +556,11 @@ export default function TransferSelect(props: TransferSelectProps) {
             "flex items-center overflow-hidden text-left",
             textTone,
             sizePadding,
-            open ? "rounded-none rounded-t-lg border-b-0" : "",
+            open
+              ? panelPos.placement === "top"
+                ? "rounded-none rounded-b-lg border-t-0"
+                : "rounded-none rounded-t-lg border-b-0"
+              : "",
           ]
             .filter(Boolean)
             .join(" ")}
@@ -536,11 +584,23 @@ export default function TransferSelect(props: TransferSelectProps) {
               role="dialog"
               id={`${id}-transfer-panel`}
               aria-modal="false"
-              className="fixed z-[1200] max-h-[28rem] rounded-b-lg border border-gray-200 bg-white shadow-elevation-1"
-              style={{ top: pos.top, left: pos.left, minWidth: pos.width }}
+              className={[
+                "fixed z-[1200] border border-gray-200 bg-white block overflow-hidden",
+                panelPos.placement === "top"
+                  ? "rounded-t-lg border-b-1"
+                  : "rounded-b-lg shadow-elevation-1",
+              ].join(" ")}
+              style={{
+                top: panelPos.top,
+                left: panelPos.left,
+                minWidth: panelPos.width,
+                minHeight: resolvedMinHeight,
+                maxHeight: panelPos.maxHeight,
+                height:panelPos.maxHeight
+              }}
             >
-              <div className="grid h-full max-h-[28rem] grid-cols-[1fr_auto_1fr] gap-4 p-4">
-                <div className="flex min-h-[16rem] flex-col">
+              <div className="grid h-full max-h-full grid-cols-[1fr_auto_1fr] gap-4 p-4">
+                <div className="flex min-h-0 flex-col">
                   <div className="mb-2 text-sm font-medium text-gray-700">
                     {sourceTitle}（{filteredSourceItems.length}）
                   </div>
@@ -560,7 +620,7 @@ export default function TransferSelect(props: TransferSelectProps) {
                       />
                     </div>
                   )}
-                  <div className="flex-1 overflow-auto rounded border border-gray-200">
+                  <div className="flex-1 overflow-auto rounded border border-gray-200 nice-scrollbar">
                     {renderList(filteredSourceItems, sourceSelected, handleSourceToggle, handleSourceDoubleClick, "source")}
                   </div>
                 </div>
@@ -594,7 +654,7 @@ export default function TransferSelect(props: TransferSelectProps) {
                   </button>
                 </div>
 
-                <div className="flex min-h-[16rem] flex-col">
+                <div className="flex min-h-0 flex-col">
                   <div className="mb-2 text-sm font-medium text-gray-700">
                     {targetTitle}（{filteredTargetItems.length}/{selectionKeys.length}）
                   </div>
@@ -614,7 +674,7 @@ export default function TransferSelect(props: TransferSelectProps) {
                       />
                     </div>
                   )}
-                  <div className="flex-1 overflow-auto rounded border border-gray-200">
+                  <div className="flex-1 overflow-auto rounded border border-gray-200 nice-scrollbar">
                     {renderList(filteredTargetItems, targetSelected, handleTargetToggle, handleTargetDoubleClick, "target")}
                   </div>
                 </div>
