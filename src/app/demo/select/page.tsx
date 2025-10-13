@@ -8,12 +8,12 @@ import { Input } from "@/components/Input";
 import { menuItems, footerItems } from "@/components/menuItems";
 
 const cityOptions: Option[] = [
-  { value: "sh", title: "上海", label: "上海（Shanghai）" },
-  { value: "bj", title: "北京", label: "北京（Beijing）" },
-  { value: "gz", title: "广州", label: "广州（Guangzhou）" },
-  { value: "sz", title: "深圳", label: "深圳（Shenzhen）" },
-  { value: "hz", title: "杭州", label: "杭州（Hangzhou）" },
-  { value: "cd", title: "成都", label: "成都（Chengdu）" },
+  { value: "sh", title: "上海", label: "上海（Shanghai）",subtitle:"地域:上海市" },
+  { value: "bj", title: "北京", label: "北京（Beijing）" ,subtitle:"地域:北京市"},
+  { value: "gz", title: "广州", label: "广州（Guangzhou）",subtitle:"地域:广州市"},
+  { value: "sz", title: "深圳", label: "深圳（Shenzhen）",subtitle:"地域:深圳市" },
+  { value: "hz", title: "杭州", label: "杭州（Hangzhou）",subtitle:"地域:杭州市" },
+  { value: "cd", title: "成都", label: "成都（Chengdu）" ,subtitle:"地域:成都市"},
 ];
 
 const tagOptions: Option[] = [
@@ -91,6 +91,7 @@ export default function SelectDemo() {
                 options={cityOptions}
                 size="md"
                 clearable
+                itemVariant="list"
                 renderPreview={(opt) => (
                   <div>
                     <div className="font-medium">{opt.title ?? opt.label}</div>

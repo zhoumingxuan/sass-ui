@@ -388,7 +388,10 @@ export default function Select(props: Props) {
       const el = document.getElementById(`${id}-opt-${activeIndex}`);
       if (!el) return;
       const r = el.getBoundingClientRect();
-      setPreviewAt({ top: r.top + window.scrollY, left: r.right + 8 + window.scrollX });
+      const drop = popRef.current?.getBoundingClientRect();
+      const right = drop?drop.right:0;
+      
+      setPreviewAt({ top: r.top + window.scrollY, left: right+5+ window.scrollX });
     };
     update();
     const onScroll = () => update();
