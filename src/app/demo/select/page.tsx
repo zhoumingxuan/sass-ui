@@ -46,7 +46,6 @@ const projectOptions: Option[] = [
     label: "指标看板（Next 版）",
     subtitle: "负责人：赵丽 · 数据平台组",
     trailing: "项目A",
-    disabled:true
   },
   {
     value: "p3",
