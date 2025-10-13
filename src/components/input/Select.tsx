@@ -22,7 +22,18 @@ import {
 import { Check, ChevronDown, X } from "lucide-react";
 import Pill from "@/components/Pill";
 
-export type Option = { value: string; label: string; title?: string; disabled?: boolean };
+export type Option = {
+  value: string;
+  label: string;
+  title?: string;
+  disabled?: boolean;
+  /** 副标题（次级信息，单行截断） */
+  subtitle?: string;
+  /** 左侧前缀（如图标/头像），可选 */
+  leading?: ReactNode;
+  /** 右侧后缀（如徽标/状态点），可选；选中对勾依然保留在最右侧 */
+  trailing?: ReactNode;
+};
 
 type BaseProps = {
   label?: string;
@@ -42,6 +53,8 @@ type BaseProps = {
   pillCloseable?: boolean;
   labelAndValue?: boolean;
   renderPreview?: (option: Option) => ReactNode;
+  /** 下拉项展示风格：默认扁平（单行），或列表风格（标题/副标题/说明） */
+  itemVariant?: "default" | "list";
 };
 
 type SingleValue = string | Option | undefined;
@@ -94,6 +107,7 @@ export default function Select(props: Props) {
     size = "md",
     pillCloseable = true,
     renderPreview,
+    itemVariant = "default",
   } = props;
 
   const { value: controlledValue, defaultValue, onChange } = props as ValueProps;
@@ -141,6 +155,7 @@ export default function Select(props: Props) {
 
   const itemTextClass = size === "sm" ? "text-xs" : size === "lg" ? "text-base" : "text-sm";
   const itemPadding = size === "sm" ? "py-1.5" : size === "lg" ? "py-3" : "py-2";
+  const isList = itemVariant === "list";
   const hasSelection = selectionKeys.length > 0 ;
   const textTone = hasSelection ? "text-gray-700" : "text-gray-400";
 
@@ -538,21 +553,20 @@ export default function Select(props: Props) {
                   const active = index === activeIndex;
                   const optionId = `${id}-opt-${index}`;
                   return (
-                    <button
-                      type="button"
+                    <div
                       id={optionId}
                       key={option.value}
                       role="option"
                       aria-disabled={option.disabled}
                       aria-selected={selected}
-                      disabled={option.disabled}
                       className={[
-                        "flex w-full items-center justify-between px-3 transition-colors text-left",
+                        isList?"flex w-full px-3 transition-colors text-left":"flex w-full items-center justify-between px-3 transition-colors text-left",
                         itemPadding,
                         itemTextClass,
-                        option.disabled ? "text-gray-300 cursor-not-allowed" : "text-gray-700",
                         selected ? "bg-primary/5 text-gray-900" : "",
+                        option.disabled? "cursor-not-allowed":"",
                         active ? "bg-gray-100" : "hover:bg-gray-50",
+                        isList ? "items-start" : "items-center justify-between",
                       ].join(" ")}
                       onMouseEnter={() => {
                         setActiveIndex(index);
@@ -574,9 +588,39 @@ export default function Select(props: Props) {
                         }
                       }}
                     >
-                      <span className="truncate">{option.label}</span>
-                      {selected && <Check size={16} className="text-primary" aria-hidden />}
-                    </button>
+                      {isList ? (
+                        // 列表风格：左中右布局（leading | 文本块 | trailing  选中勾）
+                        <div className="flex w-full items-start gap-3">
+                          {/* 左侧可选前缀 */}
+                          {option.leading ? (
+                            <span className="shrink-0 mt-0.5">{option.leading}</span>
+                          ) : null}
+
+                          {/* 中间文本块（标题/副标题/说明） */}
+                          <div className="min-w-0 flex-1 whitespace-normal break-words">
+                            <div className="flex items-baseline gap-2">
+                              <div className={["truncate font-medium", itemTextClass,option.disabled ? "text-gray-300" : ""].join(" ")}>
+                                {option.title ?? option.label}
+                              </div>
+                            </div>
+                            {option.subtitle ? (
+                              <div className={["mt-0.5 truncate text-xs",option.disabled ? "text-gray-300" : "text-gray-400"].join(" ")}>{option.subtitle}</div>
+                            ) : null}
+                          </div>
+
+                          {/* 右侧可选后缀 */}
+                          {option.trailing ? <span className={["shrink-0 text-xs",option.disabled ? "text-gray-300" : "text-gray-400"].join(" ")}>{option.trailing}</span> : null}
+
+                          {/* 最右侧选中勾 */}
+                          {selected && <Check size={16} className="shrink-0 text-primary" aria-hidden />}
+                        </div>
+                      ) : (
+                        <>
+                          <span className={["truncate",option.disabled ? "text-gray-300" : "",].join(" ")}>{option.label}</span>
+                          {selected && <Check size={16} className="text-primary" aria-hidden />}
+                        </>
+                      )}
+                    </div>
                   );
                 })}
               </div>

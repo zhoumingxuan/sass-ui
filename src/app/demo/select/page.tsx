@@ -31,6 +31,31 @@ const tagOptions: Option[] = [
   { value: "t12", title: "法务", label: "法务（Legal）" },
 ];
 
+
+// 列表风格示例数据（含副标题与说明）
+const projectOptions: Option[] = [
+  {
+    value: "p1",
+    title: "交易风控平台",
+    label: "交易风控平台",
+    subtitle: "负责人：王小明 · 风控一组",
+  },
+  {
+    value: "p2",
+    title: "指标看板（Next 版）",
+    label: "指标看板（Next 版）",
+    subtitle: "负责人：赵丽 · 数据平台组",
+    trailing: "项目A",
+    disabled:true
+  },
+  {
+    value: "p3",
+    title: "多智能体研究（PolyMind）",
+    label: "多智能体研究（PolyMind）",
+    subtitle: "负责人：周明轩 · 研究院",
+  },
+];
+
 export default function SelectDemo() {
   const [multiAuto, setMultiAuto] = useState<string[]>(["t1", "t2", "t3", "t4", "t5", "t6"]);
   const [multiFixed, setMultiFixed] = useState<string[]>(["t1", "t2", "t3", "t4", "t5"]);
@@ -137,7 +162,23 @@ export default function SelectDemo() {
           </div>
         </Card>
 
-        <Card title="labelAndValue：返回选项对象">
+        <Card title="多选 · 列表风格（标题/副标题/说明）">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div>
+              <Input.Select
+                placeholder="请选择项目"
+                options={projectOptions}
+                size="md"
+                multiple
+                clearable
+                // 开启列表风格
+                itemVariant="list"
+              />
+            </div>
+          </div>
+        </Card>
+
+        <Card title="labelAndValue：返回选项对象" className="h-[400px] mb-10">
           <div className="grid gap-4 lg:grid-cols-2">
             <div>
               <div className="mb-2 text-sm text-gray-600">单选示例（返回 Option 对象）</div>
