@@ -209,6 +209,23 @@ html::-webkit-scrollbar-thumb:active {
 /* Table helpers */
 .table-empty { min-height: var(--table-empty-min-h); }
 
+/* ===== Tabs / Anchor enhancements ===== */
+:root {
+  --tabs-sticky-top: 64px; /* 可在布局中覆盖，避免写死高度 */
+}
+
+/* 更平滑的锚点滚动体验 */
+html { scroll-behavior: smooth; }
+
+/* 锚点内容区避免被吸顶遮挡 */
+.anchor-section { scroll-margin-top: calc(var(--tabs-sticky-top) + 8px); }
+
+/* 更安静的横向滚动条 */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+
+
 
 
 
