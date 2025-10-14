@@ -8,7 +8,7 @@ import Switch from '@/components/Switch';
 import { RadioGroup } from '@/components/Radio';
 import { CheckboxGroup } from '@/components/Checkbox';
 import Slider from '@/components/Slider';
-import Form from '@/components/form';
+import Form from '@/components/Form';
 import { menuItems, footerItems } from '@/components/menuItems';
 import { useState } from 'react';
 
