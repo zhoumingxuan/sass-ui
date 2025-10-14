@@ -140,13 +140,13 @@ export default function Modal({
 
   const renderFooter = () => {
     if (footer === null) return null;
-    if (typeof footer !== 'undefined') return <div className="px-5 py-3 border-t border-gray-100">{footer}</div>;
+    if (typeof footer !== 'undefined') return <div className="px-5 py-3 border-gray-100">{footer}</div>;
     // Only render default footer when onOk is provided (avoid duplicate OK/Cancel in consumers)
     if (!onOk) return null;
     const cancelVariant = cancelButtonProps?.['variant' as never] ?? 'default';
     const okVariant = okButtonProps?.['variant' as never] ?? (variant === 'danger' || variant === 'warning' ? 'warning' : 'primary');
     return (
-      <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-end gap-2">
+      <div className="px-5 py-3 border-gray-100 flex items-center justify-end gap-2">
         {!hideCancel && (
           <Button
             variant={cancelVariant}
@@ -206,7 +206,7 @@ export default function Modal({
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className={`bg-white ${isDrawer ? 'h-full ' + (width ? '' : 'w-modal ') + 'rounded-none' : 'rounded-xl'} shadow-elevation-3 overflow-hidden`}>
-          <div className={`px-5 ${isDrawer ? 'py-4' : 'pt-4 pb-3'} flex items-center justify-between gap-2 border-b border-gray-100`}>
+          <div className={`px-5 ${isDrawer ? 'py-4' : 'pt-4 pb-3'} flex items-center justify-between gap-2 border-gray-100`}>
             <div id={headerId} className="min-h-6">{titleNode}</div>
             {closable && (
               <a
