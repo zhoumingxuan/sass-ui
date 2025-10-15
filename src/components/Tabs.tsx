@@ -53,19 +53,19 @@ export default function Tabs({
 
   const itemCls = (isActive: boolean, disabled?: boolean) =>
     cx(
-      'relative whitespace-nowrap truncate select-none',
+      'relative text-sm whitespace-nowrap truncate select-none',
       sizeCls,
       disabled && 'opacity-40 pointer-events-none',
       variant === 'line' &&
         (isActive
           ? 'text-primary border-b-2 border-primary'
-          : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'),
+          : 'text-gray-700 '),
       variant === 'card' &&
         (isActive
-          ? 'text-primary bg-white border border-gray-200 rounded-t-md'
-          : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-t-md'),
+          ? 'text-primary border-b-0 bg-white border border-gray-200 rounded-t-md py-2'
+          : 'text-gray-700 rounded-t-md py-2'),
       variant === 'pill' &&
-        (isActive ? 'text-white bg-primary rounded-md' : 'text-gray-800 hover:bg-gray-200 rounded-md'),
+        (isActive ? 'text-white bg-primary rounded-md' : 'text-gray-800 rounded-md'),
     );
 
   const onNavClick = useCallback(

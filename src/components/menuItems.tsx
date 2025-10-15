@@ -41,6 +41,7 @@ export const menuItems: MenuItem[] = [
       { label: '表单', href: '/demo/form', icon: <FormInput /> },
       { label: '卡片', href: '/demo/card', icon: <CreditCard /> },
       { label: '选项卡', href: '/demo/tabs', icon: <LayoutList /> },
+      { label: '锚点', href: '/demo/anchor', icon: <LayoutList /> },
       { label: '模态框', href: '/demo/modal', icon: <PanelsTopLeft /> },
       { label: '树组件', href: '/demo/tree', icon: <LayoutList /> },
       { label: '抽屉', href: '/demo/drawer', icon: <PanelsTopLeft /> },

@@ -54,7 +54,7 @@ export default function TabsDemo() {
           <div className="relative">
             <Tabs
               size="lg"
-              variant="line"
+              variant="card"
               keepMounted={false}
               destroyInactive={true}
               onChange={(key) => console.log(`Active tab key: ${key}`)}
