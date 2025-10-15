@@ -52,33 +52,34 @@ export default function Anchor({ items, className = '', onChange }: AnchorProps)
     [onChange]
   );
 
-  const handleScroll=useCallback((e:BaseSyntheticEvent)=>{
-     const container=e.target as HTMLDivElement;
-     const scrollTop=container.scrollTop;
-     const location=[];
-     let offerset=0;
-     for(const child of container.children)
-     {
-        const middle_point_y=Math.trunc(offerset+child.clientHeight/2);
-        location.push(middle_point_y-scrollTop);
-        offerset+=child.clientHeight;
-     }
-     //总共能够滚动的距离
-     let activeIndex=-1;
-     for(let i=0;i<location.length;i++)
-     {
-         if(location[i]>0)
-         {
-             activeIndex=i;
-             break;
-         }
-     }
+  const handleScroll = useCallback((e: BaseSyntheticEvent) => {
+    const container = e.target as HTMLDivElement;
+    const scrollTop = container.scrollTop;
+    const location = [];
+    let offerset = 0;
+    for (const child of container.children) {
+      const middle_point_y = Math.trunc(offerset + child.clientHeight / 2);
+      location.push(middle_point_y - scrollTop);
+      offerset += child.clientHeight;
+    }
+    //总共能够滚动的距离
+    let activeIndex = -1;
+    for (let i = 0; i < location.length; i++) {
+      if (location[i] > 0) {
+        activeIndex = i;
+        break;
+      }
+    }
 
-     setActive({
-        activeIndex:activeIndex
-     });
-     
-  },[onChange]);
+    if (activeIndex !== -1) {
+      setActive({
+        activeIndex: activeIndex
+      });
+
+      onChange?.(items[activeIndex].key);
+    }
+
+  }, [onChange]);
 
   return (
     <div className={cx(className, 'grid grid-cols-[auto_1fr]')}>
