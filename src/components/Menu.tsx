@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState, ReactNode } from 'react';
+import { useEffect, useState, ReactNode, useRef } from 'react';
 import { ChevronDown } from 'lucide-react';
 
 export type MenuItem = {
@@ -34,6 +34,7 @@ function Item({
   const active = item.href ? pathname.startsWith(item.href) : false;
   const shouldBeOpen: boolean = hasChildren && (active || isDescendantActive(item, pathname));
   const [open, setOpen] = useState<boolean>(shouldBeOpen);
+  const menuRef=useRef<HTMLDivElement>(null);
 
   // Keep parents expanded when current route matches a child
   useEffect(() => {
@@ -41,6 +42,18 @@ function Item({
       setOpen(shouldBeOpen);
     }
   }, [pathname, hasChildren, shouldBeOpen]);
+
+  useEffect(()=>{
+     if(menuRef.current&&item.href&&window.location.pathname===item.href)
+     {
+         menuRef.current.scrollIntoView({
+            block:'nearest',
+            inline:'nearest',
+            behavior:'smooth'
+         });
+     }
+  },[menuRef.current]);
+
   const depthHover = 'hover:bg-white/5';
   const depthText = depth > 0 ? 'text-nav-fg' : 'text-nav-fg-muted';
   // Tailwind-managed indentation per depth（8px 栅格，收敛到常规刻度）
@@ -54,7 +67,7 @@ function Item({
       : `${depthText} ${depthHover}`
   } ${indentClass}`;
   return (
-    <div className="w-full">
+    <div ref={menuRef} className="w-full">
       {hasChildren ? (
         <div
           className={`${containerClasses} cursor-pointer`}
@@ -72,6 +85,8 @@ function Item({
       ) : item.href ? (
         <Link
           href={item.href}
+          role='nav'
+          data-href={item.href}
           className={`${containerClasses} cursor-pointer`}
           title={collapsed && depth === 0 ? item.label : undefined}
           aria-current={active ? 'page' : undefined}
