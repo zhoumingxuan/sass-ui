@@ -1,6 +1,6 @@
 'use client';
 
-import { ChangeEvent, useEffect, useRef } from 'react';
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { controlRing, controlDisabled, fieldLabel, helperText } from './formStyles';
 
 export type CheckboxOption = {
@@ -92,13 +92,29 @@ export function CheckboxGroup({
   const nextValues = typeof value !== 'undefined' ? value : values;
   const nextDefault = typeof defaultValue !== 'undefined' ? defaultValue : defaultValues;
   const isControlled = Array.isArray(nextValues);
-  const current = isControlled ? (nextValues as string[]) : nextDefault ?? [];
+  const resolvedDefault = Array.isArray(nextDefault) ? nextDefault : undefined;
+  const defaultSignature = resolvedDefault ? resolvedDefault.join('\u0000') : '';
+  const memoDefault = useMemo(() => (resolvedDefault ? [...resolvedDefault] : undefined), [defaultSignature]);
+  const [internalValues, setInternalValues] = useState<string[]>(() => memoDefault ? [...memoDefault] : []);
+
+  useEffect(() => {
+    if (isControlled) return;
+    if (memoDefault) setInternalValues([...memoDefault]);
+    else setInternalValues([]);
+  }, [isControlled, memoDefault]);
+
+  const selected = isControlled ? (nextValues as string[]) : internalValues;
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
-    const next = e.target.checked
-      ? Array.from(new Set([...current, val]))
-      : current.filter((v) => v !== val);
+    const exists = selected.includes(val);
+    let next: string[];
+    if (e.target.checked) {
+      next = exists ? selected : [...selected, val];
+    } else {
+      next = selected.filter((v) => v !== val);
+    }
+    if (!isControlled) setInternalValues(next);
     onChange?.(next);
   };
 
@@ -111,8 +127,7 @@ export function CheckboxGroup({
             key={opt.value}
             name={name}
             value={opt.value}
-            checked={isControlled ? current.includes(opt.value) : undefined}
-            defaultChecked={!isControlled ? current.includes(opt.value) : undefined}
+            checked={selected.includes(opt.value)}
             onChange={handleChange}
             disabled={disabled || opt.disabled}
             label={opt.label}

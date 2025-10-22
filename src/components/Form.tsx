@@ -55,9 +55,19 @@ type FormContextType = {
 
 const FormContext = createContext<FormContextType | null>(null);
 
-function useFormInternal(): FormContextType {
+function cloneInitialValues(initialValues?: Record<string, unknown>) {
+  if (!initialValues) return {};
+  const next: Record<string, unknown> = {};
+  Object.keys(initialValues).forEach((key) => {
+    const val = initialValues[key];
+    next[key] = Array.isArray(val) ? [...val] : val;
+  });
+  return next;
+}
+
+function useFormInternal(initialValues?: Record<string, unknown>): FormContextType {
   const rulesRef = useRef<Record<string, Rule[] | undefined>>({});
-  const [values, setValues] = useState<Record<string, unknown>>({});
+  const [values, setValues] = useState<Record<string, unknown>>(() => cloneInitialValues(initialValues));
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [touched, setTouchedState] = useState<Record<string, boolean>>({});
 
@@ -212,22 +222,7 @@ function FormRoot({
   children,
   ...rest
 }: FormProps) {
-  const api = useFormInternal();
-  const mounted = useRef(false);
-
-  // seed initial values once
-  React.useEffect(() => {
-    if (mounted.current) return;
-    if (initialValues) {
-      const names = Object.keys(initialValues);
-      names.forEach((n) => {
-        // 初始化不触发校验
-        void api.setValue(n, initialValues[n]);
-      });
-    }
-    mounted.current = true;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const api = useFormInternal(initialValues);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     onSubmit?.(e);
