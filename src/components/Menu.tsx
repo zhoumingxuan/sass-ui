@@ -124,19 +124,18 @@ export default function Menu({
   const [collapsed] = useState(false);
   return (
     <aside
-      className={`flex flex-col h-screen border-r border-nav-hover/50 bg-nav-deep text-nav-fg transition-all select-none shadow-elevation-2 ${
-        collapsed ? 'w-sidebar-collapsed' : 'w-sidebar'
-      }`}
+      className={`relative z-20 isolate flex flex-col h-screen border-r border-gray-200 text-nav-fg transition-all shadow-elevation-2-right select-none 
+        ${collapsed ? 'w-sidebar-collapsed' : 'w-sidebar'}`}
     >
-      <div className="sticky top-0 z-10 flex items-center px-4 h-header border-b border-white/10 bg-nav-header backdrop-blur-md backdrop-saturate-150 shadow-md select-none">
+      <div className="sticky top-0 z-10 flex items-center px-4 h-header bg-nav/97 backdrop-blur-md backdrop-saturate-150 border-b border-gray-200 select-none">
         <span className="text-sm font-semibold tracking-wide text-nav-fg">导航</span>
       </div>
-      <div className="flex-1 overflow-auto overscroll-contain bg-nav-body px-2 py-3 space-y-1.5 nice-scrollbar sidebar-scroll pr-1">
+      <div className="flex-1 overflow-auto overscroll-contain bg-nav px-2 py-3 space-y-1.5 nice-scrollbar sidebar-scroll pr-1">
         {items.map((item, idx) => (
           <Item key={idx} item={item} collapsed={collapsed} />
         ))}
       </div>
-      <div className="border-t border-white/10 bg-nav-footer backdrop-blur-md backdrop-saturate-150 px-2 py-3 space-y-1.5 shadow-md">
+      <div className="border-t border-gray-200 bg-nav/97 backdrop-blur-md backdrop-saturate-150 px-2 py-3 space-y-1.5">
         {footerItems.map((item, idx) => (
           <Item key={idx} item={item} collapsed={collapsed} />
         ))}

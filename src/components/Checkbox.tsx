@@ -17,7 +17,7 @@ type CheckboxProps = React.InputHTMLAttributes<HTMLInputElement> & {
   indeterminate?: boolean;
 };
 
-export function Checkbox({ label, description, indeterminate, className = '', disabled, ...props }: CheckboxProps) {
+export default function Checkbox({ label, description, indeterminate, className = '', disabled, ...props }: CheckboxProps) {
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (ref.current) {

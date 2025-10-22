@@ -18,11 +18,13 @@ export default {
       },
       boxShadow: {
         // Elevation scale for consistent depth
-        'elevation-1': '0 6px 12px -6px rgba(0,0,0,0.12)',
-        'elevation-1-up': '0 -6px 12px -6px rgba(0,0,0,0.12)',
-        'elevation-2': '8px 0 16px -14px rgba(2,6,23,0.45)',
-        'elevation-2-left': '-8px 0 16px -14px rgba(2,6,23,0.45)',
+        'elevation-1': '0 0.375rem 0.5rem -0.375rem rgba(0,0,0,0.12)',
+        'elevation-1-up': '0 -0.375rem 0.5rem -0.375rem rgba(0,0,0,0.12)',
+        'elevation-2': '0 0 1rem -0.875rem rgba(0,0,0,0.45)',
+        'elevation-2-left': '-0.5rem 0 1rem -0.875rem rgba(0,0,0,0.45)',
+        'elevation-2-right': '0.5rem 0 1rem -0.875rem rgba(0,0,0,0.45)',
         'elevation-3': '0 16px 32px -16px rgba(0,0,0,0.24)',
+        
       },
       colors: {
         primary: '#1e80ff',
@@ -32,21 +34,12 @@ export default {
         error:   '#ff4d4f',
         info:    '#13c2c2',
         bg:      '#f7f8fa',
-        // Dark navigation palette with clearer depth cues
-        nav: '#1e293b',
-        'nav-deep': '#0f172a',
-        'nav-hover': '#334155',
-        'nav-sub': '#273449',
-        'nav-sub-hover': '#3a4c66',
+        // Navigation brand color (all nav surfaces derive from this tone)
+        nav: '#fff', //导航栏整体颜色风格     
+        
         // Navigation foreground tokens (avoid raw white/gray)
-        'nav-fg': '#e5e7eb',        // slate-200
-        'nav-fg-muted': '#cbd5e1',  // slate-300
-        // App-specific sidebar segmentation (header/body/footer)
-        // Header/Footer: subtle translucent layer for glass effect, slightly darker than before
-        'nav-header': 'rgba(255, 255, 255, 0.01)',
-        'nav-footer': 'rgba(255, 255, 255, 0.01)',
-        // Body: central, darker surface to anchor content
-        'nav-body':   '#0b1526',
+        'nav-fg': '#333',        // 导航栏一级菜单字体颜色
+        'nav-fg-muted': '#000',  // 导航栏一级菜单字体颜色
         // Scrollbar design tokens
         'sb-thumb': 'rgba(156, 163, 175, 0.55)',
         'sb-thumb-hover': 'rgba(107, 114, 128, 0.65)',

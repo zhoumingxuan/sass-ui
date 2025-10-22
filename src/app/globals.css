@@ -214,6 +214,11 @@ html::-webkit-scrollbar-thumb:active {
   --tabs-sticky-top: 64px; /* 可在布局中覆盖，避免写死高度 */
 }
 
+/* 让右侧“规则提示”在对话框滚动时保持可见；数值与页面变量一致 */
+.tips-sticky { max-height: 520px; overflow: auto; }
+.anchor-section { scroll-margin-top: calc(var(--tabs-sticky-top) + 8px); }
+
+
 /* 更平滑的锚点滚动体验 */
 html { scroll-behavior: smooth; }
 

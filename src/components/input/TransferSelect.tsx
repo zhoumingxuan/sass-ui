@@ -19,7 +19,7 @@ import {
 } from "../formStyles";
 import Pill from "@/components/Pill";
 import type { Option } from "./Select";
-import { Checkbox } from "@/components/Checkbox";
+import Checkbox from "@/components/Checkbox";
 import { ChevronDown, ChevronLeft, ChevronRight, Search as SearchIcon } from "lucide-react";
 
 const DISPLAY_PILL_ATTR = "data-display-pill";
