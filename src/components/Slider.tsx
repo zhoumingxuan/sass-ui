@@ -1,55 +1,55 @@
 'use client';
 
-import { ChangeEvent, useCallback, useEffect, useId, useMemo, useState } from 'react';
+import { ChangeEvent, InputHTMLAttributes, useEffect, useId, useMemo, useState } from 'react';
 import { fieldLabel, helperText, controlDisabled, controlRing } from './formStyles';
 
-type Props = React.InputHTMLAttributes<HTMLInputElement> & {
+type Props = Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange'> & {
   label?: string;
   helper?: string;
   showValue?: boolean;
+  onChange?: (event: ChangeEvent<HTMLInputElement>) => void;
 };
 
-const toNumber = (input: unknown): number | undefined => {
-  if (typeof input === 'number') return input;
-  if (typeof input === 'string' && input.trim() !== '') {
-    const parsed = Number(input);
-    return Number.isFinite(parsed) ? parsed : undefined;
-  }
-  return undefined;
-};
-
-export default function Slider({ label, helper, className = '', showValue = true, disabled, ...props }: Props) {
+export default function Slider({
+  label,
+  helper,
+  className = '',
+  showValue = true,
+  disabled,
+  value,
+  defaultValue,
+  onChange,
+  min = 0,
+  max = 100,
+  ...rest
+}: Props) {
   const id = useId();
-  const { value, defaultValue, onChange, min = 0, max = 100, ...rest } = props;
-
-  const controlled = typeof value !== 'undefined';
-  const numericMin = Number(min);
-  const numericMax = Number(max);
-
-  const defaultNumeric = controlled ? undefined : toNumber(defaultValue);
-  const [internal, setInternal] = useState<number | undefined>(defaultNumeric);
+  const isControlled = typeof value !== 'undefined';
+  const numericValue = isControlled ? Number(value) : undefined;
+  const numericDefault = !isControlled && typeof defaultValue !== 'undefined' ? Number(defaultValue) : undefined;
+  const [internal, setInternal] = useState<number | undefined>(numericValue ?? numericDefault);
 
   useEffect(() => {
-    if (!controlled) setInternal(defaultNumeric);
-  }, [controlled, defaultNumeric]);
+    if (isControlled) {
+      setInternal(numericValue);
+    }
+  }, [isControlled, numericValue]);
 
-  const current = controlled ? toNumber(value) : internal;
+  const numericMin = Number(min);
+  const numericMax = Number(max);
+  const current = isControlled ? numericValue : internal;
+  const span = numericMax - numericMin;
+  const percent = useMemo(() => {
+    if (typeof current !== 'number' || span === 0) return 0;
+    const ratio = (current - numericMin) / span;
+    return Math.min(100, Math.max(0, ratio * 100));
+  }, [current, span, numericMin]);
 
-  const percentage = useMemo(() => {
-    if (typeof current !== 'number') return 0;
-    const span = numericMax - numericMin;
-    if (span === 0) return 0;
-    return ((current - numericMin) / span) * 100;
-  }, [current, numericMax, numericMin]);
-
-  const handleChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      const next = toNumber(event.target.value);
-      if (!controlled && typeof next !== 'undefined') setInternal(next);
-      onChange?.(event);
-    },
-    [controlled, onChange]
-  );
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const next = Number(event.target.value);
+    if (!isControlled) setInternal(next);
+    onChange?.(event);
+  };
 
   return (
     <label className={`block ${disabled ? controlDisabled : ''}`} htmlFor={id}>
@@ -63,22 +63,21 @@ export default function Slider({ label, helper, className = '', showValue = true
           max={max}
           className={[
             'w-full appearance-none h-2 rounded-full outline-none',
-            // �?currentColor 作为填充色基准，配合 Tailwind 语义色避免常�?            'text-primary',
-            // Remove overall focus ring/border per UX, keep clean track
+            'text-primary',
             controlRing,
             '[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary',
             '[&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary',
             className,
           ].join(' ')}
           style={{
-            // 左侧进度使用 currentColor，右侧轨道使�?Tailwind 的灰色变量，避免硬编码颜�?            background: `linear-gradient(currentColor, currentColor) 0/ ${percentage}% 100% no-repeat, var(--color-gray-200)`,
+            background: `linear-gradient(currentColor, currentColor) 0 / ${percent}% 100% no-repeat, var(--color-gray-200)`,
           }}
-          value={controlled ? current : undefined}
-          defaultValue={!controlled ? defaultNumeric : undefined}
+          value={isControlled ? numericValue : undefined}
+          defaultValue={!isControlled ? numericDefault : undefined}
           onChange={handleChange}
           {...rest}
         />
-        {showValue && typeof current !== 'undefined' && (
+        {showValue && typeof current === 'number' && (
           <span className="w-10 text-right text-xs text-gray-500">{current}</span>
         )}
       </div>
