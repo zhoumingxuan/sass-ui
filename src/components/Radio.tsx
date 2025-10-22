@@ -1,6 +1,6 @@
 'use client';
 
-import { ChangeEvent } from 'react';
+import { ChangeEvent, useState } from 'react';
 import { controlRing, controlDisabled, fieldLabel, helperText } from './formStyles';
 
 export type RadioOption = {
@@ -68,7 +68,10 @@ export function RadioGroup({
   inline = false,
 }: RadioGroupProps) {
   const isControlled = typeof value !== 'undefined';
+  const [internalValue, setInternalValue] = useState<string | undefined>(defaultValue);
+  const selected = isControlled ? value : internalValue;
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (!isControlled) setInternalValue(e.target.value);
     onChange?.(e.target.value);
   };
 
@@ -81,8 +84,7 @@ export function RadioGroup({
             key={opt.value}
             name={name}
             value={opt.value}
-            checked={isControlled ? value === opt.value : undefined}
-            defaultChecked={!isControlled ? defaultValue === opt.value : undefined}
+            checked={selected === opt.value}
             onChange={handleChange}
             disabled={disabled || opt.disabled}
             label={opt.label}

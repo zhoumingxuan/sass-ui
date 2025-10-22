@@ -17,8 +17,8 @@ type Props = {
   end?: string;
   min?: string;
   max?: string;
-  value?: [string, string],
-  defaultValue?: [string, string],
+  value?: [string | undefined, string | undefined],
+  defaultValue?: [string | undefined, string | undefined],
   disabledDate?: (d: Date) => boolean;
   disabledDates?: Array<string | Date>;
   disabledRanges?: DisabledRange[];
@@ -50,11 +50,21 @@ export default function DateRangePicker({
   className = '',
   status,
 }: Props) {
-  const isControlled = typeof start !== 'undefined' || typeof end !== 'undefined';
+  const tupleControlled = Array.isArray(value);
+  const controlledStart = tupleControlled ? value?.[0] : start;
+  const controlledEnd = tupleControlled ? value?.[1] : end;
+  const startControlled = tupleControlled || typeof start !== 'undefined';
+  const endControlled = tupleControlled || typeof end !== 'undefined';
   const [s, setS] = useState<string | undefined>(defaultValue ? defaultValue[0] : undefined);
   const [e, setE] = useState<string | undefined>(defaultValue ? defaultValue[1] : undefined);
-  const sv = isControlled ? start : s;
-  const ev = isControlled ? end : e;
+  const sv = startControlled ? controlledStart : s;
+  const ev = endControlled ? controlledEnd : e;
+  useEffect(() => {
+    if (startControlled) setS(controlledStart);
+  }, [startControlled, controlledStart]);
+  useEffect(() => {
+    if (endControlled) setE(controlledEnd);
+  }, [endControlled, controlledEnd]);
 
   const today = useMemo(() => new Date(), []);
   const [open, setOpen] = useState(false);
@@ -98,14 +108,15 @@ export default function DateRangePicker({
       if (pe !== '') { finalE = validTypedE ? formatISO(validTypedE) : undefined; }
       else if (draftEnd) { finalE = formatISO(draftEnd); }
       else { finalE = ev; }
-      if (!isControlled) { setS(finalS); setE(finalE); }
+      if (!startControlled) setS(finalS);
+      if (!endControlled) setE(finalE);
       onChange?.(finalS, finalE);
       setOpen(false);
     };
     // 与单日期选择器保持一致，使用 mousedown，避免月/年选择时误判为外部点击导致面板关闭
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
-  }, [open, draftStartInput, draftEndInput, draftStart, draftEnd, sv, ev, isControlled, onChange]);
+  }, [open, draftStartInput, draftEndInput, draftStart, draftEnd, sv, ev, startControlled, endControlled, onChange]);
 
 
   useEffect(() => { if (typeof document !== 'undefined') setMountNode(document.getElementById('layout-body') || document.body); }, []);
@@ -206,7 +217,8 @@ export default function DateRangePicker({
   // removed legacy handleInputBlur (no longer used)
 
   const doClear = () => {
-    if (!isControlled) { setS(undefined); setE(undefined); }
+    if (!startControlled) setS(undefined);
+    if (!endControlled) setE(undefined);
     onChange?.(undefined, undefined);
     setDraftStart(undefined); setDraftEnd(undefined); setDraftStartInput(''); setDraftEndInput('');
     setOpen(false);
@@ -223,7 +235,8 @@ export default function DateRangePicker({
     if (draftEnd) {
       const outS = formatISO(pick);
       const outE = formatISO(draftEnd);
-      if (!isControlled) { setS(outS); setE(outE); }
+      if (!startControlled) setS(outS);
+      if (!endControlled) setE(outE);
       onChange?.(outS, outE);
       setOpen(false);
     }
@@ -237,7 +250,8 @@ export default function DateRangePicker({
     if (draftStart) {
       const outS = formatISO(draftStart);
       const outE = formatISO(pick);
-      if (!isControlled) { setS(outS); setE(outE); }
+      if (!startControlled) setS(outS);
+      if (!endControlled) setE(outE);
       onChange?.(outS, outE);
       setOpen(false);
     }
@@ -332,7 +346,8 @@ export default function DateRangePicker({
                   if (pe !== '') { finalE = validTypedE ? formatISO(validTypedE) : undefined; }
                   else if (draftEnd) { finalE = formatISO(draftEnd); }
                   else { finalE = ev; }
-                  if (!isControlled) { setS(finalS); setE(finalE); }
+                  if (!startControlled) setS(finalS);
+                  if (!endControlled) setE(finalE);
                   onChange?.(finalS, finalE);
                   setOpen(false);
                 }
@@ -367,7 +382,8 @@ export default function DateRangePicker({
                   if (pe !== '') { finalE = validTypedE ? formatISO(validTypedE) : undefined; }
                   else if (draftEnd) { finalE = formatISO(draftEnd); }
                   else { finalE = ev; }
-                  if (!isControlled) { setS(finalS); setE(finalE); }
+                  if (!startControlled) setS(finalS);
+                  if (!endControlled) setE(finalE);
                   onChange?.(finalS, finalE);
                   setOpen(false);
                 }

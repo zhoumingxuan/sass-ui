@@ -15,11 +15,11 @@ type PillProps = HTMLAttributes<HTMLSpanElement> & {
 
 const toneClasses: Record<PillTone, string> = {
   neutral: 'border border-gray-200 bg-gray-100 text-gray-700',
-  primary: 'border border-primary/20 bg-primary/10 text-primary',
-  success: 'border border-success/20 bg-success/10 text-success',
-  warning: 'border border-warning/20 bg-warning/10 text-warning',
-  danger:  'border border-error/20 bg-error/10 text-error',
-  info:    'border border-info/20 bg-info/10 text-info',
+  primary: 'border border-primary/30 bg-primary/10 text-primary',
+  success: 'border border-success/30 bg-success/10 text-success',
+  warning: 'border border-warning/30 bg-warning/10 text-warning',
+  danger:  'border border-error/30 bg-error/10 text-error',
+  info:    'border border-info/30 bg-info/10 text-info',
 };
 
 const toneCloseClasses: Record<PillTone, string> = {

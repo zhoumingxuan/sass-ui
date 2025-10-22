@@ -63,7 +63,7 @@ function Item({
   const padY = depth === 0 ? 'py-3' : 'py-2.5';
   const containerClasses = `relative flex w-full items-center gap-2 px-3 ${padY} rounded-md transition-colors select-none ${
     active
-      ? 'bg-primary/15 ring-1 ring-primary/30 text-nav-fg before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-primary/80'
+      ? 'bg-primary/15 ring-1 ring-primary/30 text-primary text-nav-fg before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-primary/80'
       : `${depthText} ${depthHover}`
   } ${indentClass}`;
   return (
@@ -127,15 +127,15 @@ export default function Menu({
       className={`relative z-20 isolate flex flex-col h-screen border-r border-gray-200 text-nav-fg transition-all shadow-elevation-2-right select-none 
         ${collapsed ? 'w-sidebar-collapsed' : 'w-sidebar'}`}
     >
-      <div className="sticky top-0 z-10 flex items-center px-4 h-header bg-nav/97 backdrop-blur-md backdrop-saturate-150 border-b border-gray-200 select-none">
+      <div className="sticky top-0 z-10 flex items-center px-4 h-header bg-nav backdrop-blur-md backdrop-saturate-150 border-b border-gray-200 select-none">
         <span className="text-sm font-semibold tracking-wide text-nav-fg">导航</span>
       </div>
-      <div className="flex-1 overflow-auto overscroll-contain bg-nav px-2 py-3 space-y-1.5 nice-scrollbar sidebar-scroll pr-1">
+      <div className="flex-1 overflow-auto overscroll-contain bg-nav/80 px-2 py-3 space-y-1.5 nice-scrollbar sidebar-scroll pr-1">
         {items.map((item, idx) => (
           <Item key={idx} item={item} collapsed={collapsed} />
         ))}
       </div>
-      <div className="border-t border-gray-200 bg-nav/97 backdrop-blur-md backdrop-saturate-150 px-2 py-3 space-y-1.5">
+      <div className="border-t border-gray-200 bg-nav backdrop-blur-md backdrop-saturate-150 px-2 py-3 space-y-1.5">
         {footerItems.map((item, idx) => (
           <Item key={idx} item={item} collapsed={collapsed} />
         ))}
