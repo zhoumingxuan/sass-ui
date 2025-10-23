@@ -54,7 +54,7 @@ function Item({
      }
   },[menuRef.current]);
 
-  const depthHover = 'hover:bg-white/5';
+  const depthHover = depth > 0 ? 'hover:bg-nav-fg/5' : 'hover:bg-nav-fg-muted/5';
   const depthText = depth > 0 ? 'text-nav-fg' : 'text-nav-fg-muted';
   // Tailwind-managed indentation per depth（8px 栅格，收敛到常规刻度）
   const indentByDepth = ['pl-2', 'pl-6', 'pl-10', 'pl-14', 'pl-16', 'pl-16'];

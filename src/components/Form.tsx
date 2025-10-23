@@ -344,52 +344,56 @@ function FormItem({
   const hasErr = !!(errs && errs.length > 0);
 
   const child = children as React.ReactElement | undefined;
-  const childProps: Record<string, unknown> = {};
 
-  // 归一化校验触发设置
-  const needChangeValidate = Array.isArray(validateTrigger)
-    ? validateTrigger.includes("change")
-    : validateTrigger === "change";
-  const needBlurValidate = Array.isArray(validateTrigger)
-    ? validateTrigger.includes("blur")
-    : validateTrigger === "blur";
+  
 
-  if (name && child) {
-    // 受控赋值
-    childProps[valuePropName] = val;
+  const childProps = useMemo(() => {
+    // 归一化校验触发设置
+    const needChangeValidate = Array.isArray(validateTrigger)
+      ? validateTrigger.includes("change")
+      : validateTrigger === "change";
+    const needBlurValidate = Array.isArray(validateTrigger)
+      ? validateTrigger.includes("blur")
+      : validateTrigger === "blur";
+    const cp: Record<string, unknown> = {};
+    if (name && child) {
+      // 受控赋值
+      cp[valuePropName] = val;
 
-    // 变更事件
-    const origin = (child.props as Record<string, unknown>)[
-      trigger
-    ] as ((...a: unknown[]) => void) | undefined;
-    (childProps as Record<string, unknown>)[trigger] = (...args: unknown[]) => {
-      if (origin) origin(...args);
-      let v = getValueFromEvent
-        ? getValueFromEvent(...args)
-        : defaultGetValueFromEvent(valuePropName, ...args);
-      if (normalize) v = normalize(v, f.values);
-      void f.setValue(name, v, { validate: needChangeValidate });
-    };
+      // 变更事件
+      const origin = (child.props as Record<string, unknown>)[
+        trigger
+      ] as ((...a: unknown[]) => void) | undefined;
+      cp[trigger] = (...args: unknown[]) => {
+        if (origin) origin(...args);
+        let v = getValueFromEvent
+          ? getValueFromEvent(...args)
+          : defaultGetValueFromEvent(valuePropName, ...args);
+        if (normalize) v = normalize(v, f.values);
+        void f.setValue(name, v, { validate: needChangeValidate });
+      };
 
-    // 失焦校验
-    const originBlur = (child.props as Record<string, unknown>)
-      .onBlur as ((...a: unknown[]) => void) | undefined;
-    (childProps as Record<string, unknown>).onBlur = (...args: unknown[]) => {
-      if (originBlur) originBlur(...args);
-      if (needBlurValidate) {
-        void f.validateField(name);
+      // 失焦校验
+      const originBlur = (child.props as Record<string, unknown>)
+        .onBlur as ((...a: unknown[]) => void) | undefined;
+      cp.onBlur = (...args: unknown[]) => {
+        if (originBlur) originBlur(...args);
+        if (needBlurValidate) {
+          void f.validateField(name);
+        }
+      };
+
+      // 错误传递：仅对自定义组件透传 status，原生 DOM 使用 aria-invalid 避免未知属性警告
+      if (hasErr) {
+        if (!isIntrinsicElement(child)) {
+          cp.status = "error";
+        }
+        cp["aria-invalid"] = true;
+        cp["data-error"] = "true";
       }
-    };
-
-    // 错误传递：仅对自定义组件透传 status，原生 DOM 使用 aria-invalid 避免未知属性警告
-    if (hasErr) {
-      if (!isIntrinsicElement(child)) {
-        (childProps as Record<string, unknown>).status = "error";
-      }
-      (childProps as Record<string, unknown>)["aria-invalid"] = true;
-      (childProps as Record<string, unknown>)["data-error"] = "true";
     }
-  }
+  }, [child, valuePropName, getValueFromEvent, defaultGetValueFromEvent, normalize,validateTrigger,trigger]);
+
 
   const isHorizontal = f.layout === "horizontal";
   const showColon = typeof colon === "boolean" ? colon : f.colon !== false;
@@ -416,10 +420,13 @@ function FormItem({
     if (extra) return <div className={helperText}>{extra}</div>;
     return null;
   };
+  
+  const comp=child ? React.cloneElement(child, childProps) : null;
+
 
   if (isHorizontal) {
     const labelBoxStyle: React.CSSProperties = {
-      width:f.labelWidth
+      width: f.labelWidth
     };
     return (
       <div className={["mb-3", className].join(" ")} style={style}>
@@ -432,7 +439,7 @@ function FormItem({
           </div>
           <div className="flex-1">
             <div className="min-h-10 flex items-center">
-              {child ? React.cloneElement(child, childProps) : null}
+              {comp}
             </div>
             {renderHelp()}
           </div>
@@ -445,7 +452,7 @@ function FormItem({
   return (
     <div className={["mb-3", className].join(" ")} style={style}>
       {renderLabel()}
-      {child ? React.cloneElement(child, childProps) : null}
+      {comp}
       {renderHelp()}
     </div>
   );
