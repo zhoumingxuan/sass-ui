@@ -63,10 +63,10 @@ export default function FormDemo() {
             <Button variant="default" onClick={handleFillDefaults}>
               填充示例数据
             </Button>
-            <Button variant="outline" onClick={handleReset}>
+            <Button variant="primary" onClick={handleReset}>
               重置表单
             </Button>
-            <Button variant="ghost" onClick={handleSetPassword}>
+            <Button variant="default" onClick={handleSetPassword}>
               快速设置密码
             </Button>
           </div>

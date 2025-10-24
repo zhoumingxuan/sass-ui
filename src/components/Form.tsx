@@ -77,28 +77,20 @@ function cloneInitialValues(initialValues?: Record<string, unknown>) {
   if (!initialValues) return {};
   const next: Record<string, unknown> = {};
   Object.keys(initialValues).forEach((key) => {
-    next[key] = cloneValue(initialValues[key]);
+    const val = cloneValue(initialValues[key]);
+    if (val !== undefined) {
+      next[key] = val;
+    }
   });
   return next;
-}
-
-function pickEmptyByExample(example: unknown): unknown {
-  if (Array.isArray(example)) return [];
-  if (typeof example === "string") return "";
-  if (typeof example === "number") return null;
-  if (typeof example === "boolean") return false;
-  if (example && typeof example === "object") return {};
-  return null;
 }
 
 function extractValueFromEvent(...args: unknown[]): unknown {
   if (!args.length) return undefined;
   const first = args[0] as any;
+
   if (first && typeof first === "object" && "target" in first) {
     const target = first.target as { value?: unknown; checked?: boolean };
-    if (typeof target.checked === "boolean") {
-      return target.checked;
-    }
     return target.value;
   }
   if (args.length === 1) return first;
@@ -124,29 +116,14 @@ function useFormInternal(initialValues?: Record<string, unknown>): Omit<
 
   const hasFieldValue = useCallback(
     (name: string) =>
-      !!controlledRef.current[name] ||
-      hasOwn(valuesRef.current, name) ||
-      hasOwn(initialRef.current, name),
-    []
-  );
-
-  const resolveEmptyValue = useCallback(
-    (name: string) => {
-      if (hasOwn(valuesRef.current, name)) {
-        return pickEmptyByExample(valuesRef.current[name]);
-      }
-      if (hasOwn(initialRef.current, name)) {
-        return pickEmptyByExample(initialRef.current[name]);
-      }
-      return null;
-    },
+      !!controlledRef.current[name] || hasOwn(valuesRef.current, name),
     []
   );
 
   const register = useCallback(
     (name: string, options?: { rules?: Rule[] }) => {
       rulesRef.current[name] = options?.rules;
-      if (hasOwn(valuesRef.current, name) || hasOwn(initialRef.current, name)) {
+      if (hasOwn(valuesRef.current, name)) {
         markControlled(name);
       }
     },
@@ -242,17 +219,35 @@ function useFormInternal(initialValues?: Record<string, unknown>): Omit<
 
   const setFieldValue = useCallback(
     async (name: string, value: unknown, opts?: SetValueOptions) => {
+      if (value === undefined) {
+        const next = { ...valuesRef.current };
+        if (hasOwn(next, name)) {
+          delete next[name];
+        }
+        valuesRef.current = next;
+        delete controlledRef.current[name];
+        setValues(next);
+        if (opts?.validate) {
+          const errs = await runRules(name, undefined, next);
+          setErrors((prev) => ({ ...prev, [name]: errs }));
+          return errs;
+        }
+        setErrors((prev) => {
+          if (prev[name] == null) return prev;
+          const nextErr = { ...prev };
+          delete nextErr[name];
+          return nextErr;
+        });
+        return undefined;
+      }
+
       markControlled(name);
-      const stored =
-        value === undefined
-          ? resolveEmptyValue(name)
-          : cloneValue(value);
-      const safeStored = stored === undefined ? null : stored;
-      const next = { ...valuesRef.current, [name]: safeStored };
+      const stored = cloneValue(value);
+      const next = { ...valuesRef.current, [name]: stored };
       valuesRef.current = next;
       setValues(next);
       if (opts?.validate) {
-        const errs = await runRules(name, safeStored, next);
+        const errs = await runRules(name, stored, next);
         setErrors((prev) => ({ ...prev, [name]: errs }));
         return errs;
       }
@@ -264,7 +259,7 @@ function useFormInternal(initialValues?: Record<string, unknown>): Omit<
       });
       return undefined;
     },
-    [markControlled, resolveEmptyValue, runRules]
+    [markControlled, runRules]
   );
 
   const setFieldsValue = useCallback(
@@ -272,11 +267,16 @@ function useFormInternal(initialValues?: Record<string, unknown>): Omit<
       if (!incoming || Object.keys(incoming).length === 0) return {};
       const next = { ...valuesRef.current };
       Object.keys(incoming).forEach((key) => {
-        markControlled(key);
         const raw = incoming[key];
-        const stored =
-          raw === undefined ? resolveEmptyValue(key) : cloneValue(raw);
-        next[key] = stored === undefined ? null : stored;
+        if (raw === undefined) {
+          if (hasOwn(next, key)) {
+            delete next[key];
+          }
+          delete controlledRef.current[key];
+          return;
+        }
+        markControlled(key);
+        next[key] = cloneValue(raw);
       });
       valuesRef.current = next;
       setValues(next);
@@ -308,7 +308,7 @@ function useFormInternal(initialValues?: Record<string, unknown>): Omit<
       });
       return {};
     },
-    [markControlled, resolveEmptyValue, runRules]
+    [markControlled, runRules]
   );
 
   const validateField = useCallback(
@@ -335,44 +335,49 @@ function useFormInternal(initialValues?: Record<string, unknown>): Omit<
     return result;
   }, [runRules]);
 
-  const resetFieldsValue = useCallback(
-    (names?: string[]) => {
-      if (!names || names.length === 0) {
-        const next = cloneInitialValues(initialRef.current);
-        Object.keys(next).forEach((key) => {
-          if (next[key] === undefined) {
-            next[key] = resolveEmptyValue(key);
+  const resetFieldsValue = useCallback((names?: string[]) => {
+    if (!names || names.length === 0) {
+      const next = cloneInitialValues(initialRef.current);
+      valuesRef.current = next;
+      const nextControlled: Record<string, boolean> = {};
+      Object.keys(next).forEach((key) => {
+        nextControlled[key] = true;
+      });
+      controlledRef.current = nextControlled;
+      setValues(next);
+      setErrors({});
+      return;
+    }
+    const current = { ...valuesRef.current };
+    names.forEach((name) => {
+      if (hasOwn(initialRef.current, name)) {
+        const init = cloneValue(initialRef.current[name]);
+        if (init === undefined) {
+          if (hasOwn(current, name)) {
+            delete current[name];
           }
-          markControlled(key);
-        });
-        valuesRef.current = next;
-        setValues(next);
-        setErrors({});
-        return;
-      }
-      const current = { ...valuesRef.current };
-      names.forEach((name) => {
-        markControlled(name);
-        if (hasOwn(initialRef.current, name)) {
-          const init = cloneValue(initialRef.current[name]);
-          current[name] =
-            init === undefined ? resolveEmptyValue(name) : init;
+          delete controlledRef.current[name];
         } else {
-          current[name] = resolveEmptyValue(name);
+          current[name] = init;
+          controlledRef.current[name] = true;
         }
-      });
-      valuesRef.current = current;
-      setValues(current);
-      setErrors((prev) => {
-        const nextErr = { ...prev };
-        for (const name of names) {
-          if (nextErr[name] != null) delete nextErr[name];
+      } else {
+        if (hasOwn(current, name)) {
+          delete current[name];
         }
-        return nextErr;
-      });
-    },
-    [markControlled, resolveEmptyValue]
-  );
+        delete controlledRef.current[name];
+      }
+    });
+    valuesRef.current = current;
+    setValues(current);
+    setErrors((prev) => {
+      const nextErr = { ...prev };
+      for (const name of names) {
+        if (nextErr[name] != null) delete nextErr[name];
+      }
+      return nextErr;
+    });
+  }, []);
 
   return useMemo(
     () => ({
