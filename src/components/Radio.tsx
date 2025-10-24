@@ -1,6 +1,6 @@
 'use client';
 
-import { ChangeEvent, useMemo, useState } from 'react';
+import { ChangeEvent, useEffect, useMemo, useState } from 'react';
 import { controlRing, controlDisabled, fieldLabel, helperText } from './formStyles';
 
 export type RadioOption = {
@@ -64,13 +64,14 @@ export function RadioGroup({
   inline = false,
 }: RadioGroupProps) {
 
-  const selected = useMemo(() => {
-    const Default = typeof defaultValue !== 'undefined' ? defaultValue : undefined;
-    const Value = typeof value !== 'undefined' ? value : undefined;
-    return Value ? Value : Default
-  }, [value, defaultValue])
+  const [selected,setSelected]=useState(typeof defaultValue !== 'undefined' ? defaultValue : []);
+  
+  useEffect(()=>{
+    setSelected(typeof value !== 'undefined' ? value : []);
+  },[value]);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setSelected(e.target.value);
     onChange?.(e.target.value);
   };
 

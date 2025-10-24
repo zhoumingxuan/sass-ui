@@ -37,9 +37,6 @@ export default function Switch({
 
   const isOn = checked;
 
-  useEffect(()=>{
-    onChange?.(checked?checked:false);
-  },[checked]);
 
   const sizes: Record<Size, { track: string; thumbSize: string; thumbTranslate: string }>
     = {
@@ -57,6 +54,7 @@ export default function Switch({
     if (disabled) return;
     const next = !isOn;
     setChecked(next);
+    onChange?.(next);
   };
 
   return (
