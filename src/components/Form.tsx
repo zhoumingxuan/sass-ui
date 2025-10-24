@@ -594,18 +594,31 @@ function FormItem({
   const valueExists =
     !!name && Object.prototype.hasOwnProperty.call(f.values, name);
 
-  const needChangeValidate = Array.isArray(validateTrigger)
-    ? validateTrigger.includes("change")
-    : validateTrigger === "change";
-  const needBlurValidate = Array.isArray(validateTrigger)
-    ? validateTrigger.includes("blur")
-    : validateTrigger === "blur";
+  const { setFieldValue, setTouched, validateField, getFieldsValue } = f;
 
-  const childProps: Record<string, unknown> = {};
+  const needChangeValidate = useMemo(
+    () =>
+      Array.isArray(validateTrigger)
+        ? validateTrigger.includes("change")
+        : validateTrigger === "change",
+    [validateTrigger]
+  );
 
-  if (name && childElement) {
+  const needBlurValidate = useMemo(
+    () =>
+      Array.isArray(validateTrigger)
+        ? validateTrigger.includes("blur")
+        : validateTrigger === "blur",
+    [validateTrigger]
+  );
+
+  const childProps = useMemo(() => {
+    if (!name || !childElement) return null;
+
+    const props: Record<string, unknown> = {};
+
     if (valueExists) {
-      childProps[valuePropName] = value;
+      props[valuePropName] = value;
     }
 
     const originHandler = (childElement.props as Record<string, unknown>)[
@@ -617,34 +630,34 @@ function FormItem({
       let nextValue = getValueFromEvent
         ? getValueFromEvent(...args)
         : defaultGetValueFromEvent(valuePropName, ...args);
-      const snapshot = f.getFieldsValue();
+      const snapshot = getFieldsValue();
       snapshot[name] = nextValue;
       if (normalize) {
         nextValue = normalize(nextValue, snapshot);
       }
-      void f.setFieldValue(name, nextValue, {
+      void setFieldValue(name, nextValue, {
         validate: needChangeValidate,
         touch: true
       });
     };
 
     if (trigger === "onBlur") {
-      childProps[trigger] = (...args: unknown[]) => {
+      props[trigger] = (...args: unknown[]) => {
         handleTrigger(...args);
-        f.setTouched(name, true);
+        setTouched(name, true);
         if (needBlurValidate) {
-          void f.validateField(name);
+          void validateField(name);
         }
       };
     } else {
-      childProps[trigger] = handleTrigger;
+      props[trigger] = handleTrigger;
       const originBlur = (childElement.props as Record<string, unknown>)
         .onBlur as ((...args: unknown[]) => void) | undefined;
-      childProps.onBlur = (...args: unknown[]) => {
+      props.onBlur = (...args: unknown[]) => {
         originBlur?.(...args);
-        f.setTouched(name, true);
+        setTouched(name, true);
         if (needBlurValidate) {
-          void f.validateField(name);
+          void validateField(name);
         }
       };
     }
@@ -654,17 +667,37 @@ function FormItem({
         const currentStatus = (childElement.props as Record<string, unknown>)
           .status;
         if (currentStatus == null) {
-          childProps.status = "error";
+          props.status = "error";
         }
       }
-      childProps["aria-invalid"] = true;
-      childProps["data-form-error"] = "true";
+      props["aria-invalid"] = true;
+      props["data-form-error"] = "true";
     }
-  }
 
-  const control = childElement
-    ? React.cloneElement(childElement, childProps)
-    : children;
+    return props;
+  }, [
+    childElement,
+    getFieldsValue,
+    getValueFromEvent,
+    hasErr,
+    name,
+    needBlurValidate,
+    needChangeValidate,
+    normalize,
+    setFieldValue,
+    setTouched,
+    trigger,
+    value,
+    valueExists,
+    valuePropName,
+    validateField
+  ]);
+
+  const control = useMemo(() => {
+    if (!childElement) return children;
+    if (!childProps) return childElement;
+    return React.cloneElement(childElement, childProps);
+  }, [childElement, childProps, children]);
 
   const isHorizontal = f.layout === "horizontal";
   const showColon = typeof colon === "boolean" ? colon : f.colon !== false;
