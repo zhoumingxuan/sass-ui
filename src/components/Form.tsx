@@ -1,10 +1,11 @@
-"use client";
+﻿"use client";
 
 import React, {
   createContext,
   forwardRef,
   useCallback,
   useContext,
+  useImperativeHandle,
   useMemo,
   useRef,
   useState
@@ -28,7 +29,6 @@ type ValidateTrigger = "change" | "blur";
 
 type SetValueOptions = {
   validate?: boolean;
-  touch?: boolean;
 };
 
 export type FormInstance = {
@@ -47,15 +47,14 @@ export type FormInstance = {
   validateField: (name: string) => Promise<string[]>;
   validateAll: () => Promise<Record<string, string[]>>;
   resetFieldsValue: (names?: string[]) => void;
+  hasFieldValue: (name: string) => boolean;
 };
 
 type FormContextType = FormInstance & {
   values: Record<string, unknown>;
   errors: Record<string, string[]>;
-  touched: Record<string, boolean>;
-  register: (name: string, options: { rules?: Rule[] }) => void;
+  register: (name: string, options?: { rules?: Rule[] }) => void;
   unregister: (name: string) => void;
-  setTouched: (name: string, touched: boolean) => void;
   layout?: "vertical" | "horizontal";
   labelWidth?: number | string;
   colon?: boolean;
@@ -66,7 +65,7 @@ const FormContext = createContext<FormContextType | null>(null);
 const hasOwn = (obj: Record<string, unknown>, key: string) =>
   Object.prototype.hasOwnProperty.call(obj, key);
 
-function cloneValue(value: unknown) {
+function cloneValue(value: unknown): unknown {
   if (Array.isArray(value)) return [...value];
   if (value && typeof value === "object") {
     return { ...(value as Record<string, unknown>) };
@@ -83,48 +82,88 @@ function cloneInitialValues(initialValues?: Record<string, unknown>) {
   return next;
 }
 
-function useFormInternal(initialValues?: Record<string, unknown>): FormContextType {
+function pickEmptyByExample(example: unknown): unknown {
+  if (Array.isArray(example)) return [];
+  if (typeof example === "string") return "";
+  if (typeof example === "number") return null;
+  if (typeof example === "boolean") return false;
+  if (example && typeof example === "object") return {};
+  return null;
+}
+
+function extractValueFromEvent(...args: unknown[]): unknown {
+  if (!args.length) return undefined;
+  const first = args[0] as any;
+  if (first && typeof first === "object" && "target" in first) {
+    const target = first.target as { value?: unknown; checked?: boolean };
+    if (typeof target.checked === "boolean") {
+      return target.checked;
+    }
+    return target.value;
+  }
+  if (args.length === 1) return first;
+  return args;
+}
+
+function useFormInternal(initialValues?: Record<string, unknown>): Omit<
+  FormContextType,
+  "layout" | "labelWidth" | "colon"
+> {
   const rulesRef = useRef<Record<string, Rule[] | undefined>>({});
   const initialRef = useRef<Record<string, unknown>>(cloneInitialValues(initialValues));
+  const valuesRef = useRef<Record<string, unknown>>(cloneInitialValues(initialValues));
   const [values, setValues] = useState<Record<string, unknown>>(() =>
     cloneInitialValues(initialValues)
   );
   const [errors, setErrors] = useState<Record<string, string[]>>({});
-  const [touched, setTouchedState] = useState<Record<string, boolean>>({});
+  const controlledRef = useRef<Record<string, boolean>>({});
 
-  const setTouched = useCallback((name: string, touchedFlag: boolean) => {
-    setTouchedState((prev) => {
-      if (touchedFlag) {
-        if (prev[name]) return prev;
-        return { ...prev, [name]: true };
+  const markControlled = useCallback((name: string) => {
+    controlledRef.current[name] = true;
+  }, []);
+
+  const hasFieldValue = useCallback(
+    (name: string) =>
+      !!controlledRef.current[name] ||
+      hasOwn(valuesRef.current, name) ||
+      hasOwn(initialRef.current, name),
+    []
+  );
+
+  const resolveEmptyValue = useCallback(
+    (name: string) => {
+      if (hasOwn(valuesRef.current, name)) {
+        return pickEmptyByExample(valuesRef.current[name]);
       }
-      if (!hasOwn(prev, name)) return prev;
-      const next = { ...prev };
-      delete next[name];
-      return next;
-    });
-  }, []);
+      if (hasOwn(initialRef.current, name)) {
+        return pickEmptyByExample(initialRef.current[name]);
+      }
+      return null;
+    },
+    []
+  );
 
-  const register = useCallback((name: string, options: { rules?: Rule[] }) => {
-    rulesRef.current[name] = options.rules;
-  }, []);
+  const register = useCallback(
+    (name: string, options?: { rules?: Rule[] }) => {
+      rulesRef.current[name] = options?.rules;
+      if (hasOwn(valuesRef.current, name) || hasOwn(initialRef.current, name)) {
+        markControlled(name);
+      }
+    },
+    [markControlled]
+  );
 
   const unregister = useCallback((name: string) => {
     delete rulesRef.current[name];
-    setValues((prev) => {
-      if (!hasOwn(prev, name)) return prev;
-      const next = { ...prev };
+    delete controlledRef.current[name];
+    if (hasOwn(valuesRef.current, name)) {
+      const next = { ...valuesRef.current };
       delete next[name];
-      return next;
-    });
+      valuesRef.current = next;
+      setValues(next);
+    }
     setErrors((prev) => {
       if (prev[name] == null) return prev;
-      const next = { ...prev };
-      delete next[name];
-      return next;
-    });
-    setTouchedState((prev) => {
-      if (!prev[name]) return prev;
       const next = { ...prev };
       delete next[name];
       return next;
@@ -147,34 +186,34 @@ function useFormInternal(initialValues?: Record<string, unknown>): FormContextTy
             (typeof value === "string" && value.trim() === "") ||
             (Array.isArray(value) && value.length === 0);
           if (empty) {
-            result.push(rule.message || "\u5fc5\u586b\u9879");
+            result.push(rule.message || "必填项");
             continue;
           }
         }
         if (typeof rule.len === "number" && typeof value === "string") {
           if (value.length !== rule.len) {
-            result.push(rule.message || `\u957f\u5ea6\u5fc5\u987b\u4e3a${rule.len}`);
+            result.push(rule.message || `长度必须为${rule.len}`);
           }
         }
         if (typeof rule.min === "number") {
           if (typeof value === "number" && value < rule.min) {
-            result.push(rule.message || `\u4e0d\u80fd\u5c0f\u4e8e${rule.min}`);
+            result.push(rule.message || `不能小于${rule.min}`);
           }
           if (typeof value === "string" && value.length < rule.min) {
-            result.push(rule.message || `\u957f\u5ea6\u4e0d\u80fd\u5c0f\u4e8e${rule.min}`);
+            result.push(rule.message || `长度不能小于${rule.min}`);
           }
         }
         if (typeof rule.max === "number") {
           if (typeof value === "number" && value > rule.max) {
-            result.push(rule.message || `\u4e0d\u80fd\u5927\u4e8e${rule.max}`);
+            result.push(rule.message || `不能大于${rule.max}`);
           }
           if (typeof value === "string" && value.length > rule.max) {
-            result.push(rule.message || `\u957f\u5ea6\u4e0d\u80fd\u5927\u4e8e${rule.max}`);
+            result.push(rule.message || `长度不能大于${rule.max}`);
           }
         }
         if (rule.pattern && typeof value === "string") {
           if (!rule.pattern.test(value)) {
-            result.push(rule.message || "\u683c\u5f0f\u4e0d\u6b63\u786e");
+            result.push(rule.message || "格式不正确");
           }
         }
         if (rule.validator) {
@@ -189,145 +228,103 @@ function useFormInternal(initialValues?: Record<string, unknown>): FormContextTy
     []
   );
 
-  const getError = useCallback((name: string) => errors[name], [errors]);
-
-  const getFieldValue = useCallback((name: string) => values[name], [values]);
+  const getFieldValue = useCallback((name: string) => valuesRef.current[name], []);
 
   const getFieldsValue = useCallback(() => {
     const next: Record<string, unknown> = {};
-    Object.keys(values).forEach((key) => {
-      next[key] = cloneValue(values[key]);
+    Object.keys(valuesRef.current).forEach((key) => {
+      next[key] = cloneValue(valuesRef.current[key]);
     });
     return next;
-  }, [values]);
+  }, []);
+
+  const getError = useCallback((name: string) => errors[name], [errors]);
 
   const setFieldValue = useCallback(
     async (name: string, value: unknown, opts?: SetValueOptions) => {
-      let nextValues = values;
-      setValues((prev) => {
-        const next = { ...prev };
-        if (value === undefined) {
-          if (hasOwn(next, name)) {
-            delete next[name];
-          }
-        } else {
-          next[name] = value;
-        }
-        nextValues = next;
-        return next;
-      });
-
-      if (opts?.touch) {
-        setTouchedState((prev) => {
-          if (prev[name]) return prev;
-          return { ...prev, [name]: true };
-        });
-      }
-
+      markControlled(name);
+      const stored =
+        value === undefined
+          ? resolveEmptyValue(name)
+          : cloneValue(value);
+      const safeStored = stored === undefined ? null : stored;
+      const next = { ...valuesRef.current, [name]: safeStored };
+      valuesRef.current = next;
+      setValues(next);
       if (opts?.validate) {
-        const errs = await runRules(name, value, nextValues);
-        setErrors((prev) => {
-          const next = { ...prev };
-          if (errs.length) next[name] = errs;
-          else delete next[name];
-          return next;
-        });
+        const errs = await runRules(name, safeStored, next);
+        setErrors((prev) => ({ ...prev, [name]: errs }));
         return errs;
       }
-
       setErrors((prev) => {
         if (prev[name] == null) return prev;
-        const next = { ...prev };
-        delete next[name];
-        return next;
+        const nextErr = { ...prev };
+        delete nextErr[name];
+        return nextErr;
       });
       return undefined;
     },
-    [runRules, values]
+    [markControlled, resolveEmptyValue, runRules]
   );
 
   const setFieldsValue = useCallback(
     async (incoming: Record<string, unknown>, opts?: SetValueOptions) => {
-      const entries = Object.entries(incoming);
-      if (entries.length === 0) return {};
-
-      let nextValues = values;
-      setValues((prev) => {
-        const next = { ...prev };
-        for (const [key, value] of entries) {
-          if (value === undefined) {
-            if (hasOwn(next, key)) {
-              delete next[key];
-            }
-          } else {
-            next[key] = value;
-          }
-        }
-        nextValues = next;
-        return next;
+      if (!incoming || Object.keys(incoming).length === 0) return {};
+      const next = { ...valuesRef.current };
+      Object.keys(incoming).forEach((key) => {
+        markControlled(key);
+        const raw = incoming[key];
+        const stored =
+          raw === undefined ? resolveEmptyValue(key) : cloneValue(raw);
+        next[key] = stored === undefined ? null : stored;
       });
-
-      if (opts?.touch) {
-        setTouchedState((prev) => {
-          const next = { ...prev };
-          for (const [key] of entries) {
-            next[key] = true;
-          }
-          return next;
-        });
-      }
-
+      valuesRef.current = next;
+      setValues(next);
       if (opts?.validate) {
         const result: Record<string, string[]> = {};
-        for (const [key, value] of entries) {
-          const errs = await runRules(key, value, nextValues);
+        for (const key of Object.keys(incoming)) {
+          const errs = await runRules(key, next[key], next);
           if (errs.length) {
             result[key] = errs;
           }
         }
         setErrors((prev) => {
-          const next = { ...prev };
-          for (const [key] of entries) {
+          const nextErr = { ...prev };
+          for (const key of Object.keys(incoming)) {
             const errs = result[key];
-            if (errs && errs.length) next[key] = errs;
-            else delete next[key];
+            if (errs && errs.length) nextErr[key] = errs;
+            else delete nextErr[key];
           }
-          return next;
+          return nextErr;
         });
         return result;
       }
-
       setErrors((prev) => {
-        const next = { ...prev };
-        for (const [key] of entries) {
-          if (next[key] != null) delete next[key];
+        const nextErr = { ...prev };
+        for (const key of Object.keys(incoming)) {
+          if (nextErr[key] != null) delete nextErr[key];
         }
-        return next;
+        return nextErr;
       });
       return {};
     },
-    [runRules, values]
+    [markControlled, resolveEmptyValue, runRules]
   );
 
   const validateField = useCallback(
     async (name: string) => {
-      const currentValues = { ...values };
+      const currentValues = { ...valuesRef.current };
       const errs = await runRules(name, currentValues[name], currentValues);
-      setErrors((prev) => {
-        const next = { ...prev };
-        if (errs.length) next[name] = errs;
-        else delete next[name];
-        return next;
-      });
+      setErrors((prev) => ({ ...prev, [name]: errs }));
       return errs;
     },
-    [runRules, values]
+    [runRules]
   );
 
   const validateAll = useCallback(async () => {
-    const currentValues = { ...values };
-    const names = Object.keys(rulesRef.current);
+    const currentValues = { ...valuesRef.current };
     const result: Record<string, string[]> = {};
+    const names = Object.keys(rulesRef.current);
     for (const name of names) {
       const errs = await runRules(name, currentValues[name], currentValues);
       if (errs.length) {
@@ -336,63 +333,79 @@ function useFormInternal(initialValues?: Record<string, unknown>): FormContextTy
     }
     setErrors(result);
     return result;
-  }, [runRules, values]);
+  }, [runRules]);
 
-  const resetFieldsValue = useCallback((names?: string[]) => {
-    if (Array.isArray(names) && names.length > 0) {
-      setValues((prev) => {
-        const next = { ...prev };
-        names.forEach((name) => {
-          if (hasOwn(initialRef.current, name)) {
-            const value = initialRef.current[name];
-            if (value === undefined) {
-              delete next[name];
-            } else {
-              next[name] = cloneValue(value);
-            }
-          } else {
-            delete next[name];
+  const resetFieldsValue = useCallback(
+    (names?: string[]) => {
+      if (!names || names.length === 0) {
+        const next = cloneInitialValues(initialRef.current);
+        Object.keys(next).forEach((key) => {
+          if (next[key] === undefined) {
+            next[key] = resolveEmptyValue(key);
           }
+          markControlled(key);
         });
-        return next;
+        valuesRef.current = next;
+        setValues(next);
+        setErrors({});
+        return;
+      }
+      const current = { ...valuesRef.current };
+      names.forEach((name) => {
+        markControlled(name);
+        if (hasOwn(initialRef.current, name)) {
+          const init = cloneValue(initialRef.current[name]);
+          current[name] =
+            init === undefined ? resolveEmptyValue(name) : init;
+        } else {
+          current[name] = resolveEmptyValue(name);
+        }
       });
+      valuesRef.current = current;
+      setValues(current);
       setErrors((prev) => {
-        const next = { ...prev };
-        names.forEach((name) => {
-          if (next[name] != null) delete next[name];
-        });
-        return next;
+        const nextErr = { ...prev };
+        for (const name of names) {
+          if (nextErr[name] != null) delete nextErr[name];
+        }
+        return nextErr;
       });
-      setTouchedState((prev) => {
-        const next = { ...prev };
-        names.forEach((name) => {
-          if (next[name]) delete next[name];
-        });
-        return next;
-      });
-      return;
-    }
-    setValues(cloneInitialValues(initialRef.current));
-    setErrors({});
-    setTouchedState({});
-  }, []);
+    },
+    [markControlled, resolveEmptyValue]
+  );
 
-  return {
-    values,
-    errors,
-    touched,
-    register,
-    unregister,
-    setTouched,
-    setFieldValue,
-    setFieldsValue,
-    getFieldValue,
-    getFieldsValue,
-    getError,
-    validateField,
-    validateAll,
-    resetFieldsValue
-  };
+  return useMemo(
+    () => ({
+      values,
+      errors,
+      register,
+      unregister,
+      setFieldValue,
+      setFieldsValue,
+      getFieldValue,
+      getFieldsValue,
+      getError,
+      validateField,
+      validateAll,
+      resetFieldsValue,
+      hasFieldValue
+    }),
+    [
+      errors,
+      getError,
+      getFieldValue,
+      getFieldsValue,
+      hasFieldValue,
+      register,
+      resetFieldsValue,
+      setFieldValue,
+      setFieldsValue,
+      unregister,
+      validateAll,
+      validateField,
+      values
+    ]
+  );
 }
 
 export type FormProps = React.FormHTMLAttributes<HTMLFormElement> & {
@@ -428,15 +441,34 @@ const FormRoot = forwardRef<FormInstance, FormProps>(function FormRoot(
     onSubmit?.(event);
     event.preventDefault();
     const errs = await api.validateAll();
-    const hasError = Object.values(errs).some((list) => list && list.length > 0);
+    const hasError = Object.values(errs).some((arr) => arr && arr.length > 0);
     if (hasError) {
-      onFinishFailed?.({ values: api.getFieldsValue(), errors: errs });
+      onFinishFailed?.({
+        values: api.getFieldsValue(),
+        errors: errs
+      });
     } else {
       onFinish?.(api.getFieldsValue());
     }
   };
 
-  const ctx = useMemo<FormContextType>(
+  useImperativeHandle(
+    ref,
+    () => ({
+      setFieldValue: api.setFieldValue,
+      setFieldsValue: api.setFieldsValue,
+      getFieldValue: api.getFieldValue,
+      getFieldsValue: api.getFieldsValue,
+      getError: api.getError,
+      validateField: api.validateField,
+      validateAll: api.validateAll,
+      resetFieldsValue: api.resetFieldsValue,
+      hasFieldValue: api.hasFieldValue
+    }),
+    [api]
+  );
+
+  const contextValue = useMemo(
     () => ({
       ...api,
       layout,
@@ -444,41 +476,6 @@ const FormRoot = forwardRef<FormInstance, FormProps>(function FormRoot(
       colon
     }),
     [api, layout, labelWidth, colon]
-  );
-
-  const {
-    setFieldValue,
-    setFieldsValue,
-    getFieldValue,
-    getFieldsValue,
-    resetFieldsValue,
-    validateField,
-    validateAll,
-    getError
-  } = api;
-
-  React.useImperativeHandle(
-    ref,
-    () => ({
-      setFieldValue,
-      setFieldsValue,
-      getFieldValue,
-      getFieldsValue,
-      resetFieldsValue,
-      validateField,
-      validateAll,
-      getError
-    }),
-    [
-      setFieldValue,
-      setFieldsValue,
-      getFieldValue,
-      getFieldsValue,
-      resetFieldsValue,
-      validateField,
-      validateAll,
-      getError
-    ]
   );
 
   const labelStyleVar: React.CSSProperties | undefined =
@@ -490,7 +487,7 @@ const FormRoot = forwardRef<FormInstance, FormProps>(function FormRoot(
       : undefined;
 
   return (
-    <FormContext.Provider value={ctx}>
+    <FormContext.Provider value={contextValue}>
       <form
         onSubmit={handleSubmit}
         className={["space-y-3", className].join(" ")}
@@ -507,11 +504,7 @@ export type FormItemProps = {
   label?: React.ReactNode;
   rules?: Rule[];
   required?: boolean;
-  valuePropName?: string;
-  trigger?: string;
   validateTrigger?: ValidateTrigger | ValidateTrigger[];
-  normalize?: (value: unknown, values: Record<string, unknown>) => unknown;
-  getValueFromEvent?: (...args: unknown[]) => unknown;
   help?: React.ReactNode;
   extra?: React.ReactNode;
   className?: string;
@@ -520,41 +513,12 @@ export type FormItemProps = {
   colon?: boolean;
 };
 
-function defaultGetValueFromEvent(
-  valuePropName: string,
-  ...args: unknown[]
-): unknown {
-  if (!args || args.length === 0) return undefined;
-  const first = args[0] as unknown;
-  if (
-    first &&
-    typeof first === "object" &&
-    "target" in (first as { target?: { checked?: boolean; value?: unknown } })
-  ) {
-    const target = (first as { target?: { checked?: boolean; value?: unknown } })
-      .target;
-    if (!target) return undefined;
-    if (valuePropName === "checked") return target.checked;
-    return target.value;
-  }
-  if (args.length > 1) return args;
-  return args[0];
-}
-
-function isIntrinsicElement(el: React.ReactElement) {
-  return typeof el.type === "string";
-}
-
 function FormItem({
   name,
   label,
   rules,
   required,
-  valuePropName = "value",
-  trigger = "onChange",
-  validateTrigger = "change",
-  normalize,
-  getValueFromEvent,
+  validateTrigger = "blur",
   help,
   extra,
   className = "",
@@ -571,102 +535,76 @@ function FormItem({
     );
   }
 
-  const f = form;
+  const {
+    register,
+    unregister,
+    setFieldValue,
+    getFieldValue,
+    getError,
+    validateField,
+    hasFieldValue,
+    layout,
+    labelWidth,
+    colon: formColon
+  } = form;
 
   const rulesSignature = JSON.stringify(rules ?? []);
 
   React.useEffect(() => {
     if (!name) return;
-    const mergedRules = [...(rules || [])];
-    if (required) mergedRules.unshift({ required: true });
-    f.register(name, { rules: mergedRules });
+    const merged = [...(rules || [])];
+    if (required) merged.unshift({ required: true });
+    register(name, { rules: merged });
     return () => {
-      f.unregister(name);
+      unregister(name);
     };
-  }, [f, name, required, rulesSignature]);
+  }, [name, register, unregister, required, rulesSignature]);
 
-  const value = name ? f.getFieldValue(name) : undefined;
-  const errs = name ? f.getError(name) : undefined;
+  const value = name ? getFieldValue(name) : undefined;
+  const errs = name ? getError(name) : undefined;
   const hasErr = !!(errs && errs.length > 0);
 
-  const isValidChild = React.isValidElement(children);
-  const childElement = isValidChild ? (children as React.ReactElement) : null;
-  const valueExists =
-    !!name && Object.prototype.hasOwnProperty.call(f.values, name);
+  const triggerList = Array.isArray(validateTrigger)
+    ? validateTrigger
+    : [validateTrigger ?? "blur"];
+  const needChangeValidate = triggerList.includes("change");
+  const needBlurValidate = triggerList.includes("blur");
 
-  const { setFieldValue, setTouched, validateField, getFieldsValue } = f;
-
-  const needChangeValidate = useMemo(
-    () =>
-      Array.isArray(validateTrigger)
-        ? validateTrigger.includes("change")
-        : validateTrigger === "change",
-    [validateTrigger]
-  );
-
-  const needBlurValidate = useMemo(
-    () =>
-      Array.isArray(validateTrigger)
-        ? validateTrigger.includes("blur")
-        : validateTrigger === "blur",
-    [validateTrigger]
-  );
+  const childElement = React.isValidElement(children)
+    ? (children as React.ReactElement)
+    : null;
 
   const childProps = useMemo(() => {
     if (!name || !childElement) return null;
-
     const props: Record<string, unknown> = {};
+    const controlled = hasFieldValue(name);
+    const originChange = (childElement.props as Record<string, unknown>)
+      .onChange as ((...args: unknown[]) => void) | undefined;
+    const originBlur = (childElement.props as Record<string, unknown>)
+      .onBlur as ((...args: unknown[]) => void) | undefined;
 
-    if (valueExists) {
-      props[valuePropName] = value;
+    if (controlled) {
+      props.value = value;
     }
 
-    const originHandler = (childElement.props as Record<string, unknown>)[
-      trigger
-    ] as ((...args: unknown[]) => void) | undefined;
-
-    const handleTrigger = (...args: unknown[]) => {
-      originHandler?.(...args);
-      let nextValue = getValueFromEvent
-        ? getValueFromEvent(...args)
-        : defaultGetValueFromEvent(valuePropName, ...args);
-      const snapshot = getFieldsValue();
-      snapshot[name] = nextValue;
-      if (normalize) {
-        nextValue = normalize(nextValue, snapshot);
-      }
-      void setFieldValue(name, nextValue, {
-        validate: needChangeValidate,
-        touch: true
+    props.onChange = (...args: unknown[]) => {
+      originChange?.(...args);
+      const next = extractValueFromEvent(...args);
+      void setFieldValue(name, next, {
+        validate: needChangeValidate
       });
     };
 
-    if (trigger === "onBlur") {
-      props[trigger] = (...args: unknown[]) => {
-        handleTrigger(...args);
-        setTouched(name, true);
-        if (needBlurValidate) {
-          void validateField(name);
-        }
-      };
-    } else {
-      props[trigger] = handleTrigger;
-      const originBlur = (childElement.props as Record<string, unknown>)
-        .onBlur as ((...args: unknown[]) => void) | undefined;
-      props.onBlur = (...args: unknown[]) => {
-        originBlur?.(...args);
-        setTouched(name, true);
-        if (needBlurValidate) {
-          void validateField(name);
-        }
-      };
-    }
+    props.onBlur = (...args: unknown[]) => {
+      originBlur?.(...args);
+      if (needBlurValidate) {
+        void validateField(name);
+      }
+    };
 
     if (hasErr) {
-      if (!isIntrinsicElement(childElement)) {
-        const currentStatus = (childElement.props as Record<string, unknown>)
-          .status;
-        if (currentStatus == null) {
+      if (typeof childElement.type !== "string") {
+        if ((childElement.props as Record<string, unknown>).status == null) {
           props.status = "error";
         }
       }
@@ -677,20 +615,14 @@ function FormItem({
     return props;
   }, [
     childElement,
-    getFieldsValue,
-    getValueFromEvent,
     hasErr,
+    hasFieldValue,
     name,
     needBlurValidate,
     needChangeValidate,
-    normalize,
     setFieldValue,
-    setTouched,
-    trigger,
-    value,
-    valueExists,
-    valuePropName,
-    validateField
+    validateField,
+    value
   ]);
 
   const control = useMemo(() => {
@@ -699,8 +631,8 @@ function FormItem({
     return React.cloneElement(childElement, childProps);
   }, [childElement, childProps, children]);
 
-  const isHorizontal = f.layout === "horizontal";
-  const showColon = typeof colon === "boolean" ? colon : f.colon !== false;
+  const isHorizontal = layout === "horizontal";
+  const showColon = typeof colon === "boolean" ? colon : formColon !== false;
 
   const renderLabel = () => {
     if (!label) return null;
@@ -712,7 +644,7 @@ function FormItem({
         <span className="text-error mr-1">{requiredMark ? "*" : ""}</span>
         <span className="text-gray-700">
           {label}
-          {showColon ? ":" : ""}
+          {showColon ? "：" : ""}
         </span>
       </div>
     );
@@ -727,7 +659,7 @@ function FormItem({
 
   if (isHorizontal) {
     const labelBoxStyle: React.CSSProperties = {
-      width: f.labelWidth
+      width: labelWidth
     };
     return (
       <div className={["mb-3", className].join(" ")} style={style}>
@@ -756,7 +688,8 @@ function FormItem({
   );
 }
 
-export function useForm(): React.MutableRefObject<FormInstance | null> {
+export function useForm() {
+  // 使用 ref 暴露表单实例，方便在页面中通过 ref 操作
   return React.useRef<FormInstance | null>(null);
 }
 

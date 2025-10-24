@@ -1,71 +1,131 @@
-"use client";
+﻿"use client";
 
-import Layout from '@/components/Layout';
-import Card from '@/components/Card';
-import Button from '@/components/Button';
-import { Input } from '@/components/Input';
-import Switch from '@/components/Switch';
-import { RadioGroup } from '@/components/Radio';
-import { CheckboxGroup } from '@/components/Checkbox';
-import Slider from '@/components/Slider';
-import Form from '@/components/Form';
-import { menuItems, footerItems } from '@/components/menuItems';
-import { useState } from 'react';
+import Layout from "@/components/Layout";
+import Card from "@/components/Card";
+import Button from "@/components/Button";
+import { Input } from "@/components/Input";
+import Switch from "@/components/Switch";
+import { RadioGroup } from "@/components/Radio";
+import { CheckboxGroup } from "@/components/Checkbox";
+import Slider from "@/components/Slider";
+import Form from "@/components/Form";
+import { menuItems, footerItems } from "@/components/menuItems";
+import { useState } from "react";
 
 export default function FormDemo() {
-  const [layout, setLayout] = useState<'vertical'|'horizontal'>('vertical');
+  const [layout, setLayout] = useState<"vertical" | "horizontal">("vertical");
+  const formRef = Form.useForm();
+
+  const handleFillDefaults = () => {
+    formRef.current?.setFieldsValue({
+      username: "张三",
+      age: 32,
+      city: "sh",
+      hobbies: ["read", "music"],
+      agree: true
+    });
+  };
+
+  const handleReset = () => {
+    formRef.current?.resetFieldsValue();
+  };
+
+  const handleSetPassword = () => {
+    formRef.current?.setFieldValue("password", "Pass@2025", { validate: true });
+  };
 
   return (
-    <Layout menuItems={menuItems} footerItems={footerItems} header={<div className="text-xl font-semibold text-gray-800">表单示例</div>}>
+    <Layout
+      menuItems={menuItems}
+      footerItems={footerItems}
+      header={<div className="text-xl font-semibold text-gray-800">表单示例</div>}
+    >
       <div className="space-y-6">
         <Card title="布局切换">
           <div className="flex items-center gap-4">
-            <Button variant={layout === 'vertical' ? 'primary' : 'default'} onClick={() => setLayout('vertical')}>垂直布局</Button>
-            <Button variant={layout === 'horizontal' ? 'primary' : 'default'} onClick={() => setLayout('horizontal')}>水平布局</Button>
+            <Button
+              variant={layout === "vertical" ? "primary" : "default"}
+              onClick={() => setLayout("vertical")}
+            >
+              垂直布局
+            </Button>
+            <Button
+              variant={layout === "horizontal" ? "primary" : "default"}
+              onClick={() => setLayout("horizontal")}
+            >
+              水平布局
+            </Button>
           </div>
         </Card>
 
         <Card title="综合表单">
+          <div className="flex flex-wrap items-center gap-3 mb-4">
+            <Button variant="default" onClick={handleFillDefaults}>
+              填充示例数据
+            </Button>
+            <Button variant="outline" onClick={handleReset}>
+              重置表单
+            </Button>
+            <Button variant="ghost" onClick={handleSetPassword}>
+              快速设置密码
+            </Button>
+          </div>
           <Form
+            ref={formRef}
             layout={layout}
             labelWidth={120}
             initialValues={{
-              username: '',
+              username: "",
               age: 30,
-              password: '',
-              gender: 'male',
-              hobbies: ['read'],
+              password: "",
+              gender: "male",
+              hobbies: ["read"],
               agree: false,
-              city: '',
-              birthday: '',
+              city: "",
+              birthday: "",
+              budget: undefined,
               period: [undefined, undefined],
-              bio: '',
-              volume: 30,
+              bio: "",
+              volume: 30
             }}
             onFinish={(values) => {
-              console.log('finish', values);
-              alert('提交成功\n' + JSON.stringify(values, null, 2));
+              console.log("finish", values);
+              alert("提交成功\n" + JSON.stringify(values, null, 2));
             }}
             onFinishFailed={({ errors }) => {
-              console.warn('failed', errors);
-              alert('请修正校验错误后再提交');
+              console.warn("failed", errors);
+              alert("请修正校验错误后再提交");
             }}
           >
             <div className="grid grid-cols-12 gap-4 md:gap-6">
               <div className="col-span-12 md:col-span-6">
-                <Form.Item name="username" label="用户名" required rules={[{ min: 2, message: '至少 2 个字符' }]}>
-                  <Input.Text suffix="$" placeholder="请输入用户名" clearable />
+                <Form.Item
+                  name="username"
+                  label="用户名"
+                  required
+                  rules={[{ min: 2, message: "至少 2 个字符" }]}
+                >
+                  <Input.Text suffix="$" placeholder="请输入用户名" />
                 </Form.Item>
               </div>
 
               <div className="col-span-12 md:col-span-6">
-                <Form.Item name="age" label="年龄" rules={[{ min: 0, message: '不能小于 0' }]}>
+                <Form.Item
+                  name="age"
+                  label="年龄"
+                  rules={[{ min: 0, message: "不能小于 0" }]}
+                >
                   <Input.Number placeholder="请输入年龄" min={0} precision={0} />
                 </Form.Item>
               </div>
 
               <div className="col-span-12 md:col-span-6">
-                <Form.Item name="password" label="密码" required rules={[{ min: 6, message: '至少 6 位' }]}>
+                <Form.Item
+                  name="password"
+                  label="密码"
+                  required
+                  rules={[{ min: 6, message: "至少 6 位" }]}
+                >
                   <Input.Password placeholder="请输入密码" />
                 </Form.Item>
               </div>
@@ -75,9 +135,9 @@ export default function FormDemo() {
                   <RadioGroup
                     name="gender"
                     options={[
-                      { value: 'male', label: '男' },
-                      { value: 'female', label: '女' },
-                      { value: 'other', label: '其他' },
+                      { value: "male", label: "男" },
+                      { value: "female", label: "女" },
+                      { value: "other", label: "其他" }
                     ]}
                     inline
                   />
@@ -89,9 +149,9 @@ export default function FormDemo() {
                   <CheckboxGroup
                     name="hobbies"
                     options={[
-                      { value: 'read', label: '阅读' },
-                      { value: 'sport', label: '运动' },
-                      { value: 'music', label: '音乐' },
+                      { value: "read", label: "阅读" },
+                      { value: "sport", label: "运动" },
+                      { value: "music", label: "音乐" }
                     ]}
                     inline
                   />
@@ -99,41 +159,80 @@ export default function FormDemo() {
               </div>
 
               <div className="col-span-12 md:col-span-6">
-                <Form.Item name="agree" label="是否同意" valuePropName="checked" rules={[{ validator: (v) => (v ? undefined : '请勾选同意') }]}>
+                <Form.Item
+                  name="agree"
+                  label="是否同意"
+                  rules={[{
+                    validator: (v) => (v ? undefined : "请勾选同意")
+                  }]}
+                >
                   <Switch label="" />
                 </Form.Item>
               </div>
 
               <div className="col-span-12 md:col-span-6">
-                <Form.Item name="city" label="所在城市" rules={[{ required: true, message: '请选择城市' }]}>
-                  <Input.Select placeholder="请选择城市" options={[
-                    { value: 'sh', label: '上海' },
-                    { value: 'bj', label: '北京' },
-                    { value: 'gz', label: '广州' },
-                  ]} />
+                <Form.Item
+                  name="city"
+                  label="所在城市"
+                  rules={[{ required: true, message: "请选择城市" }]}
+                >
+                  <Input.Select
+                    placeholder="请选择城市"
+                    options={[
+                      { value: "sh", label: "上海" },
+                      { value: "bj", label: "北京" },
+                      { value: "gz", label: "广州" }
+                    ]}
+                  />
                 </Form.Item>
               </div>
 
               <div className="col-span-12 md:col-span-6">
-                <Form.Item name="birthday" label="生日" rules={[{ required: true, message: '请选择日期' }]}>
+                <Form.Item
+                  name="birthday"
+                  label="生日"
+                  rules={[{ required: true, message: "请选择日期" }]}
+                >
                   <Input.Date />
                 </Form.Item>
               </div>
 
               <div className="col-span-12 md:col-span-6">
                 <Form.Item name="budget" label="预算">
-                  <Input.Number placeholder="请输入预算" min={0} max={1000000} step={0.01} precision={2} group />
+                  <Input.Number
+                    placeholder="请输入预算"
+                    min={0}
+                    max={1_000_000}
+                    step={0.01}
+                    precision={2}
+                    group
+                  />
                 </Form.Item>
               </div>
 
               <div className="col-span-12 md:col-span-6">
-                <Form.Item name="period" label="有效期" rules={[{ validator: (v) => (Array.isArray(v) && v[0] && v[1]) ? undefined : '请选择起止日期' }]}>
+                <Form.Item
+                  name="period"
+                  label="有效期"
+                  rules={[
+                    {
+                      validator: (v) =>
+                        Array.isArray(v) && v[0] && v[1]
+                          ? undefined
+                          : "请选择起止日期"
+                    }
+                  ]}
+                >
                   <Input.DateRange />
                 </Form.Item>
               </div>
 
               <div className="col-span-12">
-                <Form.Item name="bio" label="个人简介" rules={[{ max: 200, message: '最多 200 字' }]}>
+                <Form.Item
+                  name="bio"
+                  label="个人简介"
+                  rules={[{ max: 200, message: "最多 200 字" }]}
+                >
                   <Input.TextArea placeholder="说点什么..." autoGrow />
                 </Form.Item>
               </div>
@@ -142,14 +241,16 @@ export default function FormDemo() {
                 <Form.Item
                   name="volume"
                   label="音量"
-                  normalize={(v) => (typeof v === 'number' ? Math.min(100, Math.max(0, v)) : (typeof v === 'string' ? Number(v) : v))}
+                  validateTrigger="change"
                 >
                   <Slider min={0} max={100} defaultValue={30} />
                 </Form.Item>
               </div>
 
               <div className="col-span-12">
-                <Button type="submit" variant="primary">提交</Button>
+                <Button type="submit" variant="primary">
+                  提交
+                </Button>
               </div>
             </div>
           </Form>
