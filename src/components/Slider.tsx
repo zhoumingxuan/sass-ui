@@ -7,7 +7,7 @@ type Props = Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange'> & {
   label?: string;
   helper?: string;
   showValue?: boolean;
-  onChange?: (event: ChangeEvent<HTMLInputElement>) => void;
+  onChange?: (value:any) => void;
 };
 
 export default function Slider({
@@ -24,20 +24,12 @@ export default function Slider({
   ...rest
 }: Props) {
   const id = useId();
-  const isControlled = typeof value !== 'undefined';
-  const numericValue = isControlled ? Number(value) : undefined;
-  const numericDefault = !isControlled && typeof defaultValue !== 'undefined' ? Number(defaultValue) : undefined;
-  const [internal, setInternal] = useState<number | undefined>(numericValue ?? numericDefault);
-
-  useEffect(() => {
-    if (isControlled) {
-      setInternal(numericValue);
-    }
-  }, [isControlled, numericValue]);
+  const numericValue = typeof value !== 'undefined' ? Number(value) : undefined;
+  const numericDefault = typeof defaultValue !== 'undefined' ? Number(defaultValue) : undefined;
 
   const numericMin = Number(min);
   const numericMax = Number(max);
-  const current = isControlled ? numericValue : internal;
+  const current = typeof value !== 'undefined' ? numericValue : numericDefault;
   const span = numericMax - numericMin;
   const percent = useMemo(() => {
     if (typeof current !== 'number' || span === 0) return 0;
@@ -46,9 +38,7 @@ export default function Slider({
   }, [current, span, numericMin]);
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const next = Number(event.target.value);
-    if (!isControlled) setInternal(next);
-    onChange?.(event);
+    onChange?.(event.target.value);
   };
 
   return (
@@ -72,8 +62,8 @@ export default function Slider({
           style={{
             background: `linear-gradient(currentColor, currentColor) 0 / ${percent}% 100% no-repeat, var(--color-gray-200)`,
           }}
-          value={isControlled ? numericValue : undefined}
-          defaultValue={!isControlled ? numericDefault : undefined}
+          value={numericValue}
+          defaultValue={numericDefault}
           onChange={handleChange}
           {...rest}
         />
