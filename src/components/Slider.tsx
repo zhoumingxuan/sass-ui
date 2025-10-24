@@ -21,11 +21,14 @@ export default function Slider({
 }: Props) {
   const id = useId();
 
-  const current:number|undefined=useMemo(()=>{
-     const numericDefault = typeof defaultValue !== 'undefined' ? Number(defaultValue) : undefined;
-     const numericValue = typeof value !== 'undefined' ? Number(value) : undefined;
-     return numericValue?numericValue:numericDefault;
-  },[value,defaultValue])
+  const [current,setCurrent]=useState(typeof defaultValue !== 'undefined' ? Number(defaultValue):undefined);
+
+  useEffect(() => {
+    if (typeof value !== 'undefined') {
+      setCurrent(Number(value));
+    }
+  }, [value]);
+
 
   const percent = useMemo(() => {
     const numericMin = Number(min);
@@ -37,6 +40,7 @@ export default function Slider({
   }, [current, max, min]);
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setCurrent(Number(event.target.value));
     onChange?.(event.target.value);
   };
 

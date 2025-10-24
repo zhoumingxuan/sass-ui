@@ -31,9 +31,11 @@ export default function Switch({
   const id = useId();
   const [checked,setChecked]=useState(defaultValue);
 
-  useEffect(()=>{
-    setChecked(value)
-  },[value]);
+  useEffect(() => {
+    if (typeof value !== 'undefined') {
+      setChecked(value);
+    }
+  }, [value]);
 
   const isOn = checked;
 
