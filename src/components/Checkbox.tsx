@@ -62,8 +62,6 @@ export default function Checkbox({ label, description, indeterminate, className 
 
 type CheckboxGroupProps = {
   name?: string;
-  values?: string[]; // legacy
-  defaultValues?: string[]; // legacy
   value?: string[]; // form-friendly alias
   defaultValue?: string[]; // form-friendly alias
   onChange?: (values: string[]) => void;
@@ -77,8 +75,6 @@ type CheckboxGroupProps = {
 
 export function CheckboxGroup({
   name,
-  values,
-  defaultValues,
   value,
   defaultValue,
   onChange,
@@ -89,33 +85,28 @@ export function CheckboxGroup({
   className = '',
   inline = false,
 }: CheckboxGroupProps) {
-  const nextValues = typeof value !== 'undefined' ? value : values;
-  const nextDefault = typeof defaultValue !== 'undefined' ? defaultValue : defaultValues;
-  const isControlled = Array.isArray(nextValues);
-  const resolvedDefault = Array.isArray(nextDefault) ? nextDefault : undefined;
-  const defaultSignature = resolvedDefault ? resolvedDefault.join('\u0000') : '';
-  const memoDefault = useMemo(() => (resolvedDefault ? [...resolvedDefault] : undefined), [defaultSignature]);
-  const [internalValues, setInternalValues] = useState<string[]>(() => memoDefault ? [...memoDefault] : []);
 
-  useEffect(() => {
-    if (isControlled) return;
-    if (memoDefault) setInternalValues([...memoDefault]);
-    else setInternalValues([]);
-  }, [isControlled, memoDefault]);
 
-  const selected = isControlled ? (nextValues as string[]) : internalValues;
+  
+  const selected = useMemo(() => {
+    const Default = typeof defaultValue !== 'undefined' ? defaultValue : undefined;
+    const Value = typeof value !== 'undefined' ? value : undefined;
+    return Value?Value:Default
+  },[value,defaultValue])
+
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
-    const exists = selected.includes(val);
-    let next: string[];
-    if (e.target.checked) {
-      next = exists ? selected : [...selected, val];
-    } else {
-      next = selected.filter((v) => v !== val);
+    if (selected && Array.isArray(selected)) {
+      const exists = selected.includes(val);
+      let next: string[];
+      if (e.target.checked) {
+        next = exists ? selected : [...selected, val];
+      } else {
+        next = selected.filter((v) => v !== val);
+      }
+      onChange?.(next);
     }
-    if (!isControlled) setInternalValues(next);
-    onChange?.(next);
   };
 
   return (
@@ -127,7 +118,7 @@ export function CheckboxGroup({
             key={opt.value}
             name={name}
             value={opt.value}
-            checked={selected.includes(opt.value)}
+            checked={selected?selected.includes(opt.value):undefined}
             onChange={handleChange}
             disabled={disabled || opt.disabled}
             label={opt.label}
