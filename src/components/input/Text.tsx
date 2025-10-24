@@ -1,6 +1,6 @@
 "use client";
 
-import { InputHTMLAttributes, ReactNode, useId, useState } from "react";
+import { InputHTMLAttributes, ReactNode, useId, useMemo, useState } from "react";
 import {
   inputBase,
   inputStatus,
@@ -13,6 +13,8 @@ import {
 type Props = Omit<InputHTMLAttributes<HTMLInputElement>, "size"> & {
   prefix?: ReactNode;
   suffix?: ReactNode;
+  value?:string;
+  defaultValue?:string,
   status?: Status;
   size?: InputSize;
 };
@@ -20,6 +22,8 @@ type Props = Omit<InputHTMLAttributes<HTMLInputElement>, "size"> & {
 export default function Text({
   prefix,
   suffix,
+  value,
+  defaultValue,
   status,
   className = "",
   onChange,
@@ -27,18 +31,16 @@ export default function Text({
   ...props
 }: Props) {
   const id = useId();
-  const isControlled = Object.prototype.hasOwnProperty.call(props, "value");
-  const [internal, setInternal] = useState<string>(() =>
-    (props.defaultValue as string | number | readonly string[] | undefined)?.toString() ?? ""
-  );
-  const rawVal = isControlled ? props.value : internal;
-  const val: string =
-    (rawVal as string | number | readonly string[] | undefined)?.toString() ?? "";
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!isControlled) setInternal(e.target.value);
-    onChange?.(e);
+    onChange?.(e.target.value);
   };
+
+  const currentValue = useMemo(() => {
+    const Default = typeof defaultValue !== 'undefined' ? defaultValue : undefined;
+    const Value = typeof value !== 'undefined' ? value : undefined;
+    return Value?Value:Default
+  },[value,defaultValue])
 
   const sizeSuffixPadding = suffix ? inputPR[size] : "";
   const prefixPadding =
@@ -74,7 +76,7 @@ export default function Text({
         ]
           .filter(Boolean)
           .join(" ")}
-        value={val}
+        value={currentValue}
         onChange={handleChange}
         {...props}
       />
