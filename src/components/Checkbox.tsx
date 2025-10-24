@@ -83,12 +83,11 @@ export function CheckboxGroup({
 }: CheckboxGroupProps) {
 
 
+  const [selected,setSelected]=useState(typeof defaultValue !== 'undefined' ? defaultValue : []);
   
-  const selected = useMemo(() => {
-    const Default = typeof defaultValue !== 'undefined' ? defaultValue : undefined;
-    const Value = typeof value !== 'undefined' ? value : undefined;
-    return Value?Value:Default
-  },[value,defaultValue])
+  useEffect(()=>{
+    setSelected(typeof value !== 'undefined' ? value : []);
+  },[value]);
 
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -97,11 +96,17 @@ export function CheckboxGroup({
       const exists = selected.includes(val);
       let next: string[];
       if (e.target.checked) {
-        next = exists ? selected : [...selected, val];
+        if (!exists) {
+          next = [...selected, val];
+          setSelected(next);
+          onChange?.(next);
+        }
+
       } else {
         next = selected.filter((v) => v !== val);
+        setSelected(next);
+        onChange?.(next);
       }
-      onChange?.(next);
     }
   };
 
