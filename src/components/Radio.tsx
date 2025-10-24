@@ -1,6 +1,6 @@
 'use client';
 
-import { ChangeEvent, useState } from 'react';
+import { ChangeEvent, useMemo, useState } from 'react';
 import { controlRing, controlDisabled, fieldLabel, helperText } from './formStyles';
 
 export type RadioOption = {
@@ -48,8 +48,6 @@ type RadioGroupProps = {
   defaultValue?: string;
   onChange?: (value: string) => void;
   options?: RadioOption[];
-  label?: string;
-  helper?: string;
   disabled?: boolean;
   className?: string;
   inline?: boolean;
@@ -61,38 +59,35 @@ export function RadioGroup({
   defaultValue,
   onChange,
   options,
-  label,
-  helper,
   disabled,
   className = '',
   inline = false,
 }: RadioGroupProps) {
-  const isControlled = typeof value !== 'undefined';
-  const [internalValue, setInternalValue] = useState<string | undefined>(defaultValue);
-  const selected = isControlled ? value : internalValue;
+
+  const selected = useMemo(() => {
+    const Default = typeof defaultValue !== 'undefined' ? defaultValue : undefined;
+    const Value = typeof value !== 'undefined' ? value : undefined;
+    return Value ? Value : Default
+  }, [value, defaultValue])
+
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (!isControlled) setInternalValue(e.target.value);
     onChange?.(e.target.value);
   };
 
   return (
-    <div className={`${disabled ? controlDisabled : ''} ${className}`}>
-      {label && <div className={fieldLabel}>{label}</div>}
-      <div className={inline ? 'flex flex-wrap items-center gap-4' : 'space-y-2'}>
-        {options?.map((opt) => (
-          <Radio
-            key={opt.value}
-            name={name}
-            value={opt.value}
-            checked={selected === opt.value}
-            onChange={handleChange}
-            disabled={disabled || opt.disabled}
-            label={opt.label}
-            description={opt.description}
-          />
-        ))}
-      </div>
-      {helper && <div className={helperText}>{helper}</div>}
+    <div className={[inline ? 'flex flex-wrap items-center gap-4' : 'space-y-2',className].join(" ")}>
+      {options?.map((opt) => (
+        <Radio
+          key={opt.value}
+          name={name}
+          value={opt.value}
+          checked={selected === opt.value}
+          onChange={handleChange}
+          disabled={disabled || opt.disabled}
+          label={opt.label}
+          description={opt.description}
+        />
+      ))}
     </div>
   );
 }

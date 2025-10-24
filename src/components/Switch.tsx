@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { controlRing, controlDisabled, fieldLabel } from './formStyles';
 
 type Size = 'small' | 'medium' | 'large';
@@ -15,31 +15,31 @@ type SwitchProps = {
   onChange?: (checked: boolean) => void;
   name?: string;
   disabled?: boolean;
-  label?: string;
-  description?: string;
   size?: Size;
   className?: string;
 };
 
 export default function Switch({
-  checked,
-  defaultChecked,
   value,
   defaultValue,
   onChange,
   name,
   disabled,
-  label,
-  description,
   size = 'medium',
   className = '',
 }: SwitchProps) {
   const id = useId();
-  const [internal, setInternal] = useState<boolean>(
-    typeof defaultChecked === 'boolean' ? !!defaultChecked : !!defaultValue
-  );
-  const isControlled = typeof checked === 'boolean' || typeof value === 'boolean';
-  const isOn = isControlled ? (typeof checked === 'boolean' ? !!checked : !!value) : internal;
+  const [checked,setChecked]=useState(defaultValue);
+
+  useEffect(()=>{
+    setChecked(value)
+  },[value]);
+
+  const isOn = checked;
+
+  useEffect(()=>{
+    onChange?.(checked?checked:false);
+  },[checked]);
 
   const sizes: Record<Size, { track: string; thumbSize: string; thumbTranslate: string }>
     = {
@@ -56,15 +56,13 @@ export default function Switch({
   const handleToggle = () => {
     if (disabled) return;
     const next = !isOn;
-    if (!isControlled) setInternal(next);
-    onChange?.(next);
+    setChecked(next);
   };
 
   return (
     <div className={`select-none ${disabled ? controlDisabled : ''} ${className}`}>
-      {label && <label htmlFor={id} className={fieldLabel}>{label}</label>}
       <div className="flex items-center gap-3">
-        <button
+        <a
           id={id}
           type="button"
           role="switch"
@@ -84,10 +82,7 @@ export default function Switch({
             className={`pointer-events-none absolute top-1/2 -translate-y-1/2 ${thumbBase} ${sizes[size].thumbSize} ${sizes[size].thumbTranslate}`}
             style={{ left: '2px' }}
           />
-        </button>
-        {description && (
-          <span className="text-sm text-gray-600">{description}</span>
-        )}
+        </a>
       </div>
       {name && (
         <input type="hidden" name={name} value={isOn ? 'on' : ''} />
