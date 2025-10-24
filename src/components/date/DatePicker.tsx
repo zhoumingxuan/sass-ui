@@ -29,9 +29,9 @@ export default function DatePicker({ label, helper, value, defaultValue, min, ma
     {
         return  parseISO(value);
     }
-    else
+    else if(typeof defaultValue !== 'undefined')
     {
-         return  parseISO(defaultValue);
+         return parseISO(defaultValue);
     }
   }, [value,defaultValue]);
 

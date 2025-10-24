@@ -24,8 +24,8 @@ export default function NumberInput({ className = "", value, defaultValue, step 
   const inputRef = useRef<HTMLInputElement>(null);
 
   const val = useMemo(() => {
-    const Default = typeof defaultValue !== 'undefined' ? defaultValue : undefined;
-    const Value = typeof value !== 'undefined' ? value : undefined;
+    const Default = typeof defaultValue !== 'undefined' ? Number(defaultValue) : undefined;
+    const Value = typeof value !== 'undefined' ? Number(value) : undefined;
     return Value ? Value : Default
   }, [value, defaultValue])
 
