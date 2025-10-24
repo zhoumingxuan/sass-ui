@@ -23,7 +23,7 @@ export default {
         'elevation-2': '0 0 1rem -0.875rem rgba(0,0,0,0.45)',
         'elevation-2-left': '-0.5rem 0 1rem -0.875rem rgba(0,0,0,0.45)',
         'elevation-2-right': '0.5rem 0 1rem -0.875rem rgba(0,0,0,0.45)',
-        'elevation-3': '0 16px 32px -16px rgba(0,0,0,0.24)',
+        'elevation-3': '0 1rem 2rem -1rem rgba(0,0,0,0.24)',
         
       },
       colors: {

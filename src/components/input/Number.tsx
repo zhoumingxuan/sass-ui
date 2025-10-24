@@ -5,8 +5,6 @@ import { inputBase, fieldLabel, helperText, inputStatus, Status, InputSize, inpu
 import { ChevronUp, ChevronDown } from "lucide-react";
 
 type Props = Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "value" | "defaultValue" | "size"> & {
-  label?: string;
-  helper?: string;
   value?: number;
   defaultValue?: number;
   step?: number;
@@ -21,7 +19,7 @@ type Props = Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "value" | 
   group?: boolean; // thousands grouping display when blurred
 };
 
-export default function NumberInput({ label, helper, className = "", value, defaultValue, step = 1, min, max, precision, onChange, status, size = 'md', disabled, formatter, parser, group = false, ...props }: Props) {
+export default function NumberInput({ className = "", value, defaultValue, step = 1, min, max, precision, onChange, status, size = 'md', disabled, formatter, parser, group = false, ...props }: Props) {
   const id = useId();
   const isControlled = typeof value === "number" || value === null;
   const [internal, setInternal] = useState<number | null>(typeof defaultValue === "number" ? defaultValue : null);
@@ -147,8 +145,6 @@ export default function NumberInput({ label, helper, className = "", value, defa
   const canDec = !disabled && (typeof min !== 'number' || (typeof val === 'number' ? val - s >= min : true));
 
   return (
-    <label className="block">
-      {label && <span className={fieldLabel}>{label}</span>}
       <div
         className={`relative group flex items-center ${className}`}
       >
@@ -172,7 +168,7 @@ export default function NumberInput({ label, helper, className = "", value, defa
           disabled={disabled}
           {...props}
         />
-        <div className={`absolute right-0 top-1/2 -translate-y-1/2 flex flex-col items-center opacity-0 pointer-events-none transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 group-hover:pointer-events-auto group-focus-within:pointer-events-auto ${disabled ? '!opacity-0 !pointer-events-none' : ''}`}>
+        <div className={`absolute right-0 border-l-1 border-gray top-1/2 -translate-y-1/2 flex flex-col items-center opacity-0 pointer-events-none transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 group-hover:pointer-events-auto group-focus-within:pointer-events-auto ${disabled ? '!opacity-0 !pointer-events-none' : ''}`}>
           <div
             role="button"
             tabIndex={-1}
@@ -195,7 +191,5 @@ export default function NumberInput({ label, helper, className = "", value, defa
           </div>
         </div>
       </div>
-      {helper && <span className={helperText}>{helper}</span>}
-    </label>
   );
 }

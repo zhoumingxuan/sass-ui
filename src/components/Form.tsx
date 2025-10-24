@@ -356,43 +356,42 @@ function FormItem({
       ? validateTrigger.includes("blur")
       : validateTrigger === "blur";
     const cp: Record<string, unknown> = {};
+
     if (name && child) {
       // 受控赋值
       cp[valuePropName] = val;
 
       // 变更事件
-      const origin = (child.props as Record<string, unknown>)[
-        trigger
-      ] as ((...a: unknown[]) => void) | undefined;
+      const origin = (child.props as Record<string, unknown>)[trigger] as ((...a: unknown[]) => void) | undefined;
       cp[trigger] = (...args: unknown[]) => {
         if (origin) origin(...args);
-        let v = getValueFromEvent
-          ? getValueFromEvent(...args)
-          : defaultGetValueFromEvent(valuePropName, ...args);
+        let v = getValueFromEvent? getValueFromEvent(...args): defaultGetValueFromEvent(valuePropName, ...args);
         if (normalize) v = normalize(v, f.values);
         void f.setValue(name, v, { validate: needChangeValidate });
       };
 
-      // 失焦校验
-      const originBlur = (child.props as Record<string, unknown>)
-        .onBlur as ((...a: unknown[]) => void) | undefined;
-      cp.onBlur = (...args: unknown[]) => {
-        if (originBlur) originBlur(...args);
-        if (needBlurValidate) {
-          void f.validateField(name);
-        }
-      };
+      // // 失焦校验
+      // const originBlur = (child.props as Record<string, unknown>)
+      //   .onBlur as ((...a: unknown[]) => void) | undefined;
+      // cp.onBlur = (...args: unknown[]) => {
+      //   if (originBlur) originBlur(...args);
+      //   if (needBlurValidate) {
+      //     void f.validateField(name);
+      //   }
+      // };
 
-      // 错误传递：仅对自定义组件透传 status，原生 DOM 使用 aria-invalid 避免未知属性警告
-      if (hasErr) {
-        if (!isIntrinsicElement(child)) {
-          cp.status = "error";
-        }
-        cp["aria-invalid"] = true;
-        cp["data-error"] = "true";
-      }
+      // // 错误传递：仅对自定义组件透传 status，原生 DOM 使用 aria-invalid 避免未知属性警告
+      // if (hasErr) {
+      //   if (!isIntrinsicElement(child)) {
+      //     cp.status = "error";
+      //   }
+      //   cp["aria-invalid"] = true;
+      //   cp["data-error"] = "true";
+      // }
     }
-  }, [child, valuePropName, getValueFromEvent, defaultGetValueFromEvent, normalize,validateTrigger,trigger]);
+    
+    return cp
+  }, [child, valuePropName, getValueFromEvent, defaultGetValueFromEvent, normalize,validateTrigger,trigger,val]);
 
 
   const isHorizontal = f.layout === "horizontal";

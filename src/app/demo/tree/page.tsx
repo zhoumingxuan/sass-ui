@@ -119,7 +119,7 @@ export default function TreeDemo() {
                 placeholder="搜索节点（按名称）"
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
-                className="w-full h-9 px-3 rounded-lg border border-gray-300 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="w-full h-9 px-3 rounded-lg border border-gray-300 bg-white text-sm text-gray-700 focus:outline-none focus: focus:ring-primary/30"
               />
             </div>
             <div className="col-span-12 md:col-span-6 flex items-center gap-2 text-sm text-gray-700">

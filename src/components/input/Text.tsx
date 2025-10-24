@@ -16,6 +16,7 @@ type Props = Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> & {
 
 export default function Text({ label, helper, prefix, suffix, clearable = false, status, className = "", onChange, size = 'md', ...props }: Props) {
   const id = useId();
+  console.log(Object.prototype.hasOwnProperty)
   const isControlled = Object.prototype.hasOwnProperty.call(props, "value");
   const [internal, setInternal] = useState<string>(() => (props.defaultValue as string | number | readonly string[] | undefined)?.toString() ?? "");
   const rawVal = isControlled ? props.value : internal;
@@ -26,6 +27,7 @@ export default function Text({ label, helper, prefix, suffix, clearable = false,
     onChange?.(e);
   };
   const handleClear = () => {
+    
     const e = { target: { value: "" } } as unknown as React.ChangeEvent<HTMLInputElement>;
     if (!isControlled) setInternal("");
     onChange?.(e);
@@ -45,16 +47,20 @@ export default function Text({ label, helper, prefix, suffix, clearable = false,
             inputSize[size],
             status ? inputStatus[status] : '',
             prefix ? "pl-8" : "",
-            suffix || clearable ? (size === 'lg' ? 'pr-12' : size === 'sm' ? 'pr-8' : 'pr-10') : '',
+            suffix || clearable ? (size === 'lg' ? 'pr-3' : size === 'sm' ? 'pr-1' : 'pr-2') : '',
           ].filter(Boolean).join(" ")}
           value={val}
           onChange={handleChange}
           {...props}
         />
         {clearable && val && (
-          <button type="button" onClick={handleClear} aria-label="清空" className={`absolute ${size === 'lg' ? 'right-12' : size === 'sm' ? 'right-8' : 'right-10'} top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600`}>
+          <a href="#" type="button" onClick={e=>{
+            e.preventDefault();
+            e.stopPropagation();
+            handleClear();
+          }} aria-label="清空" className={`absolute ${size === 'lg' ? 'right-3' : size === 'sm' ? 'right-1' : 'right-2'} top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600`}>
             <X size={16} aria-hidden />
-          </button>
+          </a>
         )}
         {suffix && <span className={`pointer-events-none absolute right-3 text-gray-400 ${size === 'sm' ? 'text-xs' : size === 'lg' ? 'text-base' : 'text-sm'}`}>{suffix}</span>}
       </div>
