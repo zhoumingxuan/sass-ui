@@ -54,7 +54,7 @@ export default function FormDemo() {
             <div className="grid grid-cols-12 gap-4 md:gap-6">
               <div className="col-span-12 md:col-span-6">
                 <Form.Item name="username" label="用户名" required rules={[{ min: 2, message: '至少 2 个字符' }]}>
-                  <Input.Text placeholder="请输入用户名" clearable />
+                  <Input.Text suffix="$" placeholder="请输入用户名" clearable />
                 </Form.Item>
               </div>
 

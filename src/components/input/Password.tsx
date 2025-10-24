@@ -1,7 +1,7 @@
 "use client";
 
 import { InputHTMLAttributes, useState } from "react";
-import { inputBase, fieldLabel, helperText, inputStatus, Status, InputSize, inputSize } from "../formStyles";
+import { inputBase, inputStatus, Status, InputSize, inputSize } from "../formStyles";
 import { Eye, EyeOff } from "lucide-react";
 
 type Props = Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> & {
