@@ -23,10 +23,17 @@ type Props = {
 };
 
 export default function DatePicker({ label, helper, value, defaultValue, min, max, disabledDate, clearable = true, onChange, className = '', status }: Props) {
-  const isControlled = typeof value !== 'undefined';
-  const [internal, setInternal] = useState<string | undefined>(defaultValue);
-  const v = (isControlled ? value : internal) as string | undefined;
-  const date = useMemo(() => parseISO(v), [v]);
+
+  const date = useMemo(() => {
+    if(typeof value !== 'undefined')
+    {
+        return  parseISO(value);
+    }
+    else
+    {
+         return  parseISO(defaultValue);
+    }
+  }, [value,defaultValue]);
 
   const [open, setOpen] = useState(false);
   const [month, setMonth] = useState<Date>(() => date ?? new Date());
@@ -78,7 +85,6 @@ export default function DatePicker({ label, helper, value, defaultValue, min, ma
         next = found ? formatISO(found) : undefined;
       }
     }
-    if (!isControlled) setInternal(next);
     onChange?.(next);
   };
   const clear = () => commit(undefined);
@@ -111,7 +117,7 @@ export default function DatePicker({ label, helper, value, defaultValue, min, ma
             if (e.key === 'PageUp') { applyMonth(addMonths(month, e.shiftKey ? -12 : -1)); setOpen(true); e.preventDefault(); }
             if (e.key === 'PageDown') { applyMonth(addMonths(month, e.shiftKey ? 12 : 1)); setOpen(true); e.preventDefault(); }
           }}
-          value={v ?? ''}
+          value={value}
           onChange={(e) => {
             const raw = e.target.value.trim();
             if (raw === '') { commit(undefined); return; }
@@ -125,9 +131,9 @@ export default function DatePicker({ label, helper, value, defaultValue, min, ma
             }
           }}
           aria-invalid={status === 'error' ? true : undefined}
-          className={[inputBase, inputSize['md'], status ? inputStatus[status] : '', 'text-left pr-10', !v ? 'text-gray-400' : 'text-gray-700'].filter(Boolean).join(' ')}
+          className={[inputBase, inputSize['md'], status ? inputStatus[status] : '', 'text-left pr-10', !value ? 'text-gray-400' : 'text-gray-700'].filter(Boolean).join(' ')}
         />
-        {clearable && v && (
+        {clearable && value && (
           <button type="button" onClick={clear} aria-label="清空" className="absolute right-10 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500">
             <X size={16} aria-hidden />
           </button>
