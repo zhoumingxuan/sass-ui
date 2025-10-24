@@ -66,8 +66,6 @@ type CheckboxGroupProps = {
   defaultValue?: string[]; // form-friendly alias
   onChange?: (values: string[]) => void;
   options?: CheckboxOption[];
-  label?: string;
-  helper?: string;
   disabled?: boolean;
   className?: string;
   inline?: boolean;
@@ -79,8 +77,6 @@ export function CheckboxGroup({
   defaultValue,
   onChange,
   options,
-  label,
-  helper,
   disabled,
   className = '',
   inline = false,
@@ -110,23 +106,19 @@ export function CheckboxGroup({
   };
 
   return (
-    <div className={`${disabled ? controlDisabled : ''} ${className}`}>
-      {label && <div className={fieldLabel}>{label}</div>}
-      <div className={inline ? 'flex flex-wrap items-center gap-4' : 'space-y-2'}>
-        {options?.map((opt) => (
-          <Checkbox
-            key={opt.value}
-            name={name}
-            value={opt.value}
-            checked={selected?selected.includes(opt.value):undefined}
-            onChange={handleChange}
-            disabled={disabled || opt.disabled}
-            label={opt.label}
-            description={opt.description}
-          />
-        ))}
-      </div>
-      {helper && <div className={helperText}>{helper}</div>}
+    <div className={[inline ? 'flex flex-wrap items-center gap-4' : 'space-y-2',className].join(" ")}>
+      {options?.map((opt) => (
+        <Checkbox
+          key={opt.value}
+          name={name}
+          value={opt.value}
+          checked={selected ? selected.includes(opt.value) : undefined}
+          onChange={handleChange}
+          disabled={disabled || opt.disabled}
+          label={opt.label}
+          description={opt.description}
+        />
+      ))}
     </div>
   );
 }
