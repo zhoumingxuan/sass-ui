@@ -1,4 +1,5 @@
-﻿"use client";
+﻿/* eslint-disable @typescript-eslint/no-explicit-any */
+"use client";
 
 import React, {
   createContext,
@@ -23,6 +24,7 @@ import type {
   FormValues
 } from "./formTypes";
 
+/** ======================= Form Instance & Context ======================= */
 export type FormInstance<TValues extends FormValues = FormValues> = {
   setFieldValue: <Field extends keyof TValues & string>(
     name: Field,
@@ -54,7 +56,6 @@ type FormContextType<TValues extends FormValues = FormValues> = FormInstance<TVa
 
 const FormContext = createContext<FormContextType<FormValues> | null>(null);
 
-const EXTERNAL_VALUE_UNSET = Symbol("form-external-unset");
 const FULL_WIDTH_COLON = "：";
 
 const hasOwn = (obj: FormValues, key: string) =>
@@ -62,9 +63,7 @@ const hasOwn = (obj: FormValues, key: string) =>
 
 function cloneValue(value: unknown): unknown {
   if (Array.isArray(value)) return [...value];
-  if (value && typeof value === "object") {
-    return { ...(value as Record<string, unknown>) };
-  }
+  if (value && typeof value === "object") return { ...(value as Record<string, unknown>) };
   return value;
 }
 
@@ -73,14 +72,12 @@ function cloneInitialValues(initialValues?: Partial<FormValues>): FormValues {
   const next: FormValues = {};
   Object.keys(initialValues).forEach((key) => {
     const val = cloneValue(initialValues[key]);
-    if (val !== undefined) {
-      next[key] = val;
-    }
+    if (val !== undefined) next[key] = val;
   });
   return next;
 }
 
-
+/** ======================= Core State & Validation ======================= */
 function useFormInternal(initialValues?: Partial<FormValues>): Omit<
   FormContextType<FormValues>,
   "layout" | "labelWidth" | "colon"
@@ -88,19 +85,13 @@ function useFormInternal(initialValues?: Partial<FormValues>): Omit<
   const rulesRef = useRef<Record<string, FormRule[] | undefined>>({});
   const initialRef = useRef<FormValues>(cloneInitialValues(initialValues));
   const valuesRef = useRef<FormValues>(cloneInitialValues(initialValues));
-  const [values, setValues] = useState<FormValues>(() =>
-    cloneInitialValues(initialValues)
-  );
+  const [values, setValues] = useState<FormValues>(() => cloneInitialValues(initialValues));
   const [errors, setErrors] = useState<FormErrors>({});
-  const controlledRef = useRef<Record<string, boolean>>({});
-
-  const markControlled = useCallback((name: string) => {
-    controlledRef.current[name] = true;
-  }, []);
+  const hasFieldValueMap = useRef<Record<string, boolean>>({});
 
   const hasFieldValue = useCallback(
     (name: string) =>
-      !!controlledRef.current[name] || hasOwn(valuesRef.current, name),
+      !!hasFieldValueMap.current[name] || hasOwn(valuesRef.current, name),
     []
   );
 
@@ -108,15 +99,15 @@ function useFormInternal(initialValues?: Partial<FormValues>): Omit<
     (name: string, options?: { rules?: FormRule[] }) => {
       rulesRef.current[name] = options?.rules;
       if (hasOwn(valuesRef.current, name)) {
-        markControlled(name);
+        hasFieldValueMap.current[name] = true;
       }
     },
-    [markControlled]
+    []
   );
 
   const unregister = useCallback((name: string) => {
     delete rulesRef.current[name];
-    delete controlledRef.current[name];
+    delete hasFieldValueMap.current[name];
     if (hasOwn(valuesRef.current, name)) {
       const next = { ...valuesRef.current };
       delete next[name];
@@ -148,9 +139,7 @@ function useFormInternal(initialValues?: Partial<FormValues>): Omit<
           }
         }
         if (typeof rule.len === "number" && typeof value === "string") {
-          if (value.length !== rule.len) {
-            result.push(rule.message || `长度必须为${rule.len}`);
-          }
+          if (value.length !== rule.len) result.push(rule.message || `长度必须为${rule.len}`);
         }
         if (typeof rule.min === "number") {
           if (typeof value === "number" && value < rule.min) {
@@ -169,15 +158,11 @@ function useFormInternal(initialValues?: Partial<FormValues>): Omit<
           }
         }
         if (rule.pattern && typeof value === "string") {
-          if (!rule.pattern.test(value)) {
-            result.push(rule.message || "格式不正确");
-          }
+          if (!rule.pattern.test(value)) result.push(rule.message || "格式不正确");
         }
         if (rule.validator) {
           const message = await rule.validator(value, currentValues);
-          if (typeof message === "string" && message) {
-            result.push(message);
-          }
+          if (typeof message === "string" && message) result.push(message);
         }
       }
       return result;
@@ -186,7 +171,6 @@ function useFormInternal(initialValues?: Partial<FormValues>): Omit<
   );
 
   const getFieldValue = useCallback((name: string) => valuesRef.current[name], []);
-
   const getFieldsValue = useCallback(() => {
     const next: FormValues = {};
     Object.keys(valuesRef.current).forEach((key) => {
@@ -194,18 +178,15 @@ function useFormInternal(initialValues?: Partial<FormValues>): Omit<
     });
     return next;
   }, []);
-
   const getError = useCallback((name: string) => errors[name], [errors]);
 
   const setFieldValue = useCallback(
     async (name: string, value: unknown, opts?: FormSetValueOptions) => {
       if (value === undefined) {
         const next = { ...valuesRef.current };
-        if (hasOwn(next, name)) {
-          delete next[name];
-        }
+        if (hasOwn(next, name)) delete next[name];
         valuesRef.current = next;
-        delete controlledRef.current[name];
+        delete hasFieldValueMap.current[name];
         setValues(next);
         if (opts?.validate) {
           const errs = await runRules(name, undefined, next);
@@ -221,7 +202,7 @@ function useFormInternal(initialValues?: Partial<FormValues>): Omit<
         return undefined;
       }
 
-      markControlled(name);
+      hasFieldValueMap.current[name] = true;
       const stored = cloneValue(value);
       const next = { ...valuesRef.current, [name]: stored };
       valuesRef.current = next;
@@ -239,7 +220,7 @@ function useFormInternal(initialValues?: Partial<FormValues>): Omit<
       });
       return undefined;
     },
-    [markControlled, runRules]
+    [runRules]
   );
 
   const setFieldsValue = useCallback(
@@ -249,13 +230,11 @@ function useFormInternal(initialValues?: Partial<FormValues>): Omit<
       Object.keys(incoming).forEach((key) => {
         const raw = incoming[key];
         if (raw === undefined) {
-          if (hasOwn(next, key)) {
-            delete next[key];
-          }
-          delete controlledRef.current[key];
+          if (hasOwn(next, key)) delete next[key];
+          delete hasFieldValueMap.current[key];
           return;
         }
-        markControlled(key);
+        hasFieldValueMap.current[key] = true;
         next[key] = cloneValue(raw);
       });
       valuesRef.current = next;
@@ -264,9 +243,7 @@ function useFormInternal(initialValues?: Partial<FormValues>): Omit<
         const result: Record<string, string[]> = {};
         for (const key of Object.keys(incoming)) {
           const errs = await runRules(key, next[key], next);
-          if (errs.length) {
-            result[key] = errs;
-          }
+          if (errs.length) result[key] = errs;
         }
         setErrors((prev) => {
           const nextErr = { ...prev };
@@ -288,7 +265,7 @@ function useFormInternal(initialValues?: Partial<FormValues>): Omit<
       });
       return {};
     },
-    [markControlled, runRules]
+    [runRules]
   );
 
   const validateField = useCallback(
@@ -307,9 +284,7 @@ function useFormInternal(initialValues?: Partial<FormValues>): Omit<
     const names = Object.keys(rulesRef.current);
     for (const name of names) {
       const errs = await runRules(name, currentValues[name], currentValues);
-      if (errs.length) {
-        result[name] = errs;
-      }
+      if (errs.length) result[name] = errs;
     }
     setErrors(result);
     return result;
@@ -319,11 +294,11 @@ function useFormInternal(initialValues?: Partial<FormValues>): Omit<
     if (!names || names.length === 0) {
       const next = cloneInitialValues(initialRef.current);
       valuesRef.current = next;
-      const nextControlled: Record<string, boolean> = {};
+      const nextHas: Record<string, boolean> = {};
       Object.keys(next).forEach((key) => {
-        nextControlled[key] = true;
+        nextHas[key] = true;
       });
-      controlledRef.current = nextControlled;
+      hasFieldValueMap.current = nextHas;
       setValues(next);
       setErrors({});
       return;
@@ -333,19 +308,15 @@ function useFormInternal(initialValues?: Partial<FormValues>): Omit<
       if (hasOwn(initialRef.current, name)) {
         const init = cloneValue(initialRef.current[name]);
         if (init === undefined) {
-          if (hasOwn(current, name)) {
-            delete current[name];
-          }
-          delete controlledRef.current[name];
+          if (hasOwn(current, name)) delete current[name];
+          delete hasFieldValueMap.current[name];
         } else {
           current[name] = init;
-          controlledRef.current[name] = true;
+          hasFieldValueMap.current[name] = true;
         }
       } else {
-        if (hasOwn(current, name)) {
-          delete current[name];
-        }
-        delete controlledRef.current[name];
+        if (hasOwn(current, name)) delete current[name];
+        delete hasFieldValueMap.current[name];
       }
     });
     valuesRef.current = current;
@@ -393,6 +364,7 @@ function useFormInternal(initialValues?: Partial<FormValues>): Omit<
   );
 }
 
+/** ======================= <Form /> Root ======================= */
 export type FormProps<TValues extends FormValues = FormValues> =
   React.FormHTMLAttributes<HTMLFormElement> & {
     initialValues?: Partial<TValues>;
@@ -482,6 +454,7 @@ const FormRoot = forwardRef<FormInstance<FormValues>, FormProps>(function FormRo
   );
 });
 
+/** ======================= <Form.Item /> ======================= */
 export type FormItemProps = {
   name?: string;
   label?: React.ReactNode;
@@ -525,27 +498,20 @@ function FormItem({
     getFieldValue,
     getError,
     validateField,
-    hasFieldValue,
     layout,
     labelWidth,
     colon: formColon
   } = form;
 
+  // 注册/反注册 + required 合并
   const rulesSignature = JSON.stringify(rules ?? []);
-
-  React.useEffect(() => {
+  useEffect(() => {
     if (!name) return;
     const merged = [...(rules || [])];
     if (required) merged.unshift({ required: true });
     register(name, { rules: merged });
-    return () => {
-      unregister(name);
-    };
+    return () => unregister(name);
   }, [name, register, unregister, required, rulesSignature]);
-
-  const value = name ? getFieldValue(name) : undefined;
-  const errs = name ? getError(name) : undefined;
-  const hasErr = !!(errs && errs.length > 0);
 
   const triggerList = Array.isArray(validateTrigger)
     ? validateTrigger
@@ -553,109 +519,68 @@ function FormItem({
   const needChangeValidate = triggerList.includes("change");
   const needBlurValidate = triggerList.includes("blur");
 
+  // 读仓库值 & 错误
+
+  const errs = name ? getError(name) : undefined;
+  const hasErr = !!(errs && errs.length > 0);
+
+  // ============ 克隆子节点 ============
   const childElement = React.isValidElement(children)
     ? (children as React.ReactElement)
     : null;
 
   const childOriginalProps = childElement
-    ? (childElement.props as Record<string, unknown>)
+    ? (childElement.props as Record<string, any>)
     : undefined;
-  const childHasValueProp =
-    !!childOriginalProps &&
-    Object.prototype.hasOwnProperty.call(childOriginalProps, "value");
-  const childHasCheckedProp =
-    !!childOriginalProps &&
-    Object.prototype.hasOwnProperty.call(childOriginalProps, "checked");
-  const externalValue = childHasCheckedProp
-    ? childOriginalProps?.checked
-    : childHasValueProp
-    ? childOriginalProps?.value
-    : undefined;
-  const externallyControlled = childHasValueProp || childHasCheckedProp;
 
-  const lastExternalValueRef = useRef<unknown>(EXTERNAL_VALUE_UNSET);
+  // 稳定 handlers（仅依赖必要键）
+  const handleChange = useCallback(
+    (value: any) => {
+      if (!name) return;
+      void setFieldValue(name, value, { validate: needChangeValidate });
+      // 透传原始 onChange
+      const orig = childOriginalProps?.onChange as ((v: any) => void) | undefined;
+      if (typeof orig === "function") orig(value);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [name, needChangeValidate, setFieldValue, childOriginalProps?.onChange]
+  );
 
-  useEffect(() => {
-    if (!name || !externallyControlled) {
-      lastExternalValueRef.current = EXTERNAL_VALUE_UNSET;
-      return;
-    }
-    if (Object.is(lastExternalValueRef.current, externalValue)) {
-      return;
-    }
-    lastExternalValueRef.current = externalValue;
-    void setFieldValue(name, externalValue, { validate: false });
-  }, [externallyControlled, externalValue, name, setFieldValue]);
+  const handleBlur = useCallback(
+    (...args: any[]) => {
+      if (name && needBlurValidate) void validateField(name);
+      const orig = childOriginalProps?.onBlur as ((...args: any[]) => void) | undefined;
+      if (typeof orig === "function") orig(...args);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [name, needBlurValidate, validateField, childOriginalProps?.onBlur]
+  );
 
-  let childProps: Record<string, unknown> | null = null;
-  if (name && childElement) {
-    const formControlsField = hasFieldValue(name);
-    const props: Record<string, unknown> = {};
-    const resolvedValue = externallyControlled ? externalValue : value;
-    const isControlled = formControlsField || externallyControlled;
-    const originalProps = childOriginalProps as Record<string, unknown>;
-    const childInputType =
-      typeof originalProps?.type === "string" ? (originalProps.type as string) : undefined;
-    const isNativeCheckboxOrRadio =
-      typeof childElement.type === "string" &&
-      childElement.type === "input" &&
-      (childInputType === "checkbox" || childInputType === "radio");
 
-    if (isControlled) {
-      if (typeof resolvedValue === "boolean") {
-        props.checked = resolvedValue;
-        if (!isNativeCheckboxOrRadio) {
-          props.value = resolvedValue;
-        }
-      } else if (resolvedValue !== undefined || externallyControlled) {
-        props.value = resolvedValue;
-      }
-    }
-
-    const originalOnChange = originalProps?.onChange as
-      | ((value:unknown) => void)
-      | undefined;
-
-      props.onChange = (value:unknown) => {
-
-      void setFieldValue(name, value, {
-        validate: needChangeValidate
-      });
-      if (typeof originalOnChange === "function") {
-        originalOnChange(value);
-      }
+  // 用 useMemo 稳定 childProps（仅在真正变动时变）
+  const childProps = useMemo(() => {
+    const storeValue = name ? getFieldValue(name) : undefined;
+    // 始终提供“已定义”的受控值；防止 uncontrolled→controlled
+    const safeValue = storeValue === undefined ? "" : storeValue;
+    const base: Record<string, any> = {
+      value: safeValue,
+      onChange: handleChange,
+      onBlur: handleBlur
     };
-
-    const originalOnBlur = originalProps?.onBlur as
-      | ((...args: unknown[]) => void)
-      | undefined;
-    props.onBlur = (...args: unknown[]) => {
-      if (needBlurValidate) {
-        void validateField(name);
-      }
-      if (typeof originalOnBlur === "function") {
-        originalOnBlur(...(args as unknown[]));
-      }
-    };
-
     if (hasErr) {
-      if (typeof childElement.type !== "string") {
-        if ((originalProps?.status as unknown) == null) {
-          props.status = "error";
-        }
-      }
-      props["aria-invalid"] = true;
-      props["data-form-error"] = "true";
+      base.status = "error"; // 自定义组件可读
+      base["aria-invalid"] = true;
+      base["data-form-error"] = "true";
     }
+    return base;
+  }, [handleChange, handleBlur, hasErr,getFieldValue]);
 
-    childProps = props;
+  let control: React.ReactNode = childElement ?? children;
+  if (name && childElement) {
+    control = React.cloneElement(childElement, childProps);
   }
 
-  const control =
-    childElement && childProps
-      ? React.cloneElement(childElement, childProps)
-      : childElement ?? children;
-
+  // ============ 布局与提示 ============
   const isHorizontal = layout === "horizontal";
   const showColon = typeof colon === "boolean" ? colon : formColon !== false;
 
@@ -675,29 +600,25 @@ function FormItem({
     );
   };
 
-  const renderHelp = () => {
+  const renderFeedback = () => {
     if (hasErr) return <div className={errorText}>{errs![0]}</div>;
-    if (help) return <div className={helperText}>{help}</div>;
-    if (extra) return <div className={helperText}>{extra}</div>;
-    return null;
+    const node = help ?? extra;
+    return node ? <div className={helperText}>{node}</div> : null;
   };
 
   if (isHorizontal) {
-    const labelBoxStyle: React.CSSProperties = {
-      width: labelWidth
-    };
     return (
       <div className={["mb-3", className].join(" ")} style={style}>
         <div className="flex items-center gap-4">
           <div
             className="shrink-0 text-right flex items-center justify-end min-h-10"
-            style={labelBoxStyle}
+            style={{ width: labelWidth }}
           >
             {renderLabel()}
           </div>
           <div className="flex-1">
             <div className="min-h-10 flex items-center">{control}</div>
-            {renderHelp()}
+            {renderFeedback()}
           </div>
         </div>
       </div>
@@ -708,13 +629,13 @@ function FormItem({
     <div className={["mb-3", className].join(" ")} style={style}>
       {renderLabel()}
       {control}
-      {renderHelp()}
+      {renderFeedback()}
     </div>
   );
 }
 
+/** ======================= Hooks & Exports ======================= */
 export function useForm<TValues extends FormValues = FormValues>() {
-  // 使用 ref 暴露表单实例，方便在页面中通过 ref 操作
   return React.useRef<FormInstance<TValues> | null>(null);
 }
 
@@ -725,5 +646,3 @@ export function useFormContext<TValues extends FormValues = FormValues>() {
 export const Form = Object.assign(FormRoot, { Item: FormItem, useForm, useFormContext });
 
 export default Form;
-
-
