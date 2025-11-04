@@ -7,7 +7,7 @@ import type {
 } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import Checkbox from './Checkbox';
+import Checkbox from './input/Checkbox';
 
 import {
   FileQuestion,

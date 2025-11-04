@@ -11,8 +11,6 @@ import { addMonths, endOfMonth, formatISO, parseDateStrict, startOfMonth } from 
 type DisabledRange = { start: string | Date; end: string | Date; reason?: string };
 
 type Props = {
-  label?: string;
-  helper?: string;
   start?: string;
   end?: string;
   min?: string;
@@ -32,8 +30,6 @@ type Props = {
 };
 
 export default function DateRangePicker({
-  label,
-  helper,
   start,
   end,
   min,
@@ -322,8 +318,6 @@ export default function DateRangePicker({
   }, [open]);
 
   return (
-    <label className="block">
-      {label && <span className={fieldLabel}>{label}</span>}
       <div ref={anchor} className={`relative ${className}`}>
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
           <div className="relative">
@@ -586,7 +580,5 @@ export default function DateRangePicker({
           </div>, mountNode)
         }
       </div>
-      {helper && <span className={helperText}>{helper}</span>}
-    </label>
   );
 }

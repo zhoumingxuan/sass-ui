@@ -36,8 +36,6 @@ export type Option = {
 };
 
 type BaseProps = {
-  label?: string;
-  helper?: string;
   options: Option[];
   placeholder?: string;
   clearable?: boolean;
@@ -96,8 +94,6 @@ const DISPLAY_PILL_ATTR = "data-display-pill"; // Wrapper span around Pill, used
 
 export default function Select(props: Props) {
   const {
-    label,
-    helper,
     options,
     placeholder,
     clearable,
@@ -471,176 +467,165 @@ export default function Select(props: Props) {
   };
 
   return (
-    <label className="block">
-      {label && (
-        <span className={fieldLabel}>
-          {label}
-          {required ? <span className="ml-0.5 text-error">*</span> : null}
-        </span>
-      )}
-
-      <div ref={anchorRef} className={`relative ${className}`}>
-        <div
-          id={id}
-          onClick={() => setOpen(previous => !previous)}
-          onFocus={event => {
-            if (event.currentTarget.matches(":focus-visible")) setOpen(true);
-          }}
-          className={[
-            inputBase,
-            inputSize[size],
-            status ? inputStatus[status] : "",
-            "text-left flex items-center overflow-hidden",
-            textTone,
-            open? "rounded-none rounded-t-lg border-b-0":"",
-            // 单选且可清空时为右侧清空+箭头多留出少量空间
-            size === "lg"
-              ? (!multiple && clearable && selectionKeys.length > 0 ? "pr-14" : "pr-12")
-              : size === "sm"
+    <div ref={anchorRef} className={`relative ${className}`}>
+      <div
+        id={id}
+        onClick={() => setOpen(previous => !previous)}
+        onFocus={event => {
+          if (event.currentTarget.matches(":focus-visible")) setOpen(true);
+        }}
+        className={[
+          inputBase,
+          inputSize[size],
+          status ? inputStatus[status] : "",
+          "text-left flex items-center overflow-hidden",
+          textTone,
+          open ? "rounded-none rounded-t-lg border-b-0" : "",
+          // 单选且可清空时为右侧清空+箭头多留出少量空间
+          size === "lg"
+            ? (!multiple && clearable && selectionKeys.length > 0 ? "pr-14" : "pr-12")
+            : size === "sm"
               ? (!multiple && clearable && selectionKeys.length > 0 ? "pr-10" : "pr-8")
               : (!multiple && clearable && selectionKeys.length > 0 ? "pr-12" : "pr-10"),
-          ]
-            .filter(Boolean)
-            .join(" ")}
-          style={multiVars}
-          aria-haspopup="listbox"
-          aria-expanded={open}
-          aria-invalid={status === "error" ? true : undefined}
-          aria-controls={`${id}-listbox`}
-        >
-          {!multiple ? (
-            <span className="block min-w-0 truncate">{labelText || placeholder || ""}</span>
-          ) : (
-            renderMultiContent()
-          )}
-        </div>
-
-        {!multiple && clearable && selectionKeys.length > 0 && open  && (
-          <a
-            href="#"
-            onClick={event => {
-              event.preventDefault();
-              event.stopPropagation();
-              handleClearAll();
-            }}
-            aria-label="清空"
-            className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-          >
-            <X size={16} className="text-gray-500" aria-hidden />
-          </a>
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        style={multiVars}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-invalid={status === "error" ? true : undefined}
+        aria-controls={`${id}-listbox`}
+      >
+        {!multiple ? (
+          <span className="block min-w-0 truncate">{labelText || placeholder || ""}</span>
+        ) : (
+          renderMultiContent()
         )}
-
-        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
-          <ChevronDown size={16} aria-hidden />
-        </span>
-
-        {open &&
-          mountNode &&
-          createPortal(
-            <div
-              ref={popRef}
-              role="listbox"
-              id={`${id}-listbox`}
-              className="fixed z-[1200] max-h-56 overflow-auto border-t-gray-20 rounded-b-lg border border-gray-200 bg-white shadow-elevation-1 nice-scrollbar"
-              style={{ top: pos.top, left: pos.left, minWidth: pos.width, ['--sb-track']: 'transparent' } as unknown as CSSProperties}
-              aria-multiselectable={multiple || undefined}
-            >
-              <div
-                ref={listRef}
-                onScroll={event => {
-                  listScrollRef.current = event.currentTarget.scrollTop;
-                }}
-              >
-                {options.map((option, index) => {
-                  const selected = selectionKeys.includes(option.value);
-                  const active = index === activeIndex;
-                  const optionId = `${id}-opt-${index}`;
-                  return (
-                    <div
-                      id={optionId}
-                      key={option.value}
-                      role="option"
-                      aria-disabled={option.disabled}
-                      aria-selected={selected}
-                      className={[
-                        isList?"flex w-full px-3 transition-colors text-left":"flex w-full items-center justify-between px-3 transition-colors text-left",
-                        itemPadding,
-                        itemTextClass,
-                        selected ? "bg-primary/5 text-gray-900" : "",
-                        option.disabled? "cursor-not-allowed":"",
-                        active ? "bg-gray-100" : "hover:bg-gray-50",
-                        isList ? "items-start" : "items-center justify-between",
-                      ].join(" ")}
-                      onMouseEnter={() => {
-                        setActiveIndex(index);
-                        if (renderPreview) setPreviewOption(option);
-                      }}
-                      onMouseLeave={() => {
-                        if (renderPreview) setPreviewOption(null);
-                      }}
-                      onMouseDown={() => {
-                        if (listRef.current) listScrollRef.current = listRef.current.scrollTop;
-                        enforceVisibilityRef.current = false;
-                      }}
-                      onClick={() => {
-                        if (option.disabled) return;
-                        if (multiple) {
-                          toggleMulti(option.value, index);
-                        } else {
-                          commitSingle(option.value);
-                        }
-                      }}
-                    >
-                      {isList ? (
-                        // 列表风格：左中右布局（leading | 文本块 | trailing  选中勾）
-                        <div className="flex w-full items-start gap-3">
-                          {/* 左侧可选前缀 */}
-                          {option.leading ? (
-                            <span className="shrink-0 mt-0.5">{option.leading}</span>
-                          ) : null}
-
-                          {/* 中间文本块（标题/副标题/说明） */}
-                          <div className="min-w-0 flex-1 whitespace-normal break-words">
-                            <div className="flex items-baseline gap-2">
-                              <div className={["truncate font-medium", itemTextClass,option.disabled ? "text-gray-300" : ""].join(" ")}>
-                                {option.title ?? option.label}
-                              </div>
-                            </div>
-                            {option.subtitle ? (
-                              <div className={["mt-0.5 truncate text-xs",option.disabled ? "text-gray-300" : "text-gray-400"].join(" ")}>{option.subtitle}</div>
-                            ) : null}
-                          </div>
-
-                          {/* 右侧可选后缀 */}
-                          {option.trailing ? <span className={["shrink-0 text-xs",option.disabled ? "text-gray-300" : "text-gray-400"].join(" ")}>{option.trailing}</span> : null}
-
-                          {/* 最右侧选中勾 */}
-                          {selected && <Check size={16} className="shrink-0 text-primary" aria-hidden />}
-                        </div>
-                      ) : (
-                        <>
-                          <span className={["truncate",option.disabled ? "text-gray-300" : "",].join(" ")}>{option.label}</span>
-                          {selected && <Check size={16} className="text-primary" aria-hidden />}
-                        </>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-              {renderPreview && previewOption && previewAt && (
-                <div
-                  className="fixed z-[1201] rounded-lg border border-gray-200 bg-white p-3 text-sm shadow-elevation-2-left whitespace-normal break-words"
-                  style={{ top: previewAt.top, left: previewAt.left } as CSSProperties}
-                >
-                  {renderPreview(previewOption)}
-                </div>
-              )}
-            </div>,
-            mountNode,
-          )}
       </div>
 
-      {helper && <span className={helperText}>{helper}</span>}
-    </label>
+      {!multiple && clearable && selectionKeys.length > 0 && open && (
+        <a
+          href="#"
+          onClick={event => {
+            event.preventDefault();
+            event.stopPropagation();
+            handleClearAll();
+          }}
+          aria-label="清空"
+          className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+        >
+          <X size={16} className="text-gray-500" aria-hidden />
+        </a>
+      )}
+
+      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+        <ChevronDown size={16} aria-hidden />
+      </span>
+
+      {open &&
+        mountNode &&
+        createPortal(
+          <div
+            ref={popRef}
+            role="listbox"
+            id={`${id}-listbox`}
+            className="fixed z-[1200] max-h-56 overflow-auto border-t-gray-20 rounded-b-lg border border-gray-200 bg-white shadow-elevation-1 nice-scrollbar"
+            style={{ top: pos.top, left: pos.left, minWidth: pos.width, ['--sb-track']: 'transparent' } as unknown as CSSProperties}
+            aria-multiselectable={multiple || undefined}
+          >
+            <div
+              ref={listRef}
+              onScroll={event => {
+                listScrollRef.current = event.currentTarget.scrollTop;
+              }}
+            >
+              {options.map((option, index) => {
+                const selected = selectionKeys.includes(option.value);
+                const active = index === activeIndex;
+                const optionId = `${id}-opt-${index}`;
+                return (
+                  <div
+                    id={optionId}
+                    key={option.value}
+                    role="option"
+                    aria-disabled={option.disabled}
+                    aria-selected={selected}
+                    className={[
+                      isList ? "flex w-full px-3 transition-colors text-left" : "flex w-full items-center justify-between px-3 transition-colors text-left",
+                      itemPadding,
+                      itemTextClass,
+                      selected ? "bg-primary/5 text-gray-900" : "",
+                      option.disabled ? "cursor-not-allowed" : "",
+                      active ? "bg-gray-100" : "hover:bg-gray-50",
+                      isList ? "items-start" : "items-center justify-between",
+                    ].join(" ")}
+                    onMouseEnter={() => {
+                      setActiveIndex(index);
+                      if (renderPreview) setPreviewOption(option);
+                    }}
+                    onMouseLeave={() => {
+                      if (renderPreview) setPreviewOption(null);
+                    }}
+                    onMouseDown={() => {
+                      if (listRef.current) listScrollRef.current = listRef.current.scrollTop;
+                      enforceVisibilityRef.current = false;
+                    }}
+                    onClick={() => {
+                      if (option.disabled) return;
+                      if (multiple) {
+                        toggleMulti(option.value, index);
+                      } else {
+                        commitSingle(option.value);
+                      }
+                    }}
+                  >
+                    {isList ? (
+                      // 列表风格：左中右布局（leading | 文本块 | trailing  选中勾）
+                      <div className="flex w-full items-start gap-3">
+                        {/* 左侧可选前缀 */}
+                        {option.leading ? (
+                          <span className="shrink-0 mt-0.5">{option.leading}</span>
+                        ) : null}
+
+                        {/* 中间文本块（标题/副标题/说明） */}
+                        <div className="min-w-0 flex-1 whitespace-normal break-words">
+                          <div className="flex items-baseline gap-2">
+                            <div className={["truncate font-medium", itemTextClass, option.disabled ? "text-gray-300" : ""].join(" ")}>
+                              {option.title ?? option.label}
+                            </div>
+                          </div>
+                          {option.subtitle ? (
+                            <div className={["mt-0.5 truncate text-xs", option.disabled ? "text-gray-300" : "text-gray-400"].join(" ")}>{option.subtitle}</div>
+                          ) : null}
+                        </div>
+
+                        {/* 右侧可选后缀 */}
+                        {option.trailing ? <span className={["shrink-0 text-xs", option.disabled ? "text-gray-300" : "text-gray-400"].join(" ")}>{option.trailing}</span> : null}
+
+                        {/* 最右侧选中勾 */}
+                        {selected && <Check size={16} className="shrink-0 text-primary" aria-hidden />}
+                      </div>
+                    ) : (
+                      <>
+                        <span className={["truncate", option.disabled ? "text-gray-300" : "",].join(" ")}>{option.label}</span>
+                        {selected && <Check size={16} className="text-primary" aria-hidden />}
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {renderPreview && previewOption && previewAt && (
+              <div
+                className="fixed z-[1201] rounded-lg border border-gray-200 bg-white p-3 text-sm shadow-elevation-2-left whitespace-normal break-words"
+                style={{ top: previewAt.top, left: previewAt.left } as CSSProperties}
+              >
+                {renderPreview(previewOption)}
+              </div>
+            )}
+          </div>,
+          mountNode,
+        )}
+    </div>
   );
 }

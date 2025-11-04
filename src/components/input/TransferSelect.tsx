@@ -19,7 +19,7 @@ import {
 } from "../formStyles";
 import Pill from "@/components/Pill";
 import type { Option } from "./Select";
-import Checkbox from "@/components/Checkbox";
+import Checkbox from "@/components/input/Checkbox";
 import { ChevronDown, ChevronLeft, ChevronRight, Search as SearchIcon } from "lucide-react";
 
 const DISPLAY_PILL_ATTR = "data-display-pill";
@@ -45,8 +45,6 @@ type VirtualProps = {
 }
 
 type TransferSelectProps = {
-  label?: string;
-  helper?: string;
   options: Option[];
   value?: MultiValue;
   defaultValue?: MultiValue;
@@ -151,8 +149,6 @@ function VirtualList<T>({
 
 export default function TransferSelect(props: TransferSelectProps) {
   const {
-    label,
-    helper,
     options,
     placeholder,
     clearable,
@@ -720,14 +716,6 @@ export default function TransferSelect(props: TransferSelectProps) {
   };
 
   return (
-    <label className="block">
-      {label && (
-        <span className={fieldLabel}>
-          {label}
-          {required ? <span className="ml-0.5 text-error">*</span> : null}
-        </span>
-      )}
-
       <div ref={anchorRef} className={`relative ${className}`}>
         <div
           id={id}
@@ -899,8 +887,5 @@ export default function TransferSelect(props: TransferSelectProps) {
             mountNode,
           )}
       </div>
-
-      {helper && <span className={helperText}>{helper}</span>}
-    </label>
   );
 }

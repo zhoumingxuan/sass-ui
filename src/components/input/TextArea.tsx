@@ -1,7 +1,7 @@
 'use client';
 
 import { TextareaHTMLAttributes, useMemo } from 'react';
-import { inputBase, fieldLabel, helperText, inputStatus, Status, InputSize, inputSize } from './formStyles';
+import { inputBase, fieldLabel, helperText, inputStatus, Status, InputSize, inputSize } from '../formStyles';
 
 type Props = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'size'> & {
   value?:string;

@@ -8,9 +8,9 @@ import Anchor from '@/components/Anchor';
 import Button from '@/components/Button';
 import Form from '@/components/Form';
 import { Input } from '@/components/Input';
-import Switch from '@/components/Switch';
-import { RadioGroup } from '@/components/Radio';
-import { CheckboxGroup } from '@/components/Checkbox';
+import Switch from '@/components/input/Switch';
+import { RadioGroup } from '@/components/input/Radio';
+import { CheckboxGroup } from '@/components/input/Checkbox';
 import { menuItems, footerItems } from '@/components/menuItems';
 
 type BlockProps = {

@@ -1,7 +1,7 @@
 'use client';
 
 import { ChangeEvent, InputHTMLAttributes, useEffect, useId, useMemo, useState } from 'react';
-import { fieldLabel, helperText, controlDisabled, controlRing } from './formStyles';
+import { fieldLabel, helperText, controlDisabled, controlRing } from '../formStyles';
 
 type Props = Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange'> & {
   showValue?: boolean;

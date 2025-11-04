@@ -5,11 +5,11 @@ import Layout from '@/components/Layout';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Modal from '@/components/Modal';
-import Switch from '@/components/Switch';
-import Slider from '@/components/Slider';
+import Switch from '@/components/input/Switch';
+import Slider from '@/components/input/Slider';
 import { Input } from '@/components/Input';
-import { RadioGroup } from '@/components/Radio';
-import Checkbox from '@/components/Checkbox';
+import { RadioGroup } from '@/components/input/Radio';
+import Checkbox from '@/components/input/Checkbox';
 import type { Option } from '@/components/input/Select';
 import { menuItems, footerItems } from '@/components/menuItems';
 
