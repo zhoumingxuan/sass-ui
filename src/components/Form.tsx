@@ -1,5 +1,4 @@
-﻿/* eslint-disable @typescript-eslint/no-explicit-any */
-"use client";
+﻿"use client";
 
 import React, {
   createContext,
@@ -21,6 +20,7 @@ import type {
   FormSubmitFailedHandler,
   FormSubmitHandler,
   FormValidateTrigger,
+  FormValue,
   FormValues
 } from "./formTypes";
 
@@ -56,7 +56,8 @@ type FormContextType<TValues extends FormValues = FormValues> = FormInstance<TVa
 
 const FormContext = createContext<FormContextType<FormValues> | null>(null);
 
-const FULL_WIDTH_COLON = "：";
+
+const FULL_WIDTH_COLON = "\uFF1A";
 
 const hasOwn = (obj: FormValues, key: string) =>
   Object.prototype.hasOwnProperty.call(obj, key);
@@ -530,16 +531,22 @@ function FormItem({
     : null;
 
   const childOriginalProps = childElement
-    ? (childElement.props as Record<string, any>)
+    ? (childElement.props as Record<string, unknown>)
     : undefined;
 
   // 稳定 handlers（仅依赖必要键）
   const handleChange = useCallback(
-    (value: any) => {
+    (value: FormValue) => {
+      console.log("onChange:",value);
       if (!name) return;
-      void setFieldValue(name, value, { validate: needChangeValidate });
+      const fieldName = name;
+      void setFieldValue(fieldName, value, {
+        validate: needChangeValidate
+      });
       // 透传原始 onChange
-      const orig = childOriginalProps?.onChange as ((v: any) => void) | undefined;
+      const orig = childOriginalProps?.onChange as
+        | ((v: FormValue) => void)
+        | undefined;
       if (typeof orig === "function") orig(value);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -547,9 +554,11 @@ function FormItem({
   );
 
   const handleBlur = useCallback(
-    (...args: any[]) => {
+    (...args: unknown[]) => {
       if (name && needBlurValidate) void validateField(name);
-      const orig = childOriginalProps?.onBlur as ((...args: any[]) => void) | undefined;
+      const orig = childOriginalProps?.onBlur as
+        | ((...args: unknown[]) => void)
+        | undefined;
       if (typeof orig === "function") orig(...args);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -562,7 +571,7 @@ function FormItem({
     const storeValue = name ? getFieldValue(name) : undefined;
     // 始终提供“已定义”的受控值；防止 uncontrolled→controlled
     const safeValue = storeValue === undefined ? "" : storeValue;
-    const base: Record<string, any> = {
+    const base: Record<string, unknown> = {
       value: safeValue,
       onChange: handleChange,
       onBlur: handleBlur
@@ -573,7 +582,7 @@ function FormItem({
       base["data-form-error"] = "true";
     }
     return base;
-  }, [handleChange, handleBlur, hasErr,getFieldValue]);
+  }, [getFieldValue, handleBlur, handleChange, hasErr, name]);
 
   let control: React.ReactNode = childElement ?? children;
   if (name && childElement) {
