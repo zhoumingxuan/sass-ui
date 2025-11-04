@@ -89,23 +89,6 @@ function cloneInitialValues(initialValues?: Record<string, unknown>) {
   return next;
 }
 
-function extractValueFromEvent(...args: unknown[]): unknown {
-  if (!args.length) return undefined;
-  const first = args[0] as any;
-
-  if (first && typeof first === "object" && "target" in first) {
-    const target = first.target as {
-      value?: unknown;
-      checked?: boolean;
-    };
-    if (typeof target.checked === "boolean") {
-      return target.checked;
-    }
-    return target.value;
-  }
-  if (args.length === 1) return first;
-  return args;
-}
 
 function useFormInternal(initialValues?: Record<string, unknown>): Omit<
   FormContextType,
@@ -645,15 +628,16 @@ function FormItem({
     }
 
     const originalOnChange = originalProps?.onChange as
-      | ((...args: unknown[]) => void)
+      | ((value:unknown) => void)
       | undefined;
-    props.onChange = (...args: unknown[]) => {
-      const nextValue = extractValueFromEvent(...args);
-      void setFieldValue(name, nextValue, {
+
+      props.onChange = (value:unknown) => {
+
+      void setFieldValue(name, value, {
         validate: needChangeValidate
       });
       if (typeof originalOnChange === "function") {
-        originalOnChange(...(args as unknown[]));
+        originalOnChange(value);
       }
     };
 
