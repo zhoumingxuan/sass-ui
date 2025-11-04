@@ -5,6 +5,7 @@ import React, {
   forwardRef,
   useCallback,
   useContext,
+  useEffect,
   useImperativeHandle,
   useMemo,
   useRef,
@@ -62,6 +63,9 @@ type FormContextType = FormInstance & {
 
 const FormContext = createContext<FormContextType | null>(null);
 
+const EXTERNAL_VALUE_UNSET = Symbol("form-external-unset");
+const FULL_WIDTH_COLON = "：";
+
 const hasOwn = (obj: Record<string, unknown>, key: string) =>
   Object.prototype.hasOwnProperty.call(obj, key);
 
@@ -90,7 +94,13 @@ function extractValueFromEvent(...args: unknown[]): unknown {
   const first = args[0] as any;
 
   if (first && typeof first === "object" && "target" in first) {
-    const target = first.target as { value?: unknown; checked?: boolean };
+    const target = first.target as {
+      value?: unknown;
+      checked?: boolean;
+    };
+    if (typeof target.checked === "boolean") {
+      return target.checked;
+    }
     return target.value;
   }
   if (args.length === 1) return first;
@@ -579,37 +589,89 @@ function FormItem({
     ? (children as React.ReactElement)
     : null;
 
-  const childProps = useMemo(() => {
-    if (!name || !childElement) return null;
-    const props: Record<string, unknown> = {};
-    const controlled = hasFieldValue(name);
-    const originChange = (childElement.props as Record<string, unknown>)
-      .onChange as ((...args: unknown[]) => void) | undefined;
-    const originBlur = (childElement.props as Record<string, unknown>)
-      .onBlur as ((...args: unknown[]) => void) | undefined;
+  const childOriginalProps = childElement
+    ? (childElement.props as Record<string, unknown>)
+    : undefined;
+  const childHasValueProp =
+    !!childOriginalProps &&
+    Object.prototype.hasOwnProperty.call(childOriginalProps, "value");
+  const childHasCheckedProp =
+    !!childOriginalProps &&
+    Object.prototype.hasOwnProperty.call(childOriginalProps, "checked");
+  const externalValue = childHasCheckedProp
+    ? childOriginalProps?.checked
+    : childHasValueProp
+    ? childOriginalProps?.value
+    : undefined;
+  const externallyControlled = childHasValueProp || childHasCheckedProp;
 
-    if (controlled) {
-      props.value = value;
+  const lastExternalValueRef = useRef<unknown>(EXTERNAL_VALUE_UNSET);
+
+  useEffect(() => {
+    if (!name || !externallyControlled) {
+      lastExternalValueRef.current = EXTERNAL_VALUE_UNSET;
+      return;
+    }
+    if (Object.is(lastExternalValueRef.current, externalValue)) {
+      return;
+    }
+    lastExternalValueRef.current = externalValue;
+    void setFieldValue(name, externalValue, { validate: false });
+  }, [externallyControlled, externalValue, name, setFieldValue]);
+
+  let childProps: Record<string, unknown> | null = null;
+  if (name && childElement) {
+    const formControlsField = hasFieldValue(name);
+    const props: Record<string, unknown> = {};
+    const resolvedValue = externallyControlled ? externalValue : value;
+    const isControlled = formControlsField || externallyControlled;
+    const originalProps = childOriginalProps as Record<string, unknown>;
+    const childInputType =
+      typeof originalProps?.type === "string" ? (originalProps.type as string) : undefined;
+    const isNativeCheckboxOrRadio =
+      typeof childElement.type === "string" &&
+      childElement.type === "input" &&
+      (childInputType === "checkbox" || childInputType === "radio");
+
+    if (isControlled) {
+      if (typeof resolvedValue === "boolean") {
+        props.checked = resolvedValue;
+        if (!isNativeCheckboxOrRadio) {
+          props.value = resolvedValue;
+        }
+      } else if (resolvedValue !== undefined || externallyControlled) {
+        props.value = resolvedValue;
+      }
     }
 
+    const originalOnChange = originalProps?.onChange as
+      | ((...args: unknown[]) => void)
+      | undefined;
     props.onChange = (...args: unknown[]) => {
-      originChange?.(...args);
-      const next = extractValueFromEvent(...args);
-      void setFieldValue(name, next, {
+      const nextValue = extractValueFromEvent(...args);
+      void setFieldValue(name, nextValue, {
         validate: needChangeValidate
       });
+      if (typeof originalOnChange === "function") {
+        originalOnChange(...(args as unknown[]));
+      }
     };
 
+    const originalOnBlur = originalProps?.onBlur as
+      | ((...args: unknown[]) => void)
+      | undefined;
     props.onBlur = (...args: unknown[]) => {
-      originBlur?.(...args);
       if (needBlurValidate) {
         void validateField(name);
+      }
+      if (typeof originalOnBlur === "function") {
+        originalOnBlur(...(args as unknown[]));
       }
     };
 
     if (hasErr) {
       if (typeof childElement.type !== "string") {
-        if ((childElement.props as Record<string, unknown>).status == null) {
+        if ((originalProps?.status as unknown) == null) {
           props.status = "error";
         }
       }
@@ -617,24 +679,13 @@ function FormItem({
       props["data-form-error"] = "true";
     }
 
-    return props;
-  }, [
-    childElement,
-    hasErr,
-    hasFieldValue,
-    name,
-    needBlurValidate,
-    needChangeValidate,
-    setFieldValue,
-    validateField,
-    value
-  ]);
+    childProps = props;
+  }
 
-  const control = useMemo(() => {
-    if (!childElement) return children;
-    if (!childProps) return childElement;
-    return React.cloneElement(childElement, childProps);
-  }, [childElement, childProps, children]);
+  const control =
+    childElement && childProps
+      ? React.cloneElement(childElement, childProps)
+      : childElement ?? children;
 
   const isHorizontal = layout === "horizontal";
   const showColon = typeof colon === "boolean" ? colon : formColon !== false;
@@ -649,7 +700,7 @@ function FormItem({
         <span className="text-error mr-1">{requiredMark ? "*" : ""}</span>
         <span className="text-gray-700">
           {label}
-          {showColon ? "：" : ""}
+          {showColon ? FULL_WIDTH_COLON : ""}
         </span>
       </div>
     );

@@ -46,7 +46,7 @@ type RangeProps = {
   defaultEnd?: string;
   min?: string;
   max?: string;
-  onChange?: (start?: string, end?: string) => void;
+  onChange?: (value: [string | undefined, string | undefined]) => void;
   size?: InputSize;
 };
 
@@ -57,8 +57,8 @@ export function DateRange({ label, helper, start, end, defaultStart, defaultEnd,
   const sv = isControlled ? start : s;
   const ev = isControlled ? end : e;
 
-  const setStart = (v?: string) => { if (!isControlled) setS(v); onChange?.(v, ev); };
-  const setEnd = (v?: string) => { if (!isControlled) setE(v); onChange?.(sv, v); };
+  const setStart = (v?: string) => { if (!isControlled) setS(v); onChange?.([v, ev]); };
+  const setEnd = (v?: string) => { if (!isControlled) setE(v); onChange?.([sv, v]); };
 
   return (
     <label className="block">

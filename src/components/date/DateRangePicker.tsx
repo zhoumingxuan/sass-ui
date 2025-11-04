@@ -26,7 +26,7 @@ type Props = {
   disabledBefore?: string | Date;
   disabledAfter?: string | Date;
   requireConfirm?: boolean;
-  onChange?: (start?: string, end?: string) => void;
+  onChange?: (value: [string | undefined, string | undefined]) => void;
   className?: string;
   status?: Status;
 };
@@ -79,6 +79,10 @@ export default function DateRangePicker({
   const [active, setActive] = useState<'start' | 'end' | 'auto'>('auto');
   const [focused, setFocused] = useState<'start' | 'end' | undefined>(undefined);
 
+  const emitChange = (nextStart?: string, nextEnd?: string) => {
+    onChange?.([nextStart, nextEnd]);
+  };
+
 
 
   const [draftStart, setDraftStart] = useState<Date | undefined>(undefined);
@@ -110,7 +114,7 @@ export default function DateRangePicker({
       else { finalE = ev; }
       if (!startControlled) setS(finalS);
       if (!endControlled) setE(finalE);
-      onChange?.(finalS, finalE);
+      emitChange(finalS, finalE);
       setOpen(false);
     };
     // 与单日期选择器保持一致，使用 mousedown，避免月/年选择时误判为外部点击导致面板关闭
@@ -219,7 +223,7 @@ export default function DateRangePicker({
   const doClear = () => {
     if (!startControlled) setS(undefined);
     if (!endControlled) setE(undefined);
-    onChange?.(undefined, undefined);
+    emitChange(undefined, undefined);
     setDraftStart(undefined); setDraftEnd(undefined); setDraftStartInput(''); setDraftEndInput('');
     setOpen(false);
   };
@@ -237,7 +241,7 @@ export default function DateRangePicker({
       const outE = formatISO(draftEnd);
       if (!startControlled) setS(outS);
       if (!endControlled) setE(outE);
-      onChange?.(outS, outE);
+      emitChange(outS, outE);
       setOpen(false);
     }
   };
@@ -252,7 +256,7 @@ export default function DateRangePicker({
       const outE = formatISO(pick);
       if (!startControlled) setS(outS);
       if (!endControlled) setE(outE);
-      onChange?.(outS, outE);
+      emitChange(outS, outE);
       setOpen(false);
     }
   };
@@ -348,7 +352,7 @@ export default function DateRangePicker({
                   else { finalE = ev; }
                   if (!startControlled) setS(finalS);
                   if (!endControlled) setE(finalE);
-                  onChange?.(finalS, finalE);
+                  emitChange(finalS, finalE);
                   setOpen(false);
                 }
               }}
@@ -384,7 +388,7 @@ export default function DateRangePicker({
                   else { finalE = ev; }
                   if (!startControlled) setS(finalS);
                   if (!endControlled) setE(finalE);
-                  onChange?.(finalS, finalE);
+                  emitChange(finalS, finalE);
                   setOpen(false);
                 }
               }}

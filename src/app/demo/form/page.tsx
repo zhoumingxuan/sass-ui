@@ -20,6 +20,7 @@ export default function FormDemo() {
     formRef.current?.setFieldsValue({
       username: "张三",
       age: 32,
+      password:"123456",
       city: "sh",
       hobbies: ["read", "music"],
       agree: true
@@ -166,7 +167,7 @@ export default function FormDemo() {
                     validator: (v) => (v ? undefined : "请勾选同意")
                   }]}
                 >
-                  <Switch label="" />
+                  <Switch />
                 </Form.Item>
               </div>
 
@@ -233,7 +234,7 @@ export default function FormDemo() {
                   label="个人简介"
                   rules={[{ max: 200, message: "最多 200 字" }]}
                 >
-                  <Input.TextArea placeholder="说点什么..." autoGrow />
+                  <Input.TextArea placeholder="说点什么..." />
                 </Form.Item>
               </div>
 

@@ -5,7 +5,7 @@ import { fieldLabel, helperText, controlDisabled, controlRing } from './formStyl
 
 type Props = Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange'> & {
   showValue?: boolean;
-  onChange?: (value:any) => void;
+  onChange?: (value: number) => void;
 };
 
 export default function Slider({
@@ -40,8 +40,9 @@ export default function Slider({
   }, [current, max, min]);
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setCurrent(Number(event.target.value));
-    onChange?.(event.target.value);
+    const next = Number(event.target.value);
+    setCurrent(next);
+    onChange?.(next);
   };
 
   return (
