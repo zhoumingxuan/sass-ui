@@ -1,18 +1,15 @@
-'use client';
+﻿'use client';
 
-import { useEffect, useId, useMemo, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { controlRing, controlDisabled, fieldLabel } from '../formStyles';
+import type { FormValueProps } from '../formTypes';
 
 type Size = 'small' | 'medium' | 'large';
 
-type SwitchProps = {
+type SwitchProps = FormValueProps<boolean> & {
   // legacy props
   checked?: boolean;
   defaultChecked?: boolean;
-  // form-friendly props
-  value?: boolean;
-  defaultValue?: boolean;
-  onChange?: (checked: boolean) => void;
   name?: string;
   disabled?: boolean;
   size?: Size;
@@ -91,3 +88,4 @@ export default function Switch({
     </div>
   );
 }
+

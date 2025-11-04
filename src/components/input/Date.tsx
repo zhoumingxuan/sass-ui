@@ -2,14 +2,15 @@
 
 import { InputHTMLAttributes, useId, useState } from "react";
 import { inputBase, fieldLabel, helperText, InputSize, inputSize } from "../formStyles";
+import type { WithFormFieldValue } from "../formTypes";
 
-type DateProps = Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "value" | "defaultValue" | "size"> & {
-  value?: string; // yyyy-mm-dd
-  defaultValue?: string;
+type DateProps = WithFormFieldValue<
+  Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "value" | "defaultValue" | "size">,
+  string
+> & {
   min?: string;
   max?: string;
   disabledDate?: (date: string) => boolean; // block certain days
-  onChange?: (value: string) => void;
   size?: InputSize;
 };
 

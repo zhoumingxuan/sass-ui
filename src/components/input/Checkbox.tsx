@@ -1,7 +1,8 @@
-'use client';
+﻿'use client';
 
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, useEffect, useRef, useState } from 'react';
 import { controlRing, controlDisabled, fieldLabel, helperText } from '../formStyles';
+import type { FormValueProps } from '../formTypes';
 
 export type CheckboxOption = {
   value: string;
@@ -60,11 +61,8 @@ export default function Checkbox({ label, description, indeterminate, className 
   );
 }
 
-type CheckboxGroupProps = {
+type CheckboxGroupProps = FormValueProps<string[]> & {
   name?: string;
-  value?: string[]; // form-friendly alias
-  defaultValue?: string[]; // form-friendly alias
-  onChange?: (values: string[]) => void;
   options?: CheckboxOption[];
   disabled?: boolean;
   className?: string;
@@ -127,3 +125,5 @@ export function CheckboxGroup({
     </div>
   );
 }
+
+

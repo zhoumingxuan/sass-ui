@@ -21,6 +21,7 @@ import Pill from "@/components/Pill";
 import type { Option } from "./Select";
 import Checkbox from "@/components/input/Checkbox";
 import { ChevronDown, ChevronLeft, ChevronRight, Search as SearchIcon } from "lucide-react";
+import type { FormValueProps } from "../formTypes";
 
 const DISPLAY_PILL_ATTR = "data-display-pill";
 
@@ -44,11 +45,8 @@ type VirtualProps = {
    overscan?:number,
 }
 
-type TransferSelectProps = {
+type TransferSelectProps = FormValueProps<MultiValue> & {
   options: Option[];
-  value?: MultiValue;
-  defaultValue?: MultiValue;
-  onChange?: (value: MultiValue) => void;
   placeholder?: string;
   clearable?: boolean;
   required?: boolean;

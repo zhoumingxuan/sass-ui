@@ -21,6 +21,7 @@ import {
 } from "../formStyles";
 import { Check, ChevronDown, X } from "lucide-react";
 import Pill from "@/components/Pill";
+import type { FormValueProps } from "../formTypes";
 
 export type Option = {
   value: string;
@@ -58,26 +59,16 @@ type BaseProps = {
 type SingleValue = string | Option | undefined;
 type MultiValue = string[] | Option[] | undefined;
 
-type SingleProps = BaseProps & {
+type SingleProps = BaseProps & FormValueProps<SingleValue> & {
   multiple?: false;
-  value?: SingleValue;
-  defaultValue?: SingleValue;
-  onChange?: (value: SingleValue) => void;
 };
 
-type MultiProps = BaseProps & {
+type MultiProps = BaseProps & FormValueProps<MultiValue> & {
   multiple: true;
-  value?: MultiValue;
-  defaultValue?: MultiValue;
-  onChange?: (value: MultiValue) => void;
 };
 
 type Props = SingleProps | MultiProps;
-type ValueProps = {
-  value?: SingleValue | MultiValue;
-  defaultValue?: SingleValue | MultiValue;
-  onChange?: (value: SingleValue | MultiValue) => void;
-};
+type ValueProps = FormValueProps<SingleValue | MultiValue>;
 
 type SelectVars = CSSProperties & { "--select-multi-reserve": string };
 

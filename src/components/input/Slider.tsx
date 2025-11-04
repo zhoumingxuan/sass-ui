@@ -1,11 +1,14 @@
 'use client';
 
-import { ChangeEvent, InputHTMLAttributes, useEffect, useId, useMemo, useState } from 'react';
-import { fieldLabel, helperText, controlDisabled, controlRing } from '../formStyles';
+import { ChangeEvent, InputHTMLAttributes, useEffect, useId, useMemo, useState } from "react";
+import { fieldLabel, helperText, controlDisabled, controlRing } from "../formStyles";
+import type { WithFormFieldValue } from "../formTypes";
 
-type Props = Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange'> & {
+type Props = WithFormFieldValue<
+  Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "value" | "defaultValue">,
+  number
+> & {
   showValue?: boolean;
-  onChange?: (value: number) => void;
 };
 
 export default function Slider({

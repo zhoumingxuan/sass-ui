@@ -12,61 +12,52 @@ import React, {
   useState
 } from "react";
 import { fieldLabel, helperText, errorText } from "./formStyles";
+import type {
+  FormErrors,
+  FormLayout,
+  FormRule,
+  FormSetValueOptions,
+  FormSubmitFailedHandler,
+  FormSubmitHandler,
+  FormValidateTrigger,
+  FormValues
+} from "./formTypes";
 
-type Rule = {
-  required?: boolean;
-  message?: string;
-  min?: number;
-  max?: number;
-  len?: number;
-  pattern?: RegExp;
-  validator?: (
-    value: unknown,
-    values: Record<string, unknown>
-  ) => string | void | Promise<string | void>;
-};
-
-type ValidateTrigger = "change" | "blur";
-
-type SetValueOptions = {
-  validate?: boolean;
-};
-
-export type FormInstance = {
-  setFieldValue: (
-    name: string,
-    value: unknown,
-    opts?: SetValueOptions
+export type FormInstance<TValues extends FormValues = FormValues> = {
+  setFieldValue: <Field extends keyof TValues & string>(
+    name: Field,
+    value: TValues[Field],
+    opts?: FormSetValueOptions
   ) => Promise<string[] | undefined>;
   setFieldsValue: (
-    values: Record<string, unknown>,
-    opts?: SetValueOptions
-  ) => Promise<Record<string, string[]>>;
-  getFieldValue: (name: string) => unknown;
-  getFieldsValue: () => Record<string, unknown>;
-  getError: (name: string) => string[] | undefined;
-  validateField: (name: string) => Promise<string[]>;
-  validateAll: () => Promise<Record<string, string[]>>;
-  resetFieldsValue: (names?: string[]) => void;
-  hasFieldValue: (name: string) => boolean;
+    values: Partial<TValues>,
+    opts?: FormSetValueOptions
+  ) => Promise<FormErrors>;
+  getFieldValue: <Field extends keyof TValues & string>(name: Field) => TValues[Field];
+  getFieldsValue: () => TValues;
+  getError: (name: keyof TValues & string) => string[] | undefined;
+  validateField: (name: keyof TValues & string) => Promise<string[]>;
+  validateAll: () => Promise<FormErrors>;
+  resetFieldsValue: (names?: (keyof TValues & string)[]) => void;
+  hasFieldValue: (name: keyof TValues & string) => boolean;
 };
 
-type FormContextType = FormInstance & {
-  values: Record<string, unknown>;
-  errors: Record<string, string[]>;
-  register: (name: string, options?: { rules?: Rule[] }) => void;
-  unregister: (name: string) => void;
-  layout?: "vertical" | "horizontal";
+type FormContextType<TValues extends FormValues = FormValues> = FormInstance<TValues> & {
+  values: TValues;
+  errors: FormErrors;
+  register: (name: keyof TValues & string, options?: { rules?: FormRule[] }) => void;
+  unregister: (name: keyof TValues & string) => void;
+  layout?: FormLayout;
   labelWidth?: number | string;
   colon?: boolean;
 };
 
-const FormContext = createContext<FormContextType | null>(null);
+const FormContext = createContext<FormContextType<FormValues> | null>(null);
 
 const EXTERNAL_VALUE_UNSET = Symbol("form-external-unset");
 const FULL_WIDTH_COLON = "：";
 
-const hasOwn = (obj: Record<string, unknown>, key: string) =>
+const hasOwn = (obj: FormValues, key: string) =>
   Object.prototype.hasOwnProperty.call(obj, key);
 
 function cloneValue(value: unknown): unknown {
@@ -77,9 +68,9 @@ function cloneValue(value: unknown): unknown {
   return value;
 }
 
-function cloneInitialValues(initialValues?: Record<string, unknown>) {
-  if (!initialValues) return {};
-  const next: Record<string, unknown> = {};
+function cloneInitialValues(initialValues?: Partial<FormValues>): FormValues {
+  if (!initialValues) return {} as FormValues;
+  const next: FormValues = {};
   Object.keys(initialValues).forEach((key) => {
     const val = cloneValue(initialValues[key]);
     if (val !== undefined) {
@@ -90,17 +81,17 @@ function cloneInitialValues(initialValues?: Record<string, unknown>) {
 }
 
 
-function useFormInternal(initialValues?: Record<string, unknown>): Omit<
-  FormContextType,
+function useFormInternal(initialValues?: Partial<FormValues>): Omit<
+  FormContextType<FormValues>,
   "layout" | "labelWidth" | "colon"
 > {
-  const rulesRef = useRef<Record<string, Rule[] | undefined>>({});
-  const initialRef = useRef<Record<string, unknown>>(cloneInitialValues(initialValues));
-  const valuesRef = useRef<Record<string, unknown>>(cloneInitialValues(initialValues));
-  const [values, setValues] = useState<Record<string, unknown>>(() =>
+  const rulesRef = useRef<Record<string, FormRule[] | undefined>>({});
+  const initialRef = useRef<FormValues>(cloneInitialValues(initialValues));
+  const valuesRef = useRef<FormValues>(cloneInitialValues(initialValues));
+  const [values, setValues] = useState<FormValues>(() =>
     cloneInitialValues(initialValues)
   );
-  const [errors, setErrors] = useState<Record<string, string[]>>({});
+  const [errors, setErrors] = useState<FormErrors>({});
   const controlledRef = useRef<Record<string, boolean>>({});
 
   const markControlled = useCallback((name: string) => {
@@ -114,7 +105,7 @@ function useFormInternal(initialValues?: Record<string, unknown>): Omit<
   );
 
   const register = useCallback(
-    (name: string, options?: { rules?: Rule[] }) => {
+    (name: string, options?: { rules?: FormRule[] }) => {
       rulesRef.current[name] = options?.rules;
       if (hasOwn(valuesRef.current, name)) {
         markControlled(name);
@@ -141,11 +132,7 @@ function useFormInternal(initialValues?: Record<string, unknown>): Omit<
   }, []);
 
   const runRules = useCallback(
-    async (
-      name: string,
-      value: unknown,
-      currentValues: Record<string, unknown>
-    ) => {
+    async (name: string, value: unknown, currentValues: FormValues) => {
       const rules = rulesRef.current[name] || [];
       const result: string[] = [];
       for (const rule of rules) {
@@ -201,7 +188,7 @@ function useFormInternal(initialValues?: Record<string, unknown>): Omit<
   const getFieldValue = useCallback((name: string) => valuesRef.current[name], []);
 
   const getFieldsValue = useCallback(() => {
-    const next: Record<string, unknown> = {};
+    const next: FormValues = {};
     Object.keys(valuesRef.current).forEach((key) => {
       next[key] = cloneValue(valuesRef.current[key]);
     });
@@ -211,7 +198,7 @@ function useFormInternal(initialValues?: Record<string, unknown>): Omit<
   const getError = useCallback((name: string) => errors[name], [errors]);
 
   const setFieldValue = useCallback(
-    async (name: string, value: unknown, opts?: SetValueOptions) => {
+    async (name: string, value: unknown, opts?: FormSetValueOptions) => {
       if (value === undefined) {
         const next = { ...valuesRef.current };
         if (hasOwn(next, name)) {
@@ -256,7 +243,7 @@ function useFormInternal(initialValues?: Record<string, unknown>): Omit<
   );
 
   const setFieldsValue = useCallback(
-    async (incoming: Record<string, unknown>, opts?: SetValueOptions) => {
+    async (incoming: FormValues, opts?: FormSetValueOptions) => {
       if (!incoming || Object.keys(incoming).length === 0) return {};
       const next = { ...valuesRef.current };
       Object.keys(incoming).forEach((key) => {
@@ -406,19 +393,17 @@ function useFormInternal(initialValues?: Record<string, unknown>): Omit<
   );
 }
 
-export type FormProps = React.FormHTMLAttributes<HTMLFormElement> & {
-  initialValues?: Record<string, unknown>;
-  onFinish?: (values: Record<string, unknown>) => void;
-  onFinishFailed?: (opts: {
-    values: Record<string, unknown>;
-    errors: Record<string, string[]>;
-  }) => void;
-  layout?: "vertical" | "horizontal";
-  labelWidth?: number | string;
-  colon?: boolean;
-};
+export type FormProps<TValues extends FormValues = FormValues> =
+  React.FormHTMLAttributes<HTMLFormElement> & {
+    initialValues?: Partial<TValues>;
+    onFinish?: FormSubmitHandler<TValues>;
+    onFinishFailed?: FormSubmitFailedHandler<TValues>;
+    layout?: FormLayout;
+    labelWidth?: number | string;
+    colon?: boolean;
+  };
 
-const FormRoot = forwardRef<FormInstance, FormProps>(function FormRoot(
+const FormRoot = forwardRef<FormInstance<FormValues>, FormProps>(function FormRoot(
   {
     initialValues,
     onFinish,
@@ -466,7 +451,7 @@ const FormRoot = forwardRef<FormInstance, FormProps>(function FormRoot(
     [api]
   );
 
-  const contextValue = useMemo(
+  const contextValue = useMemo<FormContextType<FormValues>>(
     () => ({
       ...api,
       layout,
@@ -500,9 +485,9 @@ const FormRoot = forwardRef<FormInstance, FormProps>(function FormRoot(
 export type FormItemProps = {
   name?: string;
   label?: React.ReactNode;
-  rules?: Rule[];
+  rules?: FormRule[];
   required?: boolean;
-  validateTrigger?: ValidateTrigger | ValidateTrigger[];
+  validateTrigger?: FormValidateTrigger | FormValidateTrigger[];
   help?: React.ReactNode;
   extra?: React.ReactNode;
   className?: string;
@@ -728,15 +713,17 @@ function FormItem({
   );
 }
 
-export function useForm() {
+export function useForm<TValues extends FormValues = FormValues>() {
   // 使用 ref 暴露表单实例，方便在页面中通过 ref 操作
-  return React.useRef<FormInstance | null>(null);
+  return React.useRef<FormInstance<TValues> | null>(null);
 }
 
-export function useFormContext() {
-  return useContext(FormContext);
+export function useFormContext<TValues extends FormValues = FormValues>() {
+  return useContext(FormContext) as FormContextType<TValues> | null;
 }
 
 export const Form = Object.assign(FormRoot, { Item: FormItem, useForm, useFormContext });
 
 export default Form;
+
+

@@ -1,22 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import type { CSSProperties } from 'react';
-import { fieldLabel, helperText, inputBase, inputSize, inputStatus, Status } from '../formStyles';
-import { Calendar as CalendarIcon } from 'lucide-react';
-import Calendar from './Calendar';
-import { addMonths, endOfMonth, formatISO, parseDateStrict, startOfMonth } from './utils';
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import type { CSSProperties } from "react";
+import { fieldLabel, helperText, inputBase, inputSize, inputStatus, Status } from "../formStyles";
+import { Calendar as CalendarIcon } from "lucide-react";
+import Calendar from "./Calendar";
+import { addMonths, endOfMonth, formatISO, parseDateStrict, startOfMonth } from "./utils";
+import type { FormValueProps } from "../formTypes";
 
 type DisabledRange = { start: string | Date; end: string | Date; reason?: string };
 
-type Props = {
+type Props = FormValueProps<[string | undefined, string | undefined]> & {
   start?: string;
   end?: string;
   min?: string;
   max?: string;
-  value?: [string | undefined, string | undefined],
-  defaultValue?: [string | undefined, string | undefined],
   disabledDate?: (d: Date) => boolean;
   disabledDates?: Array<string | Date>;
   disabledRanges?: DisabledRange[];
@@ -24,7 +23,6 @@ type Props = {
   disabledBefore?: string | Date;
   disabledAfter?: string | Date;
   requireConfirm?: boolean;
-  onChange?: (value: [string | undefined, string | undefined]) => void;
   className?: string;
   status?: Status;
 };

@@ -3,15 +3,16 @@
 import { InputHTMLAttributes, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { inputBase, inputStatus, Status, InputSize, inputSize } from "../formStyles";
 import { ChevronUp, ChevronDown } from "lucide-react";
+import type { WithFormFieldValue } from "../formTypes";
 
-type Props = Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "value" | "defaultValue" | "size"> & {
-  value?: number;
-  defaultValue?: number;
+type Props = WithFormFieldValue<
+  Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "value" | "defaultValue" | "size">,
+  number | null
+> & {
   step?: number;
   min?: number;
   max?: number;
   precision?: number; // decimal places
-  onChange?: (value: number | null) => void;
   status?: Status;
   size?: InputSize; // lg | md | sm
   formatter?: (value: number) => string;

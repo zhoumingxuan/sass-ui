@@ -3,11 +3,10 @@
 import { InputHTMLAttributes, useMemo, useState } from "react";
 import { inputBase, inputStatus, Status, InputSize, inputSize } from "../formStyles";
 import { Eye, EyeOff } from "lucide-react";
+import type { WithFormFieldValue } from "../formTypes";
 
-type Props = Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> & {
+type Props = WithFormFieldValue<Omit<InputHTMLAttributes<HTMLInputElement>, "size">, string> & {
   status?: Status;
-  value?: string;
-  defaultValue?:string;
   size?: InputSize; // lg | md | sm
 };
 

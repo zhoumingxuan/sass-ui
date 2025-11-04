@@ -1,21 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import type { CSSProperties } from 'react';
-import { fieldLabel, helperText, inputBase, inputStatus, Status, inputSize } from '../formStyles';
-import { X, Calendar as CalendarIcon } from 'lucide-react';
-import Calendar from './Calendar';
-import { addMonths, formatISO, parseISO } from './utils';
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import type { CSSProperties } from "react";
+import { fieldLabel, helperText, inputBase, inputStatus, Status, inputSize } from "../formStyles";
+import { X, Calendar as CalendarIcon } from "lucide-react";
+import Calendar from "./Calendar";
+import { addMonths, formatISO, parseISO } from "./utils";
+import type { FormValueProps } from "../formTypes";
 
-type Props = {
-  value?: string;
-  defaultValue?: string;
+type Props = FormValueProps<string | undefined> & {
   min?: string;
   max?: string;
   disabledDate?: (d: Date) => boolean;
   clearable?: boolean;
-  onChange?: (v?: string) => void;
   className?: string;
   status?: Status;
 };

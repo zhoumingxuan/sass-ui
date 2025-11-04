@@ -1,7 +1,8 @@
-'use client';
+﻿'use client';
 
-import { ChangeEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, useEffect, useState } from 'react';
 import { controlRing, controlDisabled, fieldLabel, helperText } from '../formStyles';
+import type { FormValueProps } from '../formTypes';
 
 export type RadioOption = {
   value: string;
@@ -42,11 +43,8 @@ export function Radio({ label, description, className = '', disabled, ...props }
   );
 }
 
-type RadioGroupProps = {
+type RadioGroupProps = FormValueProps<string> & {
   name: string;
-  value?: string;
-  defaultValue?: string;
-  onChange?: (value: string) => void;
   options?: RadioOption[];
   disabled?: boolean;
   className?: string;
@@ -92,3 +90,5 @@ export function RadioGroup({
     </div>
   );
 }
+
+

@@ -1,13 +1,11 @@
 'use client';
 
-import { TextareaHTMLAttributes, useMemo } from 'react';
-import { inputBase, fieldLabel, helperText, inputStatus, Status, InputSize, inputSize } from '../formStyles';
+import { TextareaHTMLAttributes, useMemo } from "react";
+import { inputBase, fieldLabel, helperText, inputStatus, Status, InputSize, inputSize } from "../formStyles";
+import type { WithFormFieldValue } from "../formTypes";
 
-type Props = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'size'> & {
-  value?:string;
-  defaultValue?:string;
+type Props = WithFormFieldValue<Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "size">, string> & {
   status?: Status;
-  onChange?: (value: any) => void;
   size?: InputSize; // lg | md | sm
 };
 
@@ -32,4 +30,3 @@ export default function TextArea({ value, defaultValue, status, className = '', 
     />
   );
 }
-

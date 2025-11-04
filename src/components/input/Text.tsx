@@ -1,6 +1,6 @@
 "use client";
 
-import { InputHTMLAttributes, ReactNode, useId, useMemo, useState } from "react";
+import { InputHTMLAttributes, ReactNode, useId, useMemo } from "react";
 import {
   inputBase,
   inputStatus,
@@ -9,12 +9,11 @@ import {
   inputSize,
   inputPR
 } from "../formStyles";
+import type { WithFormFieldValue } from "../formTypes";
 
-type Props = Omit<InputHTMLAttributes<HTMLInputElement>, "size"> & {
+type Props = WithFormFieldValue<Omit<InputHTMLAttributes<HTMLInputElement>, "size">, string> & {
   prefix?: ReactNode;
   suffix?: ReactNode;
-  value?:string;
-  defaultValue?:string,
   status?: Status;
   size?: InputSize;
 };
