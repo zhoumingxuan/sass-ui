@@ -31,6 +31,7 @@ export default function Password({ status,
     <div className={`relative ${className}`}>
       <input
         type={visible ? "text" : "password"}
+        autoComplete="off"
         aria-invalid={status === 'error' ? true : undefined}
         className={[inputBase, inputSize[size], status ? inputStatus[status] : '', 'pr-2'].filter(Boolean).join(" ")}
         onChange={e=>{          

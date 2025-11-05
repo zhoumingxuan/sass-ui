@@ -52,6 +52,7 @@ export default function Slider({
     <div className="flex items-center gap-3">
       <input
         id={id}
+        autoComplete="off"
         type="range"
         disabled={disabled}
         min={min}

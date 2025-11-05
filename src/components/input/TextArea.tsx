@@ -22,6 +22,7 @@ export default function TextArea({ value, defaultValue, status, className = '', 
 
   return (
     <textarea
+      autoComplete="off"
       aria-invalid={status === 'error' ? true : undefined}
       className={[inputBase, inputSize[size], status ? inputStatus[status] : '', 'min-h-24 py-2 resize-y', className].filter(Boolean).join(' ')}
       value={currentValue}

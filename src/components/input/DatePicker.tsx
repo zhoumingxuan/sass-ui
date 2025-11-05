@@ -93,6 +93,7 @@ export default function DatePicker({ value, defaultValue, min, max, disabledDate
     <div ref={anchor} className={`relative ${className}`}>
       <input
         type="text"
+        autoComplete="off"
         placeholder="请选择日期"
         onFocus={() => setOpen(true)}
         onClick={() => setOpen(true)}

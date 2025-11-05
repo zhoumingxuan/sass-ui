@@ -321,6 +321,7 @@ export default function DateRangePicker({
           <div className="relative">
             <input
               type="text"
+              autoComplete="off"
               placeholder={'开始日期'}
               value={open ? draftStartInput : (sv ?? '')}
               onFocus={() => openPanel('start')}

@@ -65,6 +65,7 @@ export default function Text({
       <input
         id={id}
         type="text"
+        autoComplete="off"
         aria-invalid={status === "error" ? true : undefined}
         className={[
           inputBase,

@@ -179,6 +179,7 @@ export default function NumberInput({ className = "", value, defaultValue, step 
           ref={inputRef}
           id={id}
           type="text"
+          autoComplete="off"
           inputMode="decimal"
           aria-invalid={status === 'error' ? true : undefined}
           className={[

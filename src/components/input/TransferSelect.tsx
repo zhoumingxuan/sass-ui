@@ -790,6 +790,7 @@ export default function TransferSelect(props: TransferSelectProps) {
                   {showSearch && (
                     <div className="relative mb-2">
                       <input
+                        autoComplete="off"
                         type="text"
                         value={sourceQuery}
                         onChange={event => setSourceQuery(event.target.value)}
@@ -859,6 +860,7 @@ export default function TransferSelect(props: TransferSelectProps) {
                   {showSearch && (
                     <div className="relative mb-2">
                       <input
+                        autoComplete="off"
                         type="text"
                         value={targetQuery}
                         onChange={event => setTargetQuery(event.target.value)}
