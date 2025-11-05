@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CSSProperties } from "react";
-import { fieldLabel, helperText, inputBase, inputStatus, Status, inputSize } from "../formStyles";
+import { inputBase, inputStatus, Status, inputSize } from "../formStyles";
 import { X, Calendar as CalendarIcon } from "lucide-react";
 import Calendar from "./Calendar";
-import { addMonths, formatISO, parseISO } from "./utils";
+import { formatISO, parseISO } from "./utils";
 import type { FormValueProps } from "../formTypes";
 
 type Props = FormValueProps<string | undefined> & {
@@ -20,23 +20,18 @@ type Props = FormValueProps<string | undefined> & {
 
 export default function DatePicker({ value, defaultValue, min, max, disabledDate, clearable = true, onChange, className = '', status }: Props) {
 
-  const date = useMemo(() => {
-    if(typeof value !== 'undefined')
-    {
-        return  parseISO(value);
-    }
-    else if(typeof defaultValue !== 'undefined')
-    {
-         return parseISO(defaultValue);
-    }
-  }, [value,defaultValue]);
-
   const [open, setOpen] = useState(false);
-  const [month, setMonth] = useState<Date>(() => date ?? new Date());
+  const [date, setDate] = useState<Date | undefined>(parseISO(defaultValue));
   const pop = useRef<HTMLDivElement>(null);
   const anchor = useRef<HTMLDivElement>(null);
   const [mountNode, setMountNode] = useState<Element | null>(null);
   const [pos, setPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 0 });
+
+  useEffect(() => {
+    if (typeof value !== 'undefined' && value !== '') {
+      setDate(parseISO(value));
+    }
+  }, [value]);
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
@@ -82,12 +77,17 @@ export default function DatePicker({ value, defaultValue, min, max, disabledDate
       }
     }
     onChange?.(next);
+    setDate(parseISO(next));
   };
   const clear = () => commit(undefined);
 
-  useEffect(() => {
-    if (date) setMonth(date);
-  }, [date]);
+  const minDate = parseISO(min);
+  const maxDate = parseISO(max);
+  const fallbackValueDate = parseISO(value);
+  const fallbackDefaultDate = parseISO(defaultValue);
+  const calendarDefaultMonth = date ?? fallbackValueDate ?? fallbackDefaultDate ?? new Date();
+  const inputValue = formatISO(date);
+  const hasValue = inputValue !== '';
 
   return (
     <div ref={anchor} className={`relative ${className}`}>
@@ -96,22 +96,7 @@ export default function DatePicker({ value, defaultValue, min, max, disabledDate
         placeholder="请选择日期"
         onFocus={() => setOpen(true)}
         onClick={() => setOpen(true)}
-        onKeyDown={(e) => {
-          const applyMonth = (m: Date) => {
-            setMonth(m);
-            const y = m.getFullYear();
-            const mon = m.getMonth();
-            const baseDay = date?.getDate() ?? 1;
-            const lastDay = new Date(y, mon + 1, 0).getDate();
-            const nd = new Date(y, mon, Math.min(baseDay, lastDay));
-            commit(formatISO(nd));
-          };
-          if (e.key === 'ArrowDown') { setOpen(true); e.preventDefault(); }
-          if (e.key === 'Escape' && open) { setOpen(false); e.preventDefault(); }
-          if (e.key === 'PageUp') { applyMonth(addMonths(month, e.shiftKey ? -12 : -1)); setOpen(true); e.preventDefault(); }
-          if (e.key === 'PageDown') { applyMonth(addMonths(month, e.shiftKey ? 12 : 1)); setOpen(true); e.preventDefault(); }
-        }}
-        value={value}
+        value={inputValue}
         onChange={(e) => {
           const raw = e.target.value.trim();
           if (raw === '') { commit(undefined); return; }
@@ -125,9 +110,9 @@ export default function DatePicker({ value, defaultValue, min, max, disabledDate
           }
         }}
         aria-invalid={status === 'error' ? true : undefined}
-        className={[inputBase, inputSize['md'], status ? inputStatus[status] : '', 'text-left pr-10', !value ? 'text-gray-400' : 'text-gray-700'].filter(Boolean).join(' ')}
+        className={[inputBase, inputSize['md'], status ? inputStatus[status] : '', 'text-left pr-10', hasValue ? 'text-gray-700' : 'text-gray-400'].filter(Boolean).join(' ')}
       />
-      {clearable && value && (
+      {clearable && hasValue && (
         <button type="button" onClick={clear} aria-label="清空" className="absolute right-10 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500">
           <X size={16} aria-hidden />
         </button>
@@ -136,45 +121,17 @@ export default function DatePicker({ value, defaultValue, min, max, disabledDate
       {open && mountNode && createPortal(
         <div ref={pop} className="fixed z-[1200] rounded-lg border border-gray-200 bg-white p-2 shadow-elevation-1" style={{ top: pos.top, left: pos.left, minWidth: pos.width } as CSSProperties}>
           <Calendar
-            month={month}
             value={date}
-            min={parseISO(min)}
-            max={parseISO(max)}
+            defaultMonth={calendarDefaultMonth}
+            min={minDate}
+            max={maxDate}
             disabledDate={disabledDate}
             onSelect={(d) => { commit(formatISO(d)); setOpen(false); }}
-            onMonthChange={(m) => {
-              setMonth(m);
-              const y = m.getFullYear();
-              const mon = m.getMonth();
-              const baseDay = date?.getDate() ?? 1;
-              const lastDay = new Date(y, mon + 1, 0).getDate();
-              const tryDay = (day: number) => new Date(y, mon, day);
-              const minD = parseISO(min);
-              const maxD = parseISO(max);
-              const isInvalid = (d: Date) => (minD && d < minD) || (maxD && d > maxD) || !!disabledDate?.(d);
-              let nd: Date | undefined = tryDay(Math.min(baseDay, lastDay));
-              if (nd && isInvalid(nd)) {
-                nd = undefined;
-                for (let offset = 1; offset <= lastDay; offset++) {
-                  const down = baseDay - offset;
-                  const up = baseDay + offset;
-                  if (down >= 1) {
-                    const cand = tryDay(down);
-                    if (!isInvalid(cand)) { nd = cand; break; }
-                  }
-                  if (up <= lastDay) {
-                    const cand = tryDay(up);
-                    if (!isInvalid(cand)) { nd = cand; break; }
-                  }
-                }
-              }
-              if (nd) commit(formatISO(nd));
-            }}
           />
           <div className="mt-2 flex items-center justify-between px-1">
             <div className="text-[11px] text-gray-400">可选择年份、月份、日期</div>
             <div className="flex gap-2">
-              <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => { const d = new Date(); setMonth(d); commit(formatISO(d)); setOpen(false); }}>今天</button>
+              <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => { const d = new Date(); setDate(d); commit(formatISO(d)); setOpen(false); }}>今天</button>
               {clearable && <button type="button" className="h-7 rounded-md border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => { clear(); }}>清空</button>}
             </div>
           </div>

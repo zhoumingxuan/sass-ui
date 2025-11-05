@@ -434,7 +434,8 @@ export default function DateRangePicker({
               if (e.key === 'Escape') { e.preventDefault(); setOpen(false); }
             }}>
               <Calendar
-                month={left}
+                defaultMonth={left}
+                focusDate={active === 'start' ? focusDate : undefined}
                 rangeStart={draftStart}
                 rangeEnd={draftEnd}
                 min={minD}
@@ -442,7 +443,7 @@ export default function DateRangePicker({
                 disabledDate={isDisabledStartPick}
                 hoverDate={hoverDate}
                 onHoverDate={setHoverDate}
-                onMonthChange={(m) => {
+                onVisibleMonthChange={(m) => {
                   // 月/年变更：若有开始日期草稿，尽量保留“日”，并避开禁用规则；同时更新输入草稿
                   setLeft(m);
                   setActive('start');
@@ -478,7 +479,8 @@ export default function DateRangePicker({
                 panel={'start'}
               />
               <Calendar
-                month={right}
+                defaultMonth={right}
+                focusDate={active === 'end' ? focusDate : undefined}
                 rangeStart={draftStart}
                 rangeEnd={draftEnd}
                 min={minD}
@@ -486,7 +488,7 @@ export default function DateRangePicker({
                 disabledDate={isDisabledEndPick}
                 hoverDate={hoverDate}
                 onHoverDate={setHoverDate}
-                onMonthChange={(m) => {
+                onVisibleMonthChange={(m) => {
                   // 月/年变更：若有结束日期草稿，尽量保留“日”，并避开禁用规则；同时更新输入草稿
                   setRight(m);
                   setActive('end');

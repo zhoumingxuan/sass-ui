@@ -618,15 +618,17 @@ function FormItem({
   if (isHorizontal) {
     return (
       <div className={["mb-3", className].join(" ")} style={style}>
-        <div className="flex items-center gap-4">
+        <div className="grid grid-cols-[auto_1fr] grid-rows-[auto_auto] gap-1">
           <div
-            className="shrink-0 text-right flex items-center justify-end min-h-10"
+            className="text-right flex items-center justify-end min-h-10"
             style={{ width: labelWidth }}
           >
             {renderLabel()}
           </div>
-          <div className="flex-1">
-            <div className="min-h-10 flex items-center">{control}</div>
+          <div className="col-start-2 row-start-1 self-center">
+              {control}
+          </div>
+          <div className="col-start-2 row-start-2">
             {renderFeedback()}
           </div>
         </div>
